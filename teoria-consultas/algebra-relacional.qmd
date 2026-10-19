@@ -198,6 +198,9 @@ Estas igualdades son importantes porque una consulta puede tener muchas expresio
 ::: {.related-links}
 ## Conceptos relacionados
 
+- [Álgebra extendida, multiplicidades y planes lógicos](../procesamiento/planes-logicos.qmd#algebra-extendida)
+- [Reescritura con precondiciones](../procesamiento/reescritura.qmd)
+
 - [Atributos y relaciones nombradas](../fundamentos/relaciones-nombradas.qmd)
 - [Joins y operadores derivados](joins-operadores.qmd)
 - [Equivalencia y patrones de consulta](equivalencia-patrones.qmd)

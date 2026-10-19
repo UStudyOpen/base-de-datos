@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Reglas, hipótesis y contraejemplos para transformar planes sin alterar sus resultados.">
+
+<title>Reescritura y equivalencia de consultas – Bases de Datos</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../procesamiento/planes-logicos.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-9f43a20c679eb76b4703ca291990b4b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-fd39a65834ac5c5cea4c59ebc26eb91d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../styles/layout.css">
+<link rel="stylesheet" href="../styles/components.css">
+<link rel="stylesheet" href="../styles/concepts.css">
+<link rel="stylesheet" href="../styles/responsive.css">
+<link rel="stylesheet" href="../assets/css/visualizaciones.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../procesamiento/planes-logicos.html">Procesamiento de consultas</a></li><li class="breadcrumb-item"><a href="../procesamiento/reescritura.html">Reescritura y equivalencia</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bases de Datos</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inicio</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Fundamentos del modelo relacional</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/sistemas-rdbms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sistemas de bases de datos y RDBMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/modelo-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modelo relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/relaciones-nombradas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Atributos y relaciones nombradas</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Teoría de consultas</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/logica-primer-orden.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lógica de primer orden y consultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/algebra-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Álgebra relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/joins-operadores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joins y operadores derivados</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/equivalencia-patrones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Equivalencia y patrones de consulta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">SQL</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/ddl-dml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DDL y DML</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/consultas-basicas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SELECT-FROM-WHERE, joins y conjuntos</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/subconsultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Subconsultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/agregacion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Agregación, GROUP BY y HAVING</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/funciones-filtros.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Funciones, filtros, orden y dialectos</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Nulos e información incompleta</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/null-tres-valores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NULL y lógica de tres valores</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/informacion-incompleta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Información incompleta y mundos posibles</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/outer-joins.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outer joins</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
+ <span class="menu-text">Diseño relacional y dependencias</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/dependencias-llaves.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Redundancia, dependencias funcionales y llaves</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/implicacion-clausura.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Implicación y clausura</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/descomposiciones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Descomposiciones y pérdida de información</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/bcnf.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Forma normal de Boyce–Codd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/tercera-forma-normal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tercera forma normal y síntesis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false">
+ <span class="menu-text">Índices</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../indices/bplus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Árboles B+</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../indices/hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hashing</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Procesamiento de consultas</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../procesamiento/planes-logicos.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Planes lógicos y procesamiento</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../procesamiento/reescritura.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Reescritura y equivalencia</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul>
+  <li><a href="#transformar-conservando-el-significado" id="toc-transformar-conservando-el-significado" class="nav-link active" data-scroll-target="#transformar-conservando-el-significado">Transformar conservando el significado</a></li>
+  <li><a href="#equivalencia-formal" id="toc-equivalencia-formal" class="nav-link" data-scroll-target="#equivalencia-formal">Equivalencia formal</a></li>
+  <li><a href="#conmutatividad-y-asociatividad" id="toc-conmutatividad-y-asociatividad" class="nav-link" data-scroll-target="#conmutatividad-y-asociatividad">Conmutatividad y asociatividad</a>
+  <ul class="collapse">
+  <li><a href="#productos-y-joins" id="toc-productos-y-joins" class="nav-link" data-scroll-target="#productos-y-joins">Productos y joins</a></li>
+  <li><a href="#unión-e-intersección" id="toc-unión-e-intersección" class="nav-link" data-scroll-target="#unión-e-intersección">Unión e intersección</a></li>
+  </ul></li>
+  <li><a href="#distributividad-la-semántica-decide" id="toc-distributividad-la-semántica-decide" class="nav-link" data-scroll-target="#distributividad-la-semántica-decide">Distributividad: la semántica decide</a></li>
+  <li><a href="#selecciones-y-distribución" id="toc-selecciones-y-distribución" class="nav-link" data-scroll-target="#selecciones-y-distribución">Selecciones y distribución</a>
+  <ul class="collapse">
+  <li><a href="#conjunción" id="toc-conjunción" class="nav-link" data-scroll-target="#conjunción">Conjunción</a></li>
+  <li><a href="#sobre-otros-operadores" id="toc-sobre-otros-operadores" class="nav-link" data-scroll-target="#sobre-otros-operadores">Sobre otros operadores</a></li>
+  <li><a href="#disyuncion" id="toc-disyuncion" class="nav-link" data-scroll-target="#disyuncion">Disyunción y solapamiento</a></li>
+  </ul></li>
+  <li><a href="#push-selection" id="toc-push-selection" class="nav-link" data-scroll-target="#push-selection">Push-selection</a>
+  <ul class="collapse">
+  <li><a href="#procedimiento-para-filtros-conjuntivos" id="toc-procedimiento-para-filtros-conjuntivos" class="nav-link" data-scroll-target="#procedimiento-para-filtros-conjuntivos">Procedimiento para filtros conjuntivos</a></li>
+  </ul></li>
+  <li><a href="#de-producto-a-join" id="toc-de-producto-a-join" class="nav-link" data-scroll-target="#de-producto-a-join">De producto a join</a>
+  <ul class="collapse">
+  <li><a href="#conversión-local" id="toc-conversión-local" class="nav-link" data-scroll-target="#conversión-local">Conversión local</a></li>
+  </ul></li>
+  <li><a href="#push-projection" id="toc-push-projection" class="nav-link" data-scroll-target="#push-projection">Push-projection</a>
+  <ul class="collapse">
+  <li><a href="#propagar-atributos-necesarios-de-arriba-hacia-abajo" id="toc-propagar-atributos-necesarios-de-arriba-hacia-abajo" class="nav-link" data-scroll-target="#propagar-atributos-necesarios-de-arriba-hacia-abajo">Propagar atributos necesarios de arriba hacia abajo</a></li>
+  <li><a href="#proyección-prematura-tres-situaciones-distintas" id="toc-proyección-prematura-tres-situaciones-distintas" class="nav-link" data-scroll-target="#proyección-prematura-tres-situaciones-distintas">Proyección prematura: tres situaciones distintas</a></li>
+  </ul></li>
+  <li><a href="#duplicados" id="toc-duplicados" class="nav-link" data-scroll-target="#duplicados">Eliminación de duplicados</a>
+  <ul class="collapse">
+  <li><a href="#selección-y-deduplicación" id="toc-selección-y-deduplicación" class="nav-link" data-scroll-target="#selección-y-deduplicación">Selección y deduplicación</a></li>
+  <li><a href="#llaves-proyecciones-y-joins" id="toc-llaves-proyecciones-y-joins" class="nav-link" data-scroll-target="#llaves-proyecciones-y-joins">Llaves, proyecciones y joins</a></li>
+  <li><a href="#operadores-de-conjuntos" id="toc-operadores-de-conjuntos" class="nav-link" data-scroll-target="#operadores-de-conjuntos">Operadores de conjuntos</a></li>
+  </ul></li>
+  <li><a href="#agregacion" id="toc-agregacion" class="nav-link" data-scroll-target="#agregacion">Agregación y duplicados</a>
+  <ul class="collapse">
+  <li><a href="#deduplicar-la-entrada-no-siempre-es-válido" id="toc-deduplicar-la-entrada-no-siempre-es-válido" class="nav-link" data-scroll-target="#deduplicar-la-entrada-no-siempre-es-válido">Deduplicar la entrada no siempre es válido</a></li>
+  </ul></li>
+  <li><a href="#explorador-de-reescritura" id="toc-explorador-de-reescritura" class="nav-link" data-scroll-target="#explorador-de-reescritura">Explorador de reescritura</a></li>
+  <li><a href="#integrador" id="toc-integrador" class="nav-link" data-scroll-target="#integrador">Caso integrador: disyunción, join y DISTINCT</a></li>
+  <li><a href="#comprobar-precondiciones-de-una-regla" id="toc-comprobar-precondiciones-de-una-regla" class="nav-link" data-scroll-target="#comprobar-precondiciones-de-una-regla">Comprobar precondiciones de una regla</a>
+  <ul class="collapse">
+  <li><a href="#verificación-antes-de-aceptar-una-transformación" id="toc-verificación-antes-de-aceptar-una-transformación" class="nav-link" data-scroll-target="#verificación-antes-de-aceptar-una-transformación">Verificación antes de aceptar una transformación</a></li>
+  </ul></li>
+  <li><a href="#autoevaluación-con-solución" id="toc-autoevaluación-con-solución" class="nav-link" data-scroll-target="#autoevaluación-con-solución">Autoevaluación con solución</a>
+  <ul class="collapse">
+  <li><a href="#resumen" id="toc-resumen" class="nav-link" data-scroll-target="#resumen">Resumen</a></li>
+  </ul></li>
+  <li><a href="#conceptos-relacionados" id="toc-conceptos-relacionados" class="nav-link" data-scroll-target="#conceptos-relacionados">Conceptos relacionados</a></li>
+  <li><a href="#lecturas-de-apoyo" id="toc-lecturas-de-apoyo" class="nav-link" data-scroll-target="#lecturas-de-apoyo">Lecturas de apoyo</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../procesamiento/planes-logicos.html">Procesamiento de consultas</a></li><li class="breadcrumb-item"><a href="../procesamiento/reescritura.html">Reescritura y equivalencia</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Reescritura y equivalencia de consultas</h1>
+</div>
+
+<div>
+  <div class="description">
+    Reglas, hipótesis y contraejemplos para transformar planes sin alterar sus resultados.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="concept-section">
+<div class="concept-label">
+Conceptos clave
+</div>
+<div class="concept-tags">
+<span class="concept-tag">Equivalencia</span><span class="concept-tag">Push-selection</span><span class="concept-tag">Push-projection</span><span class="concept-tag">Precondiciones</span><span class="concept-tag">Duplicados</span>
+</div>
+</div>
+<section id="transformar-conservando-el-significado" class="level2">
+<h2 class="anchored" data-anchor-id="transformar-conservando-el-significado">Transformar conservando el significado</h2>
+<p>Dos planes pueden devolver exactamente las mismas filas y transportar cantidades muy distintas de datos intermedios. Filtrar estudiantes de una carrera antes de combinarlos con inscripciones suele evitar combinaciones que después se descartarían. La reescritura permite expresar esas alternativas, pero su primer requisito es <strong>preservar el resultado bajo hipótesis explícitas</strong>. La elección por costo pertenece al optimizador. <span class="citation" data-cites="ramakrishnan2003 silberschatz2020">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003</a>, secs. 15.3–15.4; <a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 16.2</a>)</span></p>
+<p>Esta página usa el <a href="../procesamiento/planes-logicos.html#algebra-extendida">álgebra extendida y las multiplicidades</a> ya definidas. El núcleo supone atributos no nulos, tipos compatibles y predicados puros, deterministas y totales. <span class="math inline">\(\pi\)</span> conserva ocurrencias; <span class="math inline">\(\uplus\)</span> suma multiplicidades. Cuando una regla usa conjuntos se indica expresamente. Los operadores con condición usan atributos calificados disjuntos, salvo el natural join.</p>
+</section>
+<section id="equivalencia-formal" class="level2">
+<h2 class="anchored" data-anchor-id="equivalencia-formal">Equivalencia formal</h2>
+<p>Para consultas con el mismo esquema de salida:</p>
+<p><span class="math display">\[
+Q_1\equiv Q_2
+\iff
+\forall D,\;Q_1(D)=Q_2(D).
+\]</span></p>
+<p>El cuantificador recorre las instancias finitas legales del esquema. Si la prueba presupone restricciones <span class="math inline">\(\Sigma\)</span>, se escribe <span class="math inline">\(Q_1\equiv_\Sigma Q_2\)</span> y se consideran solo instancias que las satisfacen. En conjuntos, igualdad significa el mismo soporte; en bolsas exige además</p>
+<p><span class="math display">\[
+\forall t,\quad m_{Q_1(D)}(t)=m_{Q_2(D)}(t).
+\]</span></p>
+<p>La coincidencia en una instancia permite comprobar un ejemplo, <strong>no demuestra una equivalencia universal</strong>. Una sola instancia que difiera sí basta para refutarla. Ninguna comparación de conjuntos de valores sustituye una comparación de frecuencias cuando SQL conserva duplicados.</p>
+<p>Diferenciamos tres juicios:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Clasificación</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Correcta</strong></td>
+<td>Conserva resultados para toda instancia bajo las hipótesis declaradas.</td>
+</tr>
+<tr class="even">
+<td><strong>Incorrecta</strong></td>
+<td>Está bien definida, pero existe una instancia con otro resultado.</td>
+</tr>
+<tr class="odd">
+<td><strong>Mal definida</strong></td>
+<td>Algún operador referencia atributos ausentes o viola requisitos estructurales; no tiene resultado en el modelo.</td>
+</tr>
+</tbody>
+</table>
+<p>Que el explorador rechace una regla por no soportarla no demuestra que sea incorrecta. Sus reglas tienen un dominio deliberadamente limitado. Las propuestas incorrectas se muestran como <strong>diagnósticos</strong>, sin aceptarlas como estados de una reescritura válida.</p>
+</section>
+<section id="conmutatividad-y-asociatividad" class="level2">
+<h2 class="anchored" data-anchor-id="conmutatividad-y-asociatividad">Conmutatividad y asociatividad</h2>
+<section id="productos-y-joins" class="level3">
+<h3 class="anchored" data-anchor-id="productos-y-joins">Productos y joins</h3>
+<p>Para esquemas disjuntos y tuplas nombradas:</p>
+<p><span class="math display">\[
+\begin{aligned}
+R\times S&amp;\equiv S\times R,\\
+(R\times S)\times T&amp;\equiv R\times(S\times T).
+\end{aligned}
+\]</span></p>
+<p><strong>Intuición y prueba.</strong> Ambos lados enumeran las mismas combinaciones; sus multiplicidades son <span class="math inline">\(m_R(r)m_S(s)\)</span> o <span class="math inline">\(m_R(r)m_S(s)m_T(t)\)</span>. La conmutatividad y asociatividad de la multiplicación justifican la igualdad. Por ejemplo, con <span class="math inline">\(R=[(a:1),(a:1)]\)</span>, <span class="math inline">\(S=[(b:2)]\)</span> y <span class="math inline">\(T=[(c:3)]\)</span>, ambos órdenes producen dos ocurrencias de <code>(1,2,3)</code>.</p>
+<p>El natural join también es conmutativo y asociativo: exige las mismas igualdades de atributos comunes y multiplica las mismas multiplicidades. Esto presupone nombres y dominios compatibles. Con un <span class="math inline">\(\theta\)</span>-join, la conmutatividad mantiene el mismo predicado sobre nombres; al reasociar deben redistribuirse los predicados donde sus atributos estén disponibles. Por ejemplo, si <span class="math inline">\(a\)</span> usa <span class="math inline">\(R,S\)</span> y <span class="math inline">\(b\)</span> usa <span class="math inline">\(S,T\)</span>:</p>
+<p><span class="math display">\[
+(R\bowtie_a S)\bowtie_b T
+\equiv R\bowtie_a(S\bowtie_b T).
+\]</span></p>
+<p>Ambos lados son <span class="math inline">\(\sigma_{a\land b}(R\times S\times T)\)</span>. Un predicado que usa <span class="math inline">\(R,T\)</span> debe permanecer donde estén presentes ambos; no puede colocarse dentro de <span class="math inline">\(S\bowtie T\)</span>. Las referencias ausentes harían la expresión mal definida. Estas reglas y sus condiciones se desarrollan en <span class="citation" data-cites="ramakrishnan2003">Ramakrishnan y Gehrke (<a href="#ref-ramakrishnan2003" role="doc-biblioref">2003</a>, secs. 15.3.3–15.3.4)</span>.</p>
+<p>En SQL, <code>SELECT *</code> puede presentar distinto orden de columnas al intercambiar lados; la igualdad de tuplas nombradas no conserva automáticamente ese orden de presentación. Hay que especificar la misma lista de salida. Tampoco se generalizan estas reglas a outer joins: <code>R LEFT JOIN S</code> preserva un lado concreto y puede producir un resultado distinto al invertirlo. Véanse <a href="../nulos/outer-joins.html">outer joins</a>.</p>
+</section>
+<section id="unión-e-intersección" class="level3">
+<h3 class="anchored" data-anchor-id="unión-e-intersección">Unión e intersección</h3>
+<p>Con esquemas compatibles, tanto <span class="math inline">\(\cup\)</span> de conjuntos como <span class="math inline">\(\uplus\)</span> de bolsas son conmutativas y asociativas. También lo es <span class="math inline">\(\cap\)</span> en ambas semánticas. En bolsas, las pruebas son las identidades de suma y mínimo:</p>
+<p><span class="math display">\[
+\begin{aligned}
+r+s&amp;=s+r,&amp; (r+s)+t&amp;=r+(s+t),\\
+\min(r,s)&amp;=\min(s,r),&amp; \min(\min(r,s),t)&amp;=\min(r,\min(s,t)).
+\end{aligned}
+\]</span></p>
+<p>Por ejemplo, si una tupla aparece <span class="math inline">\(2,1,3\)</span> veces en <span class="math inline">\(R,S,T\)</span>, cualquiera de las dos asociaciones de unión aditiva da 6 y cualquiera de intersección da 1. La diferencia no es conmutativa: con <span class="math inline">\(R=[a]\)</span>, <span class="math inline">\(S=[]\)</span>, <span class="math inline">\(R\setminus S=[a]\)</span> y <span class="math inline">\(S\setminus R=[]\)</span>. Uniones entre esquemas incompatibles no constituyen contraejemplos a la equivalencia: están mal definidas.</p>
+</section>
+</section>
+<section id="distributividad-la-semántica-decide" class="level2">
+<h2 class="anchored" data-anchor-id="distributividad-la-semántica-decide">Distributividad: la semántica decide</h2>
+<p>En conjuntos compatibles:</p>
+<p><span class="math display">\[
+R\cap(S\cup T)\equiv(R\cap S)\cup(R\cap T).
+\]</span></p>
+<p><strong>Justificación.</strong> Una tupla pertenece a la izquierda si pertenece a <span class="math inline">\(R\)</span> y a alguno de <span class="math inline">\(S,T\)</span>; es precisamente la condición de pertenencia de la derecha. Con <span class="math inline">\(R=\{a,b\}\)</span>, <span class="math inline">\(S=\{a\}\)</span> y <span class="math inline">\(T=\{b\}\)</span>, ambos resultados son <span class="math inline">\(\{a,b\}\)</span>.</p>
+<p>En bolsas, reemplazar <span class="math inline">\(\cup\)</span> por <span class="math inline">\(\uplus\)</span> exigiría para toda tupla:</p>
+<p><span class="math display">\[
+\min(r,s+t)=\min(r,s)+\min(r,t).
+\]</span></p>
+<p>Es falso. El contraejemplo mínimo <span class="math inline">\(R=S=T=[a]\)</span> da multiplicidad <strong>1</strong> a la izquierda y <strong>2</strong> a la derecha. El lado derecho cuenta dos veces la parte de <span class="math inline">\(R\)</span> que coincide con ambas entradas. Si los soportes de <span class="math inline">\(S,T\)</span> son disjuntos, a lo sumo uno de <span class="math inline">\(s,t\)</span> es positivo y la igualdad sí se cumple. También basta que <span class="math inline">\(r\ge s+t\)</span> en cada tupla, pero no es una condición garantizada por la sintaxis.</p>
+<p>Aplicar <span class="math inline">\(\delta\)</span> exterior a ambos lados iguala sus soportes, por lo que restaura la igualdad de esos resultados deduplicados. No convierte las expresiones interiores en bolsas equivalentes. El explorador incluye este contraejemplo y su reparación con deduplicación final.</p>
+</section>
+<section id="selecciones-y-distribución" class="level2">
+<h2 class="anchored" data-anchor-id="selecciones-y-distribución">Selecciones y distribución</h2>
+<section id="conjunción" class="level3">
+<h3 class="anchored" data-anchor-id="conjunción">Conjunción</h3>
+<p>Para predicados definidos sobre <span class="math inline">\(R\)</span>:</p>
+<p><span class="math display">\[
+\sigma_{p\land q}(R)
+\equiv\sigma_p(\sigma_q(R))
+\equiv\sigma_q(\sigma_p(R)).
+\]</span></p>
+<p><strong>Prueba:</strong> <span class="math inline">\([p(t)\land q(t)]m_R(t)=[p(t)][q(t)]m_R(t)\)</span>. Si <span class="math inline">\(R=[1,1,3]\)</span>, <span class="math inline">\(p:(x&gt;0)\)</span> y <span class="math inline">\(q:(x&lt;2)\)</span>, las tres expresiones devuelven dos ocurrencias de 1. La pureza y totalidad excluyen funciones volátiles o expresiones cuyo error dependa del orden de evaluación; no extrapolamos esta prueba a esos casos.</p>
+</section>
+<section id="sobre-otros-operadores" class="level3">
+<h3 class="anchored" data-anchor-id="sobre-otros-operadores">Sobre otros operadores</h3>
+<p>Las siguientes reglas conservan multiplicidades con esquemas compatibles. <span class="math inline">\(att(p)\)</span> reúne todos los atributos referenciados por <span class="math inline">\(p\)</span>.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operador</th>
+<th>Equivalencia</th>
+<th>Hipótesis</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Producto</td>
+<td><span class="math inline">\(\sigma_p(R\times S)\equiv\sigma_p(R)\times S\)</span></td>
+<td><span class="math inline">\(att(p)\subseteq att(R)\)</span>.</td>
+</tr>
+<tr class="even">
+<td>Join interno</td>
+<td><span class="math inline">\(\sigma_p(R\bowtie_\theta S)\equiv\sigma_p(R)\bowtie_\theta S\)</span></td>
+<td><span class="math inline">\(att(p)\subseteq att(R)\)</span>. También para natural join con referencias compatibles.</td>
+</tr>
+<tr class="odd">
+<td>Unión aditiva</td>
+<td><span class="math inline">\(\sigma_p(R\uplus S)\equiv\sigma_p(R)\uplus\sigma_p(S)\)</span></td>
+<td><span class="math inline">\(p\)</span> se interpreta igual en ambos esquemas.</td>
+</tr>
+<tr class="even">
+<td>Intersección</td>
+<td><span class="math inline">\(\sigma_p(R\cap S)\equiv\sigma_p(R)\cap\sigma_p(S)\equiv\sigma_p(R)\cap S\)</span></td>
+<td>Ambos operandos ofrecen los atributos de <span class="math inline">\(p\)</span>.</td>
+</tr>
+<tr class="odd">
+<td>Diferencia</td>
+<td><span class="math inline">\(\sigma_p(R\setminus S)\equiv\sigma_p(R)\setminus\sigma_p(S)\equiv\sigma_p(R)\setminus S\)</span></td>
+<td>Ambos operandos ofrecen los atributos de <span class="math inline">\(p\)</span>.</td>
+</tr>
+</tbody>
+</table>
+<p>Las variantes de conjuntos también son válidas. <strong>Prueba:</strong> en producto y join, el indicador <span class="math inline">\([p]\)</span> afecta solo a la componente <span class="math inline">\(r\)</span>, por lo que puede multiplicarse antes de combinar. En unión se usa <span class="math inline">\(h(r+s)=hr+hs\)</span>, con <span class="math inline">\(h\in\{0,1\}\)</span>. En intersección y diferencia se comprueban los dos valores de <span class="math inline">\(h\)</span>: si es uno se conserva la fórmula original; si es cero, el lado izquierdo es cero y las expresiones de la derecha también.</p>
+<p><strong>Ejemplo común:</strong> <span class="math inline">\(R=[1,1,2]\)</span>, <span class="math inline">\(S=[1,2,2]\)</span>, <span class="math inline">\(p:(x=1)\)</span>. La unión filtrada tiene multiplicidad 3 para 1, la intersección filtrada tiene 1 y la diferencia filtrada tiene 1; se obtienen exactamente esos valores filtrando como indica la tabla. Para producto, con <span class="math inline">\(R(a)=[1,2]\)</span> y <span class="math inline">\(S(b)=[7]\)</span>, filtrar <span class="math inline">\(a=1\)</span> antes o después deja solo <code>(1,7)</code>.</p>
+<p><strong>Límite indispensable:</strong> si <span class="math inline">\(p:(a=b)\)</span>, no puede empujarse solo a <span class="math inline">\(R(a)\)</span>; falta <span class="math inline">\(b\)</span>. En unión, filtrar únicamente una rama tampoco es válido: <span class="math inline">\(R=[]\)</span>, <span class="math inline">\(S=[2]\)</span>, <span class="math inline">\(p:(x=1)\)</span> da vacío al filtrar la unión, pero <span class="math inline">\(\sigma_p(R)\uplus S=[2]\)</span>.</p>
+</section>
+<section id="disyuncion" class="level3">
+<h3 class="anchored" data-anchor-id="disyuncion">Disyunción y solapamiento</h3>
+<p>En conjuntos:</p>
+<p><span class="math display">\[
+\sigma_{p\lor q}(R)\equiv\sigma_p(R)\cup\sigma_q(R).
+\]</span></p>
+<p>En bolsas, con unión aditiva, una tupla que satisface ambos predicados se cuenta dos veces a la derecha. Sea <span class="math inline">\(R=[(x:2)]\)</span>, <span class="math inline">\(p:(x&gt;0)\)</span> y <span class="math inline">\(q:(x&lt;3)\)</span>: la selección devuelve una ocurrencia y <span class="math inline">\(\sigma_p(R)\uplus\sigma_q(R)\)</span> devuelve dos.</p>
+<p>La igualdad de bolsas es válida si los predicados son mutuamente excluyentes sobre las instancias admitidas. En el núcleo clásico también puede usarse</p>
+<p><span class="math display">\[
+\sigma_p(R)\uplus\sigma_{q\land\neg p}(R).
+\]</span></p>
+<p>Ambas ramas son disjuntas. Con nulos no basta trasladar esta partición mecánicamente a <code>NOT p</code>: si <span class="math inline">\(p\)</span> es <code>UNKNOWN</code> y <span class="math inline">\(q\)</span> es <code>TRUE</code>, <code>q AND NOT p</code> no es <code>TRUE</code>. La <a href="../nulos/null-tres-valores.html">lógica de tres valores</a> exige otro análisis.</p>
+<p><code>UNION</code> elimina todas las repeticiones, incluso las que ya existían legítimamente en <span class="math inline">\(R\)</span>. Por ello sustituir <code>UNION ALL</code> por <code>UNION</code> tampoco conserva automáticamente la selección como bolsa. Sí es correcto comparar <strong>resultados deduplicados</strong>:</p>
+<p><span class="math display">\[
+\delta(\sigma_{p\lor q}(R))
+\equiv\delta(\sigma_p(R)\uplus\sigma_q(R)).
+\]</span></p>
+</section>
+</section>
+<section id="push-selection" class="level2">
+<h2 class="anchored" data-anchor-id="push-selection">Push-selection</h2>
+<p>La idea es evaluar cada filtro en la subexpresión más baja que tenga sus atributos, sin atravesar operadores que alteren la prueba de equivalencia. Un filtro de una sola relación puede llegar a esa rama; una condición entre dos relaciones debe esperar hasta que estén combinadas.</p>
+<section id="procedimiento-para-filtros-conjuntivos" class="level3 db-algorithm">
+<h3 class="anchored" data-anchor-id="procedimiento-para-filtros-conjuntivos">Procedimiento para filtros conjuntivos</h3>
+<p><strong>Entrada:</strong> árbol válido de productos y joins internos con una selección conjuntiva. <strong>Salida:</strong> árbol equivalente con filtros locales adelantados. <strong>Precondiciones:</strong> predicados del núcleo y esquemas conocidos.</p>
+<pre class="text"><code>separar la condición en sus términos conjuntivos
+para cada término p:
+  mientras el nodo sea producto o join interno:
+    si un hijo contiene todos los atributos de p: bajar a ese hijo
+    de otro modo: detener el descenso
+  colocar σ p sobre la subexpresión alcanzada
+mantener los términos que requieren ambos lados sobre su combinación
+validar esquemas y conservar todos los términos originales</code></pre>
+<p><strong>Corrección:</strong> cada descenso usa una regla de la tabla anterior; por composición, toda la secuencia conserva multiplicidades. Con <span class="math inline">\(n\)</span> nodos y <span class="math inline">\(k\)</span> términos, un descenso ingenuo cuesta a lo sumo <span class="math inline">\(O(kn)\)</span> consultas de inclusión de atributos, aparte del costo de representar conjuntos. Es un costo de transformar el árbol, no de ejecutar la consulta.</p>
+</section>
+<p>En el <a href="../procesamiento/planes-logicos.html#ejemplo">ejemplo transversal</a>, primero se identifica <span class="math inline">\(e.rut=i.rut\)</span>, luego se forman los joins, y finalmente se empujan <code>e.carrera = 'Computación'</code> e <code>i.semestre = '2026-2'</code> a sus ramas. Antes de filtrar, los joins producen 4 ocurrencias; después de adelantar esos filtros, cada join produce 2. Adelantar una proyección reduce atributos transportados; adelantar una selección puede reducir filas.</p>
+<p><strong>Contraejemplo con outer join:</strong> sea <span class="math inline">\(R(id)=[1]\)</span>, <span class="math inline">\(S(id,v)=[]\)</span>. Filtrar <code>S.v = 1</code> después de un left join da vacío porque la fila extendida tiene <code>NULL</code>. Filtrar <span class="math inline">\(S\)</span> antes y quitar el filtro superior deja <code>(1,NULL)</code>. La transformación cambia el resultado aunque el atributo exista donde se filtra. Tampoco desplazamos filtros a través de límites, ventanas o agregaciones arbitrarias. Un filtro sobre atributos de agrupación puede seleccionar grupos completos antes de agrupar bajo las condiciones de <a href="../sql/agregacion.html#cuándo-mover-una-condición-de-having-a-where">agregación</a>; uno sobre <code>SUM</code> no es un filtro de filas.</p>
+</section>
+<section id="de-producto-a-join" class="level2">
+<h2 class="anchored" data-anchor-id="de-producto-a-join">De producto a join</h2>
+<p>La equivalencia</p>
+<p><span class="math display">\[
+\sigma_\theta(R\times S)\equiv R\bowtie_\theta S
+\]</span></p>
+<p>es la definición de <span class="math inline">\(\theta\)</span>-join. La hipótesis es que el predicado esté definido sobre la unión disjunta de los esquemas. Cada pareja recibe multiplicidad <span class="math inline">\([\theta(r,s)]m_R(r)m_S(s)\)</span> en ambos lados. Por ejemplo, <span class="math inline">\(\sigma_{e.rut=i.rut}(E\times I)\)</span> se convierte en <span class="math inline">\(E\bowtie_{e.rut=i.rut}I\)</span>; al ser igualdad entre atributos es además un equijoin.</p>
+<section id="conversión-local" class="level3 db-algorithm">
+<h3 class="anchored" data-anchor-id="conversión-local">Conversión local</h3>
+<p><strong>Entrada:</strong> una selección sobre un producto binario. <strong>Salida:</strong> un join con el mismo predicado y los mismos hijos.</p>
+<pre class="text"><code>comprobar que el nodo sea σ θ y su hijo sea × (R, S)
+comprobar que todos los atributos de θ estén en att(R) ∪ att(S)
+crear ⋈ θ (R, S), conservando el esquema de salida
+si θ solo usa un lado, preferir primero push-selection</code></pre>
+<p>La conversión local inspecciona el nodo y sus referencias; un recorrido que busca oportunidades visita el árbol completo. No se estima aquí ningún costo físico del join.</p>
+</section>
+<p>No se sustituye por natural join sin demostrar que su conjunto de igualdades coincide con el solicitado. Por ejemplo, <code>Estudiante(rut,nombre)</code> y <code>Inscribe(rut,nombre)</code> podrían compartir un atributo <code>nombre</code> con significado distinto: un natural join exigiría también igualdad de esos nombres. Con <code>(r1,Alex)</code> y <code>(r1,Inscripción A)</code>, el equijoin por <code>rut</code> produce una fila y el natural join produce cero.</p>
+</section>
+<section id="push-projection" class="level2">
+<h2 class="anchored" data-anchor-id="push-projection">Push-projection</h2>
+<p>Reducir columnas disminuye la anchura de las tuplas intermedias. Para <span class="math inline">\(X\)</span> como salida y un join con condición <span class="math inline">\(\theta\)</span>, sean</p>
+<p><span class="math display">\[
+\begin{aligned}
+M&amp;=(X\cup att(\theta))\cap att(R),\\
+N&amp;=(X\cup att(\theta))\cap att(S).
+\end{aligned}
+\]</span></p>
+<p>Entonces, para atributos disjuntos y proyección de bolsas:</p>
+<p><span class="math display">\[
+\pi_X(R\bowtie_\theta S)
+\equiv\pi_X(\pi_M(R)\bowtie_\theta\pi_N(S)).
+\]</span></p>
+<p>Se mantiene la proyección exterior porque las ramas conservan atributos adicionales para el join. Con natural join se deben conservar <strong>todos los atributos compartidos que definen coincidencias</strong>, incluso si no están en la salida final. No se deduplican las proyecciones de bolsas. <span class="citation" data-cites="ramakrishnan2003 silberschatz2020">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 15.3.4</a>; <a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 16.2.1</a>)</span></p>
+<p><strong>Prueba.</strong> Cada ocurrencia original mantiene los valores necesarios para decidir coincidencias y producir la salida. Las ocurrencias que confluyen en una proyección se suman; al combinar, la distributividad de la multiplicación sobre esas sumas conserva exactamente la multiplicidad final. En conjuntos, la prueba correspondiente considera existencia de testigos.</p>
+<p>En el ejemplo principal se conservan <code>e.rut,e.nombre</code>, <code>i.rut,i.codigo</code> y <code>c.codigo,c.nombre</code> después de sus respectivos filtros. <code>e.carrera</code> e <code>i.semestre</code> deben mantenerse <strong>hasta evaluar</strong> sus selecciones. En ningún momento se elimina <code>i.rut</code> antes de combinar con estudiantes.</p>
+<section id="propagar-atributos-necesarios-de-arriba-hacia-abajo" class="level3 db-algorithm">
+<h3 class="anchored" data-anchor-id="propagar-atributos-necesarios-de-arriba-hacia-abajo">Propagar atributos necesarios de arriba hacia abajo</h3>
+<p><strong>Entrada:</strong> árbol válido y atributos requeridos por su consumidor. <strong>Salida:</strong> árbol equivalente, con proyecciones seguras.</p>
+<pre class="text"><code>NECESARIOS(nodo, salida):
+  en π X: pedir X al hijo; conservar la proyección exterior
+  en σ p: pedir salida ∪ att(p) al hijo
+  en ⋈ θ o ×:
+    requeridos ← salida ∪ att(θ)
+    pedir a cada hijo la intersección con su esquema
+  en ρ: traducir los nombres requeridos al esquema anterior
+  en δ: conservar el esquema completo de entrada como barrera prudente
+  en γ: conservar agrupadores y argumentos de agregados
+  en operadores no soportados: detener el descenso
+  validar las referencias antes de aceptar cada proyección</code></pre>
+<p><strong>Corrección:</strong> por inducción sobre el árbol, cada operador conserva sus argumentos y el consumidor recibe los valores que necesita, con sus frecuencias. El motor aplica la regla a proyecciones sobre joins y selecciones explícitas; no pretende optimizar todos los operadores. Un recorrido propaga conjuntos de atributos por las aristas; su costo depende del número de nodos y del tamaño de esos conjuntos.</p>
+</section>
+<section id="proyección-prematura-tres-situaciones-distintas" class="level3">
+<h3 class="anchored" data-anchor-id="proyección-prematura-tres-situaciones-distintas">Proyección prematura: tres situaciones distintas</h3>
+<p>Con <span class="math inline">\(E=[(rut:r1,nombre:Alex)]\)</span>, <span class="math inline">\(I=[(rut:r1,codigo:BD101)]\)</span>:</p>
+<ol type="1">
+<li>Conservar <code>e.rut</code> e <code>i.rut</code> hasta el join es <strong>correcto</strong>.</li>
+<li>Proyectar solo <code>e.nombre</code> y mantener la condición <code>e.rut = i.rut</code> es <strong>mal definido</strong>: <code>e.rut</code> ya no existe. No hay un «resultado diferente» que comparar.</li>
+<li>Eliminar además la condición para poder ejecutar un producto produce otra consulta <strong>incorrecta</strong>. Con estudiantes <code>r1:Alex</code>, <code>r2:Sol</code> y una inscripción de <code>r1</code>, aparecería también Sol.</li>
+</ol>
+<p>Proyectar antes de intersección o diferencia no sigue una regla general: con <span class="math inline">\(R(A,B)=[(1,2)]\)</span>, <span class="math inline">\(S(A,B)=[(1,3)]\)</span>, <span class="math inline">\(\pi_A(R\cap S)\)</span> es vacío pero <span class="math inline">\(\pi_A(R)\cap\pi_A(S)=[1]\)</span>. La pérdida de información puede hacer coincidir tuplas que antes eran distintas.</p>
+</section>
+</section>
+<section id="duplicados" class="level2">
+<h2 class="anchored" data-anchor-id="duplicados">Eliminación de duplicados</h2>
+<p>La igualdad <span class="math inline">\(\delta(R)=R\)</span> vale exactamente cuando toda tupla de <span class="math inline">\(R\)</span> tiene multiplicidad a lo sumo uno. Una llave garantizada y conservada en <strong>ese resultado</strong> basta para probarlo; la mera existencia de una llave en una hoja no basta.</p>
+<section id="selección-y-deduplicación" class="level3">
+<h3 class="anchored" data-anchor-id="selección-y-deduplicación">Selección y deduplicación</h3>
+<p>Para predicados del núcleo:</p>
+<p><span class="math display">\[
+\delta(\sigma_p(R))\equiv\sigma_p(\delta(R)).
+\]</span></p>
+<p>La prueba es <span class="math inline">\([m_R(t)&gt;0][p(t)]\)</span> en ambos lados. Por ejemplo, <span class="math inline">\(R=[1,1,2]\)</span>, <span class="math inline">\(p:(x=1)\)</span> produce una ocurrencia de 1 en ambos órdenes. Se puede filtrar antes para reducir la entrada a deduplicar, sin prometer un tiempo de ejecución universal.</p>
+</section>
+<section id="llaves-proyecciones-y-joins" class="level3">
+<h3 class="anchored" data-anchor-id="llaves-proyecciones-y-joins">Llaves, proyecciones y joins</h3>
+<p>Con <code>rut</code> como llave, la tabla <code>Estudiante</code> no tiene filas completas repetidas. Pero con <code>r1:Alex:Computación</code> y <code>r2:Alex:Computación</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> carrera</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> Estudiante;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<p>devuelve una carrera; sin <code>DISTINCT</code> devuelve dos ocurrencias. La proyección ha perdido la llave. Conservar <code>(rut,carrera)</code> sí conserva la unicidad en una proyección directa de esa tabla. Un join posterior puede repetir esa pareja si tiene varios compañeros; hay que volver a justificar la propiedad en el resultado actual.</p>
+<p>Por ejemplo, un estudiante con dos inscripciones produce dos ocurrencias de su nombre al proyectar solo el lado estudiante del join. Que su identificador sea llave de <code>Estudiante</code> no impide ese efecto. Si se demuestra que cada fila tiene exactamente un compañero y se conserva una llave, se puede justificar una simplificación adicional; una clave foránea por sí sola no garantiza esa cardinalidad en las dos direcciones.</p>
+<p>Para productos y joins completos, sin proyección intermedia:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\delta(R\times S)&amp;\equiv\delta(R)\times\delta(S),\\
+\delta(R\bowtie_\theta S)&amp;\equiv\delta(R)\bowtie_\theta\delta(S).
+\end{aligned}
+\]</span></p>
+<p>También vale para natural join. En cada tupla compatible, ambos lados tienen multiplicidad uno si y solo si ambas restricciones aparecen en sus entradas y la condición se cumple. Por ejemplo, dos copias de <span class="math inline">\(r\)</span> y tres de <span class="math inline">\(s\)</span> generan seis copias de la pareja; cualquiera de los dos lados de la identidad da una. <strong>Una proyección posterior</strong> puede volver a generar repeticiones, por lo que no se retira automáticamente un <span class="math inline">\(\delta\)</span> situado después de ella.</p>
+</section>
+<section id="operadores-de-conjuntos" class="level3">
+<h3 class="anchored" data-anchor-id="operadores-de-conjuntos">Operadores de conjuntos</h3>
+<p><span class="math inline">\(\delta(\delta(R))=\delta(R)\)</span> y el resultado de un operador que elimina duplicados ya es un conjunto. Para unión aditiva:</p>
+<p><span class="math display">\[
+\delta(R\uplus S)
+\equiv\delta(\delta(R)\uplus\delta(S)).
+\]</span></p>
+<p>El <span class="math inline">\(\delta\)</span> exterior de la derecha es necesario: con <span class="math inline">\(R=S=[a]\)</span>, <span class="math inline">\(\delta(R)\uplus\delta(S)\)</span> tiene dos ocurrencias. También vale <span class="math inline">\(\delta(R\cap S)=\delta(R)\cap\delta(S)\)</span> en la intersección de bolsas. En cambio, no puede conmutarse deduplicación libremente con diferencia: <span class="math inline">\(R=[a,a]\)</span>, <span class="math inline">\(S=[a]\)</span> da <span class="math inline">\(\delta(R\setminus S)=[a]\)</span>, pero <span class="math inline">\(\delta(R)\setminus\delta(S)=[]\)</span>.</p>
+</section>
+</section>
+<section id="agregacion" class="level2">
+<h2 class="anchored" data-anchor-id="agregacion">Agregación y duplicados</h2>
+<p>Nuestra <span class="math inline">\(\gamma_{G,L}\)</span> conserva todos los atributos agrupadores y produce una fila por grupo. Por tanto, dos filas de salida de grupos distintos difieren en <span class="math inline">\(G\)</span>; con agrupación global solo existe una fila. Bajo estas convenciones:</p>
+<p><span class="math display">\[
+\delta(\gamma_{G,L}(R))\equiv\gamma_{G,L}(R).
+\]</span></p>
+<p>Si después se proyectan fuera los agrupadores, el argumento deja de servir: dos grupos diferentes podrían tener la misma suma. Por ejemplo, <code>(carrera:A,n:2)</code> y <code>(carrera:B,n:2)</code> son distintos; <span class="math inline">\(\pi_n\)</span> produce dos copias de 2. No se elimina <span class="math inline">\(\delta\)</span> después de esa proyección sin otra prueba.</p>
+<section id="deduplicar-la-entrada-no-siempre-es-válido" class="level3">
+<h3 class="anchored" data-anchor-id="deduplicar-la-entrada-no-siempre-es-válido">Deduplicar la entrada no siempre es válido</h3>
+<p>Si <span class="math inline">\(L\)</span> solo contiene <code>MIN</code> y <code>MAX</code> sobre valores del grupo:</p>
+<p><span class="math display">\[
+\gamma_{G,L}(\delta(R))\equiv\gamma_{G,L}(R).
+\]</span></p>
+<p><strong>Prueba:</strong> deduplicar filas completas conserva cada grupo no vacío y cada valor que podía alcanzar un extremo. La convención sobre entrada vacía se conserva también. Agregar un <code>COUNT</code> o <code>SUM</code> a <span class="math inline">\(L\)</span> impide usar este argumento como regla general. <span class="citation" data-cites="garciamolina2009">(<a href="#ref-garciamolina2009" role="doc-biblioref">Garcia-Molina et&nbsp;al. 2009, sec. 16.2.7</a>)</span></p>
+<p>El caso numérico mínimo que contrasta varias funciones es:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="p5-agregados"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="p5-agregados-1"><a href="#p5-agregados-1" aria-hidden="true" tabindex="-1"></a><span class="kw">WITH</span> R(g,v) <span class="kw">AS</span> (<span class="kw">VALUES</span> (<span class="st">'A'</span>,<span class="dv">2</span>),(<span class="st">'A'</span>,<span class="dv">2</span>),(<span class="st">'A'</span>,<span class="dv">8</span>))</span>
+<span id="p5-agregados-2"><a href="#p5-agregados-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> g, <span class="fu">MIN</span>(v), <span class="fu">MAX</span>(v), <span class="fu">SUM</span>(v), <span class="fu">COUNT</span>(<span class="op">*</span>), <span class="fu">AVG</span>(v)</span>
+<span id="p5-agregados-3"><a href="#p5-agregados-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> R <span class="kw">GROUP</span> <span class="kw">BY</span> g;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Devuelve <code>A, 2, 8, 12, 3, 4.0</code>. Si se reemplaza <code>FROM R</code> por una subconsulta que seleccione los pares <code>(g,v)</code> distintos de <code>R</code>, devuelve <code>A, 2, 8, 10, 2, 5.0</code>: <code>MIN</code> y <code>MAX</code> se conservan; suma, conteo y promedio cambian.</p>
+<p>Las filas <code>(id:1,g:A,v:2)</code> y <code>(id:2,g:A,v:2)</code> <strong>no son duplicadas completas</strong>. Deduplicar esas filas no cambia nada, mientras que proyectar <code>(g,v)</code> y deduplicar después sí cambia el conteo y la suma. Si una llave completa se conserva antes de <span class="math inline">\(\delta\)</span>, retirarlo es seguro incluso antes de <code>SUM</code>: la justificación es la unicidad, no una propiedad de <code>SUM</code>.</p>
+</section>
+</section>
+<section id="explorador-de-reescritura" class="level2">
+<h2 class="anchored" data-anchor-id="explorador-de-reescritura">Explorador de reescritura</h2>
+<p>El recorrido válido reproduce las cinco etapas del <a href="../procesamiento/planes-logicos.html#ejemplo">ejemplo completo</a>. Los otros recorridos examinan disyunción, pérdida de atributos, eliminación de <code>DISTINCT</code>, distributividad y agregación. En cada paso se comparan el plan anterior y el propuesto, con una tabla de multiplicidades. Los nodos con borde discontinuo marcan cambios; cada árbol tiene además una descripción textual con sus esquemas y requisitos.</p>
+<div class="db-viz" data-db-viz="query-plan" data-query-example="disyuncion">
+<div class="db-viz-fallback">
+<p><strong>Diagnóstico estático: disyunción.</strong></p>
+<p>Con <span class="math inline">\(R(x)=[2]\)</span>, <span class="math inline">\(p:(x&gt;0)\)</span> y <span class="math inline">\(q:(x&lt;3)\)</span>:</p>
+<pre class="text"><code>Original                       Propuesta
+σ p ∨ q                        ⊎
+└─ R                           ├─ σ p
+                               │  └─ R
+                               └─ σ q
+                                  └─ R</code></pre>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Tupla</th>
+<th style="text-align: right;">Original</th>
+<th style="text-align: right;">Propuesta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>(x:2)</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Paso 0:</strong> la selección original está bien definida y conserva una ocurrencia. <strong>Paso 1:</strong> repartir sobre unión aditiva es incorrecto porque ambas ramas aceptan la misma ocurrencia. <strong>Paso 2:</strong> un <span class="math inline">\(\delta\)</span> exterior en <strong>ambos</strong> planes iguala los soportes; los resultados interiores siguen sin ser equivalentes como bolsas.</p>
+<p>Para un segundo diagnóstico, proyectar <span class="math inline">\(E(e.rut,e.nombre)\)</span> a <code>e.nombre</code> antes de <span class="math inline">\(E\bowtie_{e.rut=i.rut}I\)</span> elimina el atributo que exige el join. El plan es <strong>mal definido</strong>; no se corrige quitando silenciosamente el predicado. La secuencia válida completa y sus cinco árboles están disponibles en <a href="../procesamiento/planes-logicos.html#ejemplo">planes lógicos</a>, también al imprimir y sin JavaScript.</p>
+</div>
+</div>
+<p>La tabla es un testigo finito. Las justificaciones universales son las pruebas de esta página. El evaluador conserva ocurrencias y muestra las frecuencias, sin depender del orden accidental de las filas. En el caso mal definido se muestran el atributo ausente, el nodo que lo requiere y el resultado del plan anterior, sin inventar un resultado de la propuesta.</p>
+</section>
+<section id="integrador" class="level2">
+<h2 class="anchored" data-anchor-id="integrador">Caso integrador: disyunción, join y DISTINCT</h2>
+<p>Consideremos esta consulta adicional sobre los mismos datos no nulos:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="p5-avanzado"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="p5-avanzado-1"><a href="#p5-avanzado-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> e.nombre <span class="kw">AS</span> estudiante</span>
+<span id="p5-avanzado-2"><a href="#p5-avanzado-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> Estudiante <span class="kw">AS</span> e</span>
+<span id="p5-avanzado-3"><a href="#p5-avanzado-3" aria-hidden="true" tabindex="-1"></a><span class="kw">JOIN</span> Inscribe <span class="kw">AS</span> i <span class="kw">ON</span> e.rut <span class="op">=</span> i.rut</span>
+<span id="p5-avanzado-4"><a href="#p5-avanzado-4" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> (e.carrera <span class="op">=</span> <span class="st">'Computación'</span> <span class="kw">OR</span> i.codigo <span class="op">=</span> <span class="st">'BD101'</span>)</span>
+<span id="p5-avanzado-5"><a href="#p5-avanzado-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> i.semestre <span class="op">=</span> <span class="st">'2026-2'</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Sean <span class="math inline">\(a:(e.rut=i.rut)\)</span>, <span class="math inline">\(p:(e.carrera=\text{Computación})\)</span>, <span class="math inline">\(q:(i.codigo=\text{BD101})\)</span>, <span class="math inline">\(s:(i.semestre=\text{2026-2})\)</span> y <span class="math inline">\(N=(e.nombre)\)</span>. Partimos de</p>
+<p><span class="math display">\[
+A_0=\delta\pi_N\sigma_{a\land(p\lor q)\land s}(E\times I).
+\]</span></p>
+<p>Cada propuesta se compara con su origen indicado, para no propagar inadvertidamente un error anterior:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Origen y propuesta</th>
+<th>Clasificación y razón</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(A_0\to A_1=\delta\pi_N\sigma_{p\lor q}(E\bowtie_a\sigma_s(I))\)</span></td>
+<td><strong>Correcta como bolsa interior:</strong> producto a join y push de <span class="math inline">\(s\)</span>, que solo requiere <span class="math inline">\(I\)</span>.</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(A_1\to B=\delta\pi_N(\sigma_{p\lor q}(E)\bowtie_a\sigma_s(I))\)</span></td>
+<td><strong>Mal definida:</strong> <span class="math inline">\(q\)</span> usa <code>i.codigo</code>, ausente en <span class="math inline">\(E\)</span>.</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(A_1\to A_2=\delta\pi_N((\sigma_p(E)\bowtie_a\sigma_s(I))\uplus(E\bowtie_a\sigma_{q\land s}(I)))\)</span></td>
+<td><strong>Correcta gracias a la deduplicación final:</strong> se conserva soporte, pero una pareja que cumple <span class="math inline">\(p,q\)</span> se repite en las dos ramas.</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(A_2\to A_3\)</span>: conservar en cada rama de <span class="math inline">\(E\)</span> solo <code>e.rut,e.nombre</code> después del filtro local y en <span class="math inline">\(I\)</span> solo <code>i.rut</code> después de sus filtros</td>
+<td><strong>Correcta como bolsa interior:</strong> quedan salida y condición de join; ambas ramas proyectadas deben alinearse al mismo esquema antes de unir.</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(A_3\to C\)</span>: retirar el <span class="math inline">\(\delta\)</span> final</td>
+<td><strong>Incorrecta:</strong> ni la llave <code>rut</code> de la hoja ni las proyecciones impiden nombres repetidos y ramas solapadas.</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(A_3\to D\)</span>: quitar además <code>e.rut</code> antes del join</td>
+<td><strong>Mal definida:</strong> la condición sigue requiriendo <code>e.rut</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>En los datos principales, Alex aparece dos veces en el interior de <span class="math inline">\(A_1\)</span> y cuatro en el interior de <span class="math inline">\(A_2\)</span>; las salidas deduplicadas contienen una sola fila Alex. Es un contraejemplo concreto a la supuesta equivalencia de bolsas interiores. <code>A3</code> puede escribirse en SQLite de modo ejecutable:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="p5-avanzado-reescrito"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="p5-avanzado-reescrito-1"><a href="#p5-avanzado-reescrito-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> estudiante</span>
+<span id="p5-avanzado-reescrito-2"><a href="#p5-avanzado-reescrito-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> (</span>
+<span id="p5-avanzado-reescrito-3"><a href="#p5-avanzado-reescrito-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">SELECT</span> e.nombre <span class="kw">AS</span> estudiante</span>
+<span id="p5-avanzado-reescrito-4"><a href="#p5-avanzado-reescrito-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">FROM</span> (<span class="kw">SELECT</span> rut,nombre <span class="kw">FROM</span> Estudiante</span>
+<span id="p5-avanzado-reescrito-5"><a href="#p5-avanzado-reescrito-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">WHERE</span> carrera <span class="op">=</span> <span class="st">'Computación'</span>) <span class="kw">AS</span> e</span>
+<span id="p5-avanzado-reescrito-6"><a href="#p5-avanzado-reescrito-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">JOIN</span> (<span class="kw">SELECT</span> rut <span class="kw">FROM</span> Inscribe</span>
+<span id="p5-avanzado-reescrito-7"><a href="#p5-avanzado-reescrito-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">WHERE</span> semestre <span class="op">=</span> <span class="st">'2026-2'</span>) <span class="kw">AS</span> i <span class="kw">ON</span> e.rut <span class="op">=</span> i.rut</span>
+<span id="p5-avanzado-reescrito-8"><a href="#p5-avanzado-reescrito-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">UNION</span> <span class="kw">ALL</span></span>
+<span id="p5-avanzado-reescrito-9"><a href="#p5-avanzado-reescrito-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">SELECT</span> e.nombre <span class="kw">AS</span> estudiante</span>
+<span id="p5-avanzado-reescrito-10"><a href="#p5-avanzado-reescrito-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">FROM</span> (<span class="kw">SELECT</span> rut,nombre <span class="kw">FROM</span> Estudiante) <span class="kw">AS</span> e</span>
+<span id="p5-avanzado-reescrito-11"><a href="#p5-avanzado-reescrito-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">JOIN</span> (<span class="kw">SELECT</span> rut <span class="kw">FROM</span> Inscribe</span>
+<span id="p5-avanzado-reescrito-12"><a href="#p5-avanzado-reescrito-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">WHERE</span> codigo <span class="op">=</span> <span class="st">'BD101'</span> <span class="kw">AND</span> semestre <span class="op">=</span> <span class="st">'2026-2'</span>) <span class="kw">AS</span> i</span>
+<span id="p5-avanzado-reescrito-13"><a href="#p5-avanzado-reescrito-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">ON</span> e.rut <span class="op">=</span> i.rut</span>
+<span id="p5-avanzado-reescrito-14"><a href="#p5-avanzado-reescrito-14" aria-hidden="true" tabindex="-1"></a>) <span class="kw">AS</span> alternativas;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Sin el <code>DISTINCT</code> exterior, esta consulta no es equivalente a la original sin <code>DISTINCT</code>. Con la restricción adicional de que <span class="math inline">\(p,q\)</span> sean mutuamente excluyentes sobre cada pareja, el reparto sí conserva bolsas. Aun así, retirar una deduplicación que ya existía requiere demostrar además unicidad de la <strong>salida proyectada</strong>; no basta con evitar solapamiento entre ramas.</p>
+</section>
+<section id="comprobar-precondiciones-de-una-regla" class="level2">
+<h2 class="anchored" data-anchor-id="comprobar-precondiciones-de-una-regla">Comprobar precondiciones de una regla</h2>
+<section id="verificación-antes-de-aceptar-una-transformación" class="level3 db-algorithm">
+<h3 class="anchored" data-anchor-id="verificación-antes-de-aceptar-una-transformación">Verificación antes de aceptar una transformación</h3>
+<p><strong>Entrada:</strong> AST válido, nodo objetivo, regla y parámetros. <strong>Salida:</strong> transformación certificada o rechazo explícito.</p>
+<pre class="text"><code>validar estructura, aridades y esquemas del plan original
+comprobar el patrón local exigido por la regla
+calcular atributos requeridos y disponibles
+comprobar las hipótesis semánticas de la regla
+construir una propuesta sin mutar el original
+validar todos los esquemas y referencias de la propuesta
+comprobar que el esquema de salida se conserve
+registrar regla, hipótesis, antes, después y justificación
+aceptar solo si se cumplen las precondiciones demostradas</code></pre>
+<p>Una comparación de resultados en datos de ejemplo se añade como diagnóstico; <strong>no sustituye</strong> la prueba de la regla. El verificador del explorador solo acepta su catálogo cerrado de reglas: identificación de conjunciones, producto a join, push-selection y push-projection. Las propuestas deliberadamente falsas se construyen fuera de ese camino y se etiquetan como tales. No hay parser SQL general ni decisión automática de equivalencia para consultas arbitrarias.</p>
+</section>
+</section>
+<section id="autoevaluación-con-solución" class="level2">
+<h2 class="anchored" data-anchor-id="autoevaluación-con-solución">Autoevaluación con solución</h2>
+<ol type="1">
+<li>¿Es válida <span class="math inline">\(\delta(R\uplus S)=\delta(R)\uplus\delta(S)\)</span>?</li>
+<li>¿Se puede retirar <code>DISTINCT</code> de una consulta que selecciona <code>nombre</code> de <code>Estudiante</code> porque <code>rut</code> es llave?</li>
+<li>¿Puede empujarse el filtro de un agregado <code>SUM(v)&gt;10</code> a cada fila como <code>v&gt;10</code>?</li>
+<li>Si dos planes coinciden en diez instancias aleatorias, ¿qué sabemos? ¿Y si difieren en una?</li>
+<li>¿Qué atributos deben conservarse al proyectar una rama con una selección pendiente y un join superior?</li>
+</ol>
+<details class="db-solution">
+<summary>
+Ver solución
+</summary>
+<ol type="1">
+<li>No: <span class="math inline">\(R=S=[a]\)</span> produce una ocurrencia a la izquierda y dos a la derecha. Se necesita deduplicación exterior o soportes disjuntos.</li>
+<li>No: dos estudiantes pueden compartir nombre. Solo una restricción de unicidad conservada en la salida permite esa conclusión.</li>
+<li>No: dos filas con valor 6 forman un grupo de suma 12; el filtro de filas las eliminaría a ambas. Seleccionar grupos completos por atributos agrupadores es otro caso.</li>
+<li>Las coincidencias aportan evidencia de prueba, sin demostrar universalidad. Una diferencia refuta la equivalencia bajo las hipótesis satisfechas por esa instancia.</li>
+<li>Salida final, condiciones de join, atributos del filtro pendiente y cualquier argumento requerido por operadores superiores, traduciendo nombres cuando hay renombramientos.</li>
+</ol>
+</details>
+<section id="resumen" class="level3 summary-box">
+<h3 class="anchored" data-anchor-id="resumen">Resumen</h3>
+<p>Reescribir exige verificar esquemas y semántica. La conmutatividad y asociatividad tienen condiciones de nombres y predicados; la distributividad sobre unión aditiva puede fallar. Push-selection conserva filtros y push-projection conserva dependencias de atributos. Las llaves deben sobrevivir hasta el resultado donde se invoca unicidad. <code>MIN</code> y <code>MAX</code> toleran la eliminación de filas completas repetidas; <code>SUM</code>, <code>COUNT</code> y <code>AVG</code> no la toleran en general. Un atributo ausente hace el plan mal definido, y una comprobación finita no reemplaza una demostración.</p>
+</section>
+</section>
+<section id="conceptos-relacionados" class="level2 related-links">
+<h2 class="anchored" data-anchor-id="conceptos-relacionados">Conceptos relacionados</h2>
+<ul>
+<li><a href="../procesamiento/planes-logicos.html">Planes lógicos y procesamiento</a></li>
+<li><a href="../teoria-consultas/algebra-relacional.html">Álgebra relacional</a></li>
+<li><a href="../teoria-consultas/equivalencia-patrones.html">Equivalencia entre lenguajes y patrones</a></li>
+<li><a href="../sql/agregacion.html">Agregación, GROUP BY y HAVING</a></li>
+<li><a href="../nulos/outer-joins.html">Outer joins</a></li>
+</ul>
+</section>
+<section id="lecturas-de-apoyo" class="level2">
+<h2 class="anchored" data-anchor-id="lecturas-de-apoyo">Lecturas de apoyo</h2>
+<p>Las transformaciones de selecciones, proyecciones y joins se apoyan en <span class="citation" data-cites="ramakrishnan2003">Ramakrishnan y Gehrke (<a href="#ref-ramakrishnan2003" role="doc-biblioref">2003, sec. 15.3</a>)</span> y <span class="citation" data-cites="silberschatz2020">Silberschatz et&nbsp;al. (<a href="#ref-silberschatz2020" role="doc-biblioref">2020, sec. 16.2</a>)</span>. Las diferencias entre leyes de conjuntos y bolsas y las reglas de deduplicación y agregación se desarrollan en <span class="citation" data-cites="garciamolina2009">Garcia-Molina et&nbsp;al. (<a href="#ref-garciamolina2009" role="doc-biblioref">2009</a>, secs. 16.2.1–16.2.7)</span>. Las demostraciones por multiplicidades y las convenciones del explorador se presentan aquí de forma autocontenida.</p>
+
+
+
+</section>
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Volver arriba</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Referencias</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-garciamolina2009" class="csl-entry" role="listitem">
+Garcia-Molina, Hector, Jeffrey D. Ullman, y Jennifer Widom. 2009. <em>Database Systems: The Complete Book</em>. 2.ª ed. Pearson Prentice Hall.
+</div>
+<div id="ref-ramakrishnan2003" class="csl-entry" role="listitem">
+Ramakrishnan, Raghu, y Johannes Gehrke. 2003. <em>Database Management Systems</em>. 3.ª ed. McGraw-Hill.
+</div>
+<div id="ref-silberschatz2020" class="csl-entry" role="listitem">
+Silberschatz, Abraham, Henry F. Korth, y S. Sudarshan. 2020. <em>Database System Concepts</em>. 7.ª ed. McGraw-Hill Education.
+</div>
+</div></section></div></main> <!-- /main -->
+<script type="module" src="../assets/js/visualizaciones/index.js"></script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../procesamiento/planes-logicos.html" class="pagination-link" aria-label="Planes lógicos y procesamiento">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Planes lógicos y procesamiento</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>OpenStudy · Bases de Datos · Estudio por conceptos</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Sitio de estudio construido con Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

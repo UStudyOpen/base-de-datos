@@ -263,6 +263,9 @@ El álgebra relacional tiene semántica de conjuntos, mientras SQL permite dupli
 ::: {.related-links}
 ## Conceptos relacionados
 
+- [Planes lógicos y traducción de SQL](../procesamiento/planes-logicos.qmd#traduccion)
+- [Equivalencia de planes y contraejemplos con duplicados](../procesamiento/reescritura.qmd)
+
 - [Lógica de primer orden y consultas](logica-primer-orden.qmd)
 - [Álgebra relacional](algebra-relacional.qmd)
 - [Joins y operadores derivados](joins-operadores.qmd)

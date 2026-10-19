@@ -67,6 +67,13 @@ Redundancia, dependencias funcionales, llaves, clausura, descomposiciones sin p�
 
 [Explorar B+trees](indices/bplus.qmd) · [Hashing](indices/hashing.qmd)
 :::
+::: {.topic-card}
+### Procesamiento de consultas
+
+Del parser al plan lógico: álgebra extendida, multiplicidades y reescrituras con hipótesis, árboles interactivos y contraejemplos.
+
+[Planes lógicos](procesamiento/planes-logicos.qmd) · [Reescritura y equivalencia](procesamiento/reescritura.qmd)
+:::
 ::::
 
 ## Ejemplo transversal

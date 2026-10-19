@@ -69,3 +69,29 @@
 .db-hashing details { min-width: 0; overflow-wrap: anywhere; }
 .db-hashing summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { .db-hashing *, .db-hashing *::before, .db-hashing *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* Query plans: readable nodes, local scroll, and a textual equivalent per tree. */
+.db-query-plan, .db-plan-comparison > figure { min-width: 0; }
+.db-plan-comparison { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.db-plan-comparison figure { margin: 0; }
+.db-plan-comparison figcaption { font-weight: 700; color: var(--db-heading); }
+.db-plan-scroll { max-height: 660px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-query-plan .db-plan-svg { display: block; max-width: none; height: auto; font-family: inherit; }
+.db-plan-edge { fill: none; stroke: #8897aa; stroke-width: 1.5; }
+.db-plan-node rect { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
+.db-plan-project rect { fill: #eff6ff; stroke: #2563eb; }
+.db-plan-select rect { fill: #e7f4f2; stroke: #147d78; }
+.db-plan-product rect { stroke-dasharray: 2 3; }
+.db-plan-join rect, .db-plan-natural rect { stroke: #147d78; stroke-width: 2.5; }
+.db-plan-delta rect { stroke: #2563eb; stroke-width: 3; }
+.db-plan-group rect { fill: #edf2f9; stroke-width: 3; }
+.db-plan-node.is-changed rect { stroke: #98620a; stroke-width: 3; stroke-dasharray: 7 3; }
+.db-plan-node.is-invalid rect { stroke: #c03642; stroke-width: 3; }
+.db-plan-value { fill: #243247; font-size: 15px; font-weight: 650; }
+.db-plan-label { fill: #243247; font-size: 14px; }
+.db-plan-legend { font-size: .85rem; color: var(--db-text-secondary); }
+.db-query-plan details { min-width: 0; overflow-wrap: anywhere; }
+.db-query-plan summary { cursor: pointer; min-height: 44px; padding: .5rem 0; }
+.db-plan-results { margin-top: 1.5rem; }
+.db-plan-results td:first-child { overflow-wrap: anywhere; }
+@media (max-width: 767.98px) { .db-plan-comparison { grid-template-columns: minmax(0,1fr); } }

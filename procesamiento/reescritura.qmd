@@ -1,0 +1,493 @@
+---
+title: "Reescritura y equivalencia de consultas"
+description: "Reglas, hipótesis y contraejemplos para transformar planes sin alterar sus resultados."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags"><span class="concept-tag">Equivalencia</span><span class="concept-tag">Push-selection</span><span class="concept-tag">Push-projection</span><span class="concept-tag">Precondiciones</span><span class="concept-tag">Duplicados</span></div>
+</div>
+
+## Transformar conservando el significado
+
+Dos planes pueden devolver exactamente las mismas filas y transportar cantidades muy distintas de datos intermedios. Filtrar estudiantes de una carrera antes de combinarlos con inscripciones suele evitar combinaciones que después se descartarían. La reescritura permite expresar esas alternativas, pero su primer requisito es **preservar el resultado bajo hipótesis explícitas**. La elección por costo pertenece al optimizador. [@ramakrishnan2003, secs. 15.3–15.4; @silberschatz2020, sec. 16.2]
+
+Esta página usa el [álgebra extendida y las multiplicidades](planes-logicos.qmd#algebra-extendida) ya definidas. El núcleo supone atributos no nulos, tipos compatibles y predicados puros, deterministas y totales. $\pi$ conserva ocurrencias; $\uplus$ suma multiplicidades. Cuando una regla usa conjuntos se indica expresamente. Los operadores con condición usan atributos calificados disjuntos, salvo el natural join.
+
+## Equivalencia formal
+
+Para consultas con el mismo esquema de salida:
+
+$$
+Q_1\equiv Q_2
+\iff
+\forall D,\;Q_1(D)=Q_2(D).
+$$
+
+El cuantificador recorre las instancias finitas legales del esquema. Si la prueba presupone restricciones $\Sigma$, se escribe $Q_1\equiv_\Sigma Q_2$ y se consideran solo instancias que las satisfacen. En conjuntos, igualdad significa el mismo soporte; en bolsas exige además
+
+$$
+\forall t,\quad m_{Q_1(D)}(t)=m_{Q_2(D)}(t).
+$$
+
+La coincidencia en una instancia permite comprobar un ejemplo, **no demuestra una equivalencia universal**. Una sola instancia que difiera sí basta para refutarla. Ninguna comparación de conjuntos de valores sustituye una comparación de frecuencias cuando SQL conserva duplicados.
+
+Diferenciamos tres juicios:
+
+| Clasificación | Significado |
+|---|---|
+| **Correcta** | Conserva resultados para toda instancia bajo las hipótesis declaradas. |
+| **Incorrecta** | Está bien definida, pero existe una instancia con otro resultado. |
+| **Mal definida** | Algún operador referencia atributos ausentes o viola requisitos estructurales; no tiene resultado en el modelo. |
+
+Que el explorador rechace una regla por no soportarla no demuestra que sea incorrecta. Sus reglas tienen un dominio deliberadamente limitado. Las propuestas incorrectas se muestran como **diagnósticos**, sin aceptarlas como estados de una reescritura válida.
+
+## Conmutatividad y asociatividad
+
+### Productos y joins
+
+Para esquemas disjuntos y tuplas nombradas:
+
+$$
+\begin{aligned}
+R\times S&\equiv S\times R,\\
+(R\times S)\times T&\equiv R\times(S\times T).
+\end{aligned}
+$$
+
+**Intuición y prueba.** Ambos lados enumeran las mismas combinaciones; sus multiplicidades son $m_R(r)m_S(s)$ o $m_R(r)m_S(s)m_T(t)$. La conmutatividad y asociatividad de la multiplicación justifican la igualdad. Por ejemplo, con $R=[(a:1),(a:1)]$, $S=[(b:2)]$ y $T=[(c:3)]$, ambos órdenes producen dos ocurrencias de `(1,2,3)`.
+
+El natural join también es conmutativo y asociativo: exige las mismas igualdades de atributos comunes y multiplica las mismas multiplicidades. Esto presupone nombres y dominios compatibles. Con un $\theta$-join, la conmutatividad mantiene el mismo predicado sobre nombres; al reasociar deben redistribuirse los predicados donde sus atributos estén disponibles. Por ejemplo, si $a$ usa $R,S$ y $b$ usa $S,T$:
+
+$$
+(R\bowtie_a S)\bowtie_b T
+\equiv R\bowtie_a(S\bowtie_b T).
+$$
+
+Ambos lados son $\sigma_{a\land b}(R\times S\times T)$. Un predicado que usa $R,T$ debe permanecer donde estén presentes ambos; no puede colocarse dentro de $S\bowtie T$. Las referencias ausentes harían la expresión mal definida. Estas reglas y sus condiciones se desarrollan en @ramakrishnan2003 [secs. 15.3.3–15.3.4].
+
+En SQL, `SELECT *` puede presentar distinto orden de columnas al intercambiar lados; la igualdad de tuplas nombradas no conserva automáticamente ese orden de presentación. Hay que especificar la misma lista de salida. Tampoco se generalizan estas reglas a outer joins: `R LEFT JOIN S` preserva un lado concreto y puede producir un resultado distinto al invertirlo. Véanse [outer joins](../nulos/outer-joins.qmd).
+
+### Unión e intersección
+
+Con esquemas compatibles, tanto $\cup$ de conjuntos como $\uplus$ de bolsas son conmutativas y asociativas. También lo es $\cap$ en ambas semánticas. En bolsas, las pruebas son las identidades de suma y mínimo:
+
+$$
+\begin{aligned}
+r+s&=s+r,& (r+s)+t&=r+(s+t),\\
+\min(r,s)&=\min(s,r),& \min(\min(r,s),t)&=\min(r,\min(s,t)).
+\end{aligned}
+$$
+
+Por ejemplo, si una tupla aparece $2,1,3$ veces en $R,S,T$, cualquiera de las dos asociaciones de unión aditiva da 6 y cualquiera de intersección da 1. La diferencia no es conmutativa: con $R=[a]$, $S=[]$, $R\setminus S=[a]$ y $S\setminus R=[]$. Uniones entre esquemas incompatibles no constituyen contraejemplos a la equivalencia: están mal definidas.
+
+## Distributividad: la semántica decide
+
+En conjuntos compatibles:
+
+$$
+R\cap(S\cup T)\equiv(R\cap S)\cup(R\cap T).
+$$
+
+**Justificación.** Una tupla pertenece a la izquierda si pertenece a $R$ y a alguno de $S,T$; es precisamente la condición de pertenencia de la derecha. Con $R=\{a,b\}$, $S=\{a\}$ y $T=\{b\}$, ambos resultados son $\{a,b\}$.
+
+En bolsas, reemplazar $\cup$ por $\uplus$ exigiría para toda tupla:
+
+$$
+\min(r,s+t)=\min(r,s)+\min(r,t).
+$$
+
+Es falso. El contraejemplo mínimo $R=S=T=[a]$ da multiplicidad **1** a la izquierda y **2** a la derecha. El lado derecho cuenta dos veces la parte de $R$ que coincide con ambas entradas. Si los soportes de $S,T$ son disjuntos, a lo sumo uno de $s,t$ es positivo y la igualdad sí se cumple. También basta que $r\ge s+t$ en cada tupla, pero no es una condición garantizada por la sintaxis.
+
+Aplicar $\delta$ exterior a ambos lados iguala sus soportes, por lo que restaura la igualdad de esos resultados deduplicados. No convierte las expresiones interiores en bolsas equivalentes. El explorador incluye este contraejemplo y su reparación con deduplicación final.
+
+## Selecciones y distribución
+
+### Conjunción
+
+Para predicados definidos sobre $R$:
+
+$$
+\sigma_{p\land q}(R)
+\equiv\sigma_p(\sigma_q(R))
+\equiv\sigma_q(\sigma_p(R)).
+$$
+
+**Prueba:** $[p(t)\land q(t)]m_R(t)=[p(t)][q(t)]m_R(t)$. Si $R=[1,1,3]$, $p:(x>0)$ y $q:(x<2)$, las tres expresiones devuelven dos ocurrencias de 1. La pureza y totalidad excluyen funciones volátiles o expresiones cuyo error dependa del orden de evaluación; no extrapolamos esta prueba a esos casos.
+
+### Sobre otros operadores
+
+Las siguientes reglas conservan multiplicidades con esquemas compatibles. $att(p)$ reúne todos los atributos referenciados por $p$.
+
+| Operador | Equivalencia | Hipótesis |
+|---|---|---|
+| Producto | $\sigma_p(R\times S)\equiv\sigma_p(R)\times S$ | $att(p)\subseteq att(R)$. |
+| Join interno | $\sigma_p(R\bowtie_\theta S)\equiv\sigma_p(R)\bowtie_\theta S$ | $att(p)\subseteq att(R)$. También para natural join con referencias compatibles. |
+| Unión aditiva | $\sigma_p(R\uplus S)\equiv\sigma_p(R)\uplus\sigma_p(S)$ | $p$ se interpreta igual en ambos esquemas. |
+| Intersección | $\sigma_p(R\cap S)\equiv\sigma_p(R)\cap\sigma_p(S)\equiv\sigma_p(R)\cap S$ | Ambos operandos ofrecen los atributos de $p$. |
+| Diferencia | $\sigma_p(R\setminus S)\equiv\sigma_p(R)\setminus\sigma_p(S)\equiv\sigma_p(R)\setminus S$ | Ambos operandos ofrecen los atributos de $p$. |
+
+Las variantes de conjuntos también son válidas. **Prueba:** en producto y join, el indicador $[p]$ afecta solo a la componente $r$, por lo que puede multiplicarse antes de combinar. En unión se usa $h(r+s)=hr+hs$, con $h\in\{0,1\}$. En intersección y diferencia se comprueban los dos valores de $h$: si es uno se conserva la fórmula original; si es cero, el lado izquierdo es cero y las expresiones de la derecha también.
+
+**Ejemplo común:** $R=[1,1,2]$, $S=[1,2,2]$, $p:(x=1)$. La unión filtrada tiene multiplicidad 3 para 1, la intersección filtrada tiene 1 y la diferencia filtrada tiene 1; se obtienen exactamente esos valores filtrando como indica la tabla. Para producto, con $R(a)=[1,2]$ y $S(b)=[7]$, filtrar $a=1$ antes o después deja solo `(1,7)`.
+
+**Límite indispensable:** si $p:(a=b)$, no puede empujarse solo a $R(a)$; falta $b$. En unión, filtrar únicamente una rama tampoco es válido: $R=[]$, $S=[2]$, $p:(x=1)$ da vacío al filtrar la unión, pero $\sigma_p(R)\uplus S=[2]$.
+
+### Disyunción y solapamiento {#disyuncion}
+
+En conjuntos:
+
+$$
+\sigma_{p\lor q}(R)\equiv\sigma_p(R)\cup\sigma_q(R).
+$$
+
+En bolsas, con unión aditiva, una tupla que satisface ambos predicados se cuenta dos veces a la derecha. Sea $R=[(x:2)]$, $p:(x>0)$ y $q:(x<3)$: la selección devuelve una ocurrencia y $\sigma_p(R)\uplus\sigma_q(R)$ devuelve dos.
+
+La igualdad de bolsas es válida si los predicados son mutuamente excluyentes sobre las instancias admitidas. En el núcleo clásico también puede usarse
+
+$$
+\sigma_p(R)\uplus\sigma_{q\land\neg p}(R).
+$$
+
+Ambas ramas son disjuntas. Con nulos no basta trasladar esta partición mecánicamente a `NOT p`: si $p$ es `UNKNOWN` y $q$ es `TRUE`, `q AND NOT p` no es `TRUE`. La [lógica de tres valores](../nulos/null-tres-valores.qmd) exige otro análisis.
+
+`UNION` elimina todas las repeticiones, incluso las que ya existían legítimamente en $R$. Por ello sustituir `UNION ALL` por `UNION` tampoco conserva automáticamente la selección como bolsa. Sí es correcto comparar **resultados deduplicados**:
+
+$$
+\delta(\sigma_{p\lor q}(R))
+\equiv\delta(\sigma_p(R)\uplus\sigma_q(R)).
+$$
+
+## Push-selection {#push-selection}
+
+La idea es evaluar cada filtro en la subexpresión más baja que tenga sus atributos, sin atravesar operadores que alteren la prueba de equivalencia. Un filtro de una sola relación puede llegar a esa rama; una condición entre dos relaciones debe esperar hasta que estén combinadas.
+
+::: {.db-algorithm}
+### Procedimiento para filtros conjuntivos
+
+**Entrada:** árbol válido de productos y joins internos con una selección conjuntiva. **Salida:** árbol equivalente con filtros locales adelantados. **Precondiciones:** predicados del núcleo y esquemas conocidos.
+
+```text
+separar la condición en sus términos conjuntivos
+para cada término p:
+  mientras el nodo sea producto o join interno:
+    si un hijo contiene todos los atributos de p: bajar a ese hijo
+    de otro modo: detener el descenso
+  colocar σ p sobre la subexpresión alcanzada
+mantener los términos que requieren ambos lados sobre su combinación
+validar esquemas y conservar todos los términos originales
+```
+
+**Corrección:** cada descenso usa una regla de la tabla anterior; por composición, toda la secuencia conserva multiplicidades. Con $n$ nodos y $k$ términos, un descenso ingenuo cuesta a lo sumo $O(kn)$ consultas de inclusión de atributos, aparte del costo de representar conjuntos. Es un costo de transformar el árbol, no de ejecutar la consulta.
+:::
+
+En el [ejemplo transversal](planes-logicos.qmd#ejemplo), primero se identifica $e.rut=i.rut$, luego se forman los joins, y finalmente se empujan `e.carrera = 'Computación'` e `i.semestre = '2026-2'` a sus ramas. Antes de filtrar, los joins producen 4 ocurrencias; después de adelantar esos filtros, cada join produce 2. Adelantar una proyección reduce atributos transportados; adelantar una selección puede reducir filas.
+
+**Contraejemplo con outer join:** sea $R(id)=[1]$, $S(id,v)=[]$. Filtrar `S.v = 1` después de un left join da vacío porque la fila extendida tiene `NULL`. Filtrar $S$ antes y quitar el filtro superior deja `(1,NULL)`. La transformación cambia el resultado aunque el atributo exista donde se filtra. Tampoco desplazamos filtros a través de límites, ventanas o agregaciones arbitrarias. Un filtro sobre atributos de agrupación puede seleccionar grupos completos antes de agrupar bajo las condiciones de [agregación](../sql/agregacion.qmd#cuándo-mover-una-condición-de-having-a-where); uno sobre `SUM` no es un filtro de filas.
+
+## De producto a join
+
+La equivalencia
+
+$$
+\sigma_\theta(R\times S)\equiv R\bowtie_\theta S
+$$
+
+es la definición de $\theta$-join. La hipótesis es que el predicado esté definido sobre la unión disjunta de los esquemas. Cada pareja recibe multiplicidad $[\theta(r,s)]m_R(r)m_S(s)$ en ambos lados. Por ejemplo, $\sigma_{e.rut=i.rut}(E\times I)$ se convierte en $E\bowtie_{e.rut=i.rut}I$; al ser igualdad entre atributos es además un equijoin.
+
+::: {.db-algorithm}
+### Conversión local
+
+**Entrada:** una selección sobre un producto binario. **Salida:** un join con el mismo predicado y los mismos hijos.
+
+```text
+comprobar que el nodo sea σ θ y su hijo sea × (R, S)
+comprobar que todos los atributos de θ estén en att(R) ∪ att(S)
+crear ⋈ θ (R, S), conservando el esquema de salida
+si θ solo usa un lado, preferir primero push-selection
+```
+
+La conversión local inspecciona el nodo y sus referencias; un recorrido que busca oportunidades visita el árbol completo. No se estima aquí ningún costo físico del join.
+:::
+
+No se sustituye por natural join sin demostrar que su conjunto de igualdades coincide con el solicitado. Por ejemplo, `Estudiante(rut,nombre)` y `Inscribe(rut,nombre)` podrían compartir un atributo `nombre` con significado distinto: un natural join exigiría también igualdad de esos nombres. Con `(r1,Alex)` y `(r1,Inscripción A)`, el equijoin por `rut` produce una fila y el natural join produce cero.
+
+## Push-projection {#push-projection}
+
+Reducir columnas disminuye la anchura de las tuplas intermedias. Para $X$ como salida y un join con condición $\theta$, sean
+
+$$
+\begin{aligned}
+M&=(X\cup att(\theta))\cap att(R),\\
+N&=(X\cup att(\theta))\cap att(S).
+\end{aligned}
+$$
+
+Entonces, para atributos disjuntos y proyección de bolsas:
+
+$$
+\pi_X(R\bowtie_\theta S)
+\equiv\pi_X(\pi_M(R)\bowtie_\theta\pi_N(S)).
+$$
+
+Se mantiene la proyección exterior porque las ramas conservan atributos adicionales para el join. Con natural join se deben conservar **todos los atributos compartidos que definen coincidencias**, incluso si no están en la salida final. No se deduplican las proyecciones de bolsas. [@ramakrishnan2003, sec. 15.3.4; @silberschatz2020, sec. 16.2.1]
+
+**Prueba.** Cada ocurrencia original mantiene los valores necesarios para decidir coincidencias y producir la salida. Las ocurrencias que confluyen en una proyección se suman; al combinar, la distributividad de la multiplicación sobre esas sumas conserva exactamente la multiplicidad final. En conjuntos, la prueba correspondiente considera existencia de testigos.
+
+En el ejemplo principal se conservan `e.rut,e.nombre`, `i.rut,i.codigo` y `c.codigo,c.nombre` después de sus respectivos filtros. `e.carrera` e `i.semestre` deben mantenerse **hasta evaluar** sus selecciones. En ningún momento se elimina `i.rut` antes de combinar con estudiantes.
+
+::: {.db-algorithm}
+### Propagar atributos necesarios de arriba hacia abajo
+
+**Entrada:** árbol válido y atributos requeridos por su consumidor. **Salida:** árbol equivalente, con proyecciones seguras.
+
+```text
+NECESARIOS(nodo, salida):
+  en π X: pedir X al hijo; conservar la proyección exterior
+  en σ p: pedir salida ∪ att(p) al hijo
+  en ⋈ θ o ×:
+    requeridos ← salida ∪ att(θ)
+    pedir a cada hijo la intersección con su esquema
+  en ρ: traducir los nombres requeridos al esquema anterior
+  en δ: conservar el esquema completo de entrada como barrera prudente
+  en γ: conservar agrupadores y argumentos de agregados
+  en operadores no soportados: detener el descenso
+  validar las referencias antes de aceptar cada proyección
+```
+
+**Corrección:** por inducción sobre el árbol, cada operador conserva sus argumentos y el consumidor recibe los valores que necesita, con sus frecuencias. El motor aplica la regla a proyecciones sobre joins y selecciones explícitas; no pretende optimizar todos los operadores. Un recorrido propaga conjuntos de atributos por las aristas; su costo depende del número de nodos y del tamaño de esos conjuntos.
+:::
+
+### Proyección prematura: tres situaciones distintas
+
+Con $E=[(rut:r1,nombre:Alex)]$, $I=[(rut:r1,codigo:BD101)]$:
+
+1. Conservar `e.rut` e `i.rut` hasta el join es **correcto**.
+2. Proyectar solo `e.nombre` y mantener la condición `e.rut = i.rut` es **mal definido**: `e.rut` ya no existe. No hay un «resultado diferente» que comparar.
+3. Eliminar además la condición para poder ejecutar un producto produce otra consulta **incorrecta**. Con estudiantes `r1:Alex`, `r2:Sol` y una inscripción de `r1`, aparecería también Sol.
+
+Proyectar antes de intersección o diferencia no sigue una regla general: con $R(A,B)=[(1,2)]$, $S(A,B)=[(1,3)]$, $\pi_A(R\cap S)$ es vacío pero $\pi_A(R)\cap\pi_A(S)=[1]$. La pérdida de información puede hacer coincidir tuplas que antes eran distintas.
+
+## Eliminación de duplicados {#duplicados}
+
+La igualdad $\delta(R)=R$ vale exactamente cuando toda tupla de $R$ tiene multiplicidad a lo sumo uno. Una llave garantizada y conservada en **ese resultado** basta para probarlo; la mera existencia de una llave en una hoja no basta.
+
+### Selección y deduplicación
+
+Para predicados del núcleo:
+
+$$
+\delta(\sigma_p(R))\equiv\sigma_p(\delta(R)).
+$$
+
+La prueba es $[m_R(t)>0][p(t)]$ en ambos lados. Por ejemplo, $R=[1,1,2]$, $p:(x=1)$ produce una ocurrencia de 1 en ambos órdenes. Se puede filtrar antes para reducir la entrada a deduplicar, sin prometer un tiempo de ejecución universal.
+
+### Llaves, proyecciones y joins
+
+Con `rut` como llave, la tabla `Estudiante` no tiene filas completas repetidas. Pero con `r1:Alex:Computación` y `r2:Alex:Computación`:
+
+```sql
+SELECT DISTINCT carrera
+FROM Estudiante;
+```
+
+devuelve una carrera; sin `DISTINCT` devuelve dos ocurrencias. La proyección ha perdido la llave. Conservar `(rut,carrera)` sí conserva la unicidad en una proyección directa de esa tabla. Un join posterior puede repetir esa pareja si tiene varios compañeros; hay que volver a justificar la propiedad en el resultado actual.
+
+Por ejemplo, un estudiante con dos inscripciones produce dos ocurrencias de su nombre al proyectar solo el lado estudiante del join. Que su identificador sea llave de `Estudiante` no impide ese efecto. Si se demuestra que cada fila tiene exactamente un compañero y se conserva una llave, se puede justificar una simplificación adicional; una clave foránea por sí sola no garantiza esa cardinalidad en las dos direcciones.
+
+Para productos y joins completos, sin proyección intermedia:
+
+$$
+\begin{aligned}
+\delta(R\times S)&\equiv\delta(R)\times\delta(S),\\
+\delta(R\bowtie_\theta S)&\equiv\delta(R)\bowtie_\theta\delta(S).
+\end{aligned}
+$$
+
+También vale para natural join. En cada tupla compatible, ambos lados tienen multiplicidad uno si y solo si ambas restricciones aparecen en sus entradas y la condición se cumple. Por ejemplo, dos copias de $r$ y tres de $s$ generan seis copias de la pareja; cualquiera de los dos lados de la identidad da una. **Una proyección posterior** puede volver a generar repeticiones, por lo que no se retira automáticamente un $\delta$ situado después de ella.
+
+### Operadores de conjuntos
+
+$\delta(\delta(R))=\delta(R)$ y el resultado de un operador que elimina duplicados ya es un conjunto. Para unión aditiva:
+
+$$
+\delta(R\uplus S)
+\equiv\delta(\delta(R)\uplus\delta(S)).
+$$
+
+El $\delta$ exterior de la derecha es necesario: con $R=S=[a]$, $\delta(R)\uplus\delta(S)$ tiene dos ocurrencias. También vale $\delta(R\cap S)=\delta(R)\cap\delta(S)$ en la intersección de bolsas. En cambio, no puede conmutarse deduplicación libremente con diferencia: $R=[a,a]$, $S=[a]$ da $\delta(R\setminus S)=[a]$, pero $\delta(R)\setminus\delta(S)=[]$.
+
+## Agregación y duplicados {#agregacion}
+
+Nuestra $\gamma_{G,L}$ conserva todos los atributos agrupadores y produce una fila por grupo. Por tanto, dos filas de salida de grupos distintos difieren en $G$; con agrupación global solo existe una fila. Bajo estas convenciones:
+
+$$
+\delta(\gamma_{G,L}(R))\equiv\gamma_{G,L}(R).
+$$
+
+Si después se proyectan fuera los agrupadores, el argumento deja de servir: dos grupos diferentes podrían tener la misma suma. Por ejemplo, `(carrera:A,n:2)` y `(carrera:B,n:2)` son distintos; $\pi_n$ produce dos copias de 2. No se elimina $\delta$ después de esa proyección sin otra prueba.
+
+### Deduplicar la entrada no siempre es válido
+
+Si $L$ solo contiene `MIN` y `MAX` sobre valores del grupo:
+
+$$
+\gamma_{G,L}(\delta(R))\equiv\gamma_{G,L}(R).
+$$
+
+**Prueba:** deduplicar filas completas conserva cada grupo no vacío y cada valor que podía alcanzar un extremo. La convención sobre entrada vacía se conserva también. Agregar un `COUNT` o `SUM` a $L$ impide usar este argumento como regla general. [@garciamolina2009, sec. 16.2.7]
+
+El caso numérico mínimo que contrasta varias funciones es:
+
+```{.sql #p5-agregados}
+WITH R(g,v) AS (VALUES ('A',2),('A',2),('A',8))
+SELECT g, MIN(v), MAX(v), SUM(v), COUNT(*), AVG(v)
+FROM R GROUP BY g;
+```
+
+Devuelve `A, 2, 8, 12, 3, 4.0`. Si se reemplaza `FROM R` por una subconsulta que seleccione los pares `(g,v)` distintos de `R`, devuelve `A, 2, 8, 10, 2, 5.0`: `MIN` y `MAX` se conservan; suma, conteo y promedio cambian.
+
+Las filas `(id:1,g:A,v:2)` y `(id:2,g:A,v:2)` **no son duplicadas completas**. Deduplicar esas filas no cambia nada, mientras que proyectar `(g,v)` y deduplicar después sí cambia el conteo y la suma. Si una llave completa se conserva antes de $\delta$, retirarlo es seguro incluso antes de `SUM`: la justificación es la unicidad, no una propiedad de `SUM`.
+
+## Explorador de reescritura
+
+El recorrido válido reproduce las cinco etapas del [ejemplo completo](planes-logicos.qmd#ejemplo). Los otros recorridos examinan disyunción, pérdida de atributos, eliminación de `DISTINCT`, distributividad y agregación. En cada paso se comparan el plan anterior y el propuesto, con una tabla de multiplicidades. Los nodos con borde discontinuo marcan cambios; cada árbol tiene además una descripción textual con sus esquemas y requisitos.
+
+<div class="db-viz" data-db-viz="query-plan" data-query-example="disyuncion">
+<div class="db-viz-fallback">
+
+**Diagnóstico estático: disyunción.**
+
+Con $R(x)=[2]$, $p:(x>0)$ y $q:(x<3)$:
+
+```text
+Original                       Propuesta
+σ p ∨ q                        ⊎
+└─ R                           ├─ σ p
+                               │  └─ R
+                               └─ σ q
+                                  └─ R
+```
+
+| Tupla | Original | Propuesta |
+|---|---:|---:|
+| `(x:2)` | 1 | 2 |
+
+**Paso 0:** la selección original está bien definida y conserva una ocurrencia. **Paso 1:** repartir sobre unión aditiva es incorrecto porque ambas ramas aceptan la misma ocurrencia. **Paso 2:** un $\delta$ exterior en **ambos** planes iguala los soportes; los resultados interiores siguen sin ser equivalentes como bolsas.
+
+Para un segundo diagnóstico, proyectar $E(e.rut,e.nombre)$ a `e.nombre` antes de $E\bowtie_{e.rut=i.rut}I$ elimina el atributo que exige el join. El plan es **mal definido**; no se corrige quitando silenciosamente el predicado. La secuencia válida completa y sus cinco árboles están disponibles en [planes lógicos](planes-logicos.qmd#ejemplo), también al imprimir y sin JavaScript.
+
+</div>
+</div>
+
+La tabla es un testigo finito. Las justificaciones universales son las pruebas de esta página. El evaluador conserva ocurrencias y muestra las frecuencias, sin depender del orden accidental de las filas. En el caso mal definido se muestran el atributo ausente, el nodo que lo requiere y el resultado del plan anterior, sin inventar un resultado de la propuesta.
+
+## Caso integrador: disyunción, join y DISTINCT {#integrador}
+
+Consideremos esta consulta adicional sobre los mismos datos no nulos:
+
+```{.sql #p5-avanzado}
+SELECT DISTINCT e.nombre AS estudiante
+FROM Estudiante AS e
+JOIN Inscribe AS i ON e.rut = i.rut
+WHERE (e.carrera = 'Computación' OR i.codigo = 'BD101')
+  AND i.semestre = '2026-2';
+```
+
+Sean $a:(e.rut=i.rut)$, $p:(e.carrera=\text{Computación})$, $q:(i.codigo=\text{BD101})$, $s:(i.semestre=\text{2026-2})$ y $N=(e.nombre)$. Partimos de
+
+$$
+A_0=\delta\pi_N\sigma_{a\land(p\lor q)\land s}(E\times I).
+$$
+
+Cada propuesta se compara con su origen indicado, para no propagar inadvertidamente un error anterior:
+
+| Origen y propuesta | Clasificación y razón |
+|---|---|
+| $A_0\to A_1=\delta\pi_N\sigma_{p\lor q}(E\bowtie_a\sigma_s(I))$ | **Correcta como bolsa interior:** producto a join y push de $s$, que solo requiere $I$. |
+| $A_1\to B=\delta\pi_N(\sigma_{p\lor q}(E)\bowtie_a\sigma_s(I))$ | **Mal definida:** $q$ usa `i.codigo`, ausente en $E$. |
+| $A_1\to A_2=\delta\pi_N((\sigma_p(E)\bowtie_a\sigma_s(I))\uplus(E\bowtie_a\sigma_{q\land s}(I)))$ | **Correcta gracias a la deduplicación final:** se conserva soporte, pero una pareja que cumple $p,q$ se repite en las dos ramas. |
+| $A_2\to A_3$: conservar en cada rama de $E$ solo `e.rut,e.nombre` después del filtro local y en $I$ solo `i.rut` después de sus filtros | **Correcta como bolsa interior:** quedan salida y condición de join; ambas ramas proyectadas deben alinearse al mismo esquema antes de unir. |
+| $A_3\to C$: retirar el $\delta$ final | **Incorrecta:** ni la llave `rut` de la hoja ni las proyecciones impiden nombres repetidos y ramas solapadas. |
+| $A_3\to D$: quitar además `e.rut` antes del join | **Mal definida:** la condición sigue requiriendo `e.rut`. |
+
+En los datos principales, Alex aparece dos veces en el interior de $A_1$ y cuatro en el interior de $A_2$; las salidas deduplicadas contienen una sola fila Alex. Es un contraejemplo concreto a la supuesta equivalencia de bolsas interiores. `A3` puede escribirse en SQLite de modo ejecutable:
+
+```{.sql #p5-avanzado-reescrito}
+SELECT DISTINCT estudiante
+FROM (
+  SELECT e.nombre AS estudiante
+  FROM (SELECT rut,nombre FROM Estudiante
+        WHERE carrera = 'Computación') AS e
+  JOIN (SELECT rut FROM Inscribe
+        WHERE semestre = '2026-2') AS i ON e.rut = i.rut
+  UNION ALL
+  SELECT e.nombre AS estudiante
+  FROM (SELECT rut,nombre FROM Estudiante) AS e
+  JOIN (SELECT rut FROM Inscribe
+        WHERE codigo = 'BD101' AND semestre = '2026-2') AS i
+    ON e.rut = i.rut
+) AS alternativas;
+```
+
+Sin el `DISTINCT` exterior, esta consulta no es equivalente a la original sin `DISTINCT`. Con la restricción adicional de que $p,q$ sean mutuamente excluyentes sobre cada pareja, el reparto sí conserva bolsas. Aun así, retirar una deduplicación que ya existía requiere demostrar además unicidad de la **salida proyectada**; no basta con evitar solapamiento entre ramas.
+
+## Comprobar precondiciones de una regla
+
+::: {.db-algorithm}
+### Verificación antes de aceptar una transformación
+
+**Entrada:** AST válido, nodo objetivo, regla y parámetros. **Salida:** transformación certificada o rechazo explícito.
+
+```text
+validar estructura, aridades y esquemas del plan original
+comprobar el patrón local exigido por la regla
+calcular atributos requeridos y disponibles
+comprobar las hipótesis semánticas de la regla
+construir una propuesta sin mutar el original
+validar todos los esquemas y referencias de la propuesta
+comprobar que el esquema de salida se conserve
+registrar regla, hipótesis, antes, después y justificación
+aceptar solo si se cumplen las precondiciones demostradas
+```
+
+Una comparación de resultados en datos de ejemplo se añade como diagnóstico; **no sustituye** la prueba de la regla. El verificador del explorador solo acepta su catálogo cerrado de reglas: identificación de conjunciones, producto a join, push-selection y push-projection. Las propuestas deliberadamente falsas se construyen fuera de ese camino y se etiquetan como tales. No hay parser SQL general ni decisión automática de equivalencia para consultas arbitrarias.
+:::
+
+## Autoevaluación con solución
+
+1. ¿Es válida $\delta(R\uplus S)=\delta(R)\uplus\delta(S)$?
+2. ¿Se puede retirar `DISTINCT` de una consulta que selecciona `nombre` de `Estudiante` porque `rut` es llave?
+3. ¿Puede empujarse el filtro de un agregado `SUM(v)>10` a cada fila como `v>10`?
+4. Si dos planes coinciden en diez instancias aleatorias, ¿qué sabemos? ¿Y si difieren en una?
+5. ¿Qué atributos deben conservarse al proyectar una rama con una selección pendiente y un join superior?
+
+<details class="db-solution"><summary>Ver solución</summary>
+
+1. No: $R=S=[a]$ produce una ocurrencia a la izquierda y dos a la derecha. Se necesita deduplicación exterior o soportes disjuntos.
+2. No: dos estudiantes pueden compartir nombre. Solo una restricción de unicidad conservada en la salida permite esa conclusión.
+3. No: dos filas con valor 6 forman un grupo de suma 12; el filtro de filas las eliminaría a ambas. Seleccionar grupos completos por atributos agrupadores es otro caso.
+4. Las coincidencias aportan evidencia de prueba, sin demostrar universalidad. Una diferencia refuta la equivalencia bajo las hipótesis satisfechas por esa instancia.
+5. Salida final, condiciones de join, atributos del filtro pendiente y cualquier argumento requerido por operadores superiores, traduciendo nombres cuando hay renombramientos.
+
+</details>
+
+::: {.summary-box}
+### Resumen
+
+Reescribir exige verificar esquemas y semántica. La conmutatividad y asociatividad tienen condiciones de nombres y predicados; la distributividad sobre unión aditiva puede fallar. Push-selection conserva filtros y push-projection conserva dependencias de atributos. Las llaves deben sobrevivir hasta el resultado donde se invoca unicidad. `MIN` y `MAX` toleran la eliminación de filas completas repetidas; `SUM`, `COUNT` y `AVG` no la toleran en general. Un atributo ausente hace el plan mal definido, y una comprobación finita no reemplaza una demostración.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Planes lógicos y procesamiento](planes-logicos.qmd)
+- [Álgebra relacional](../teoria-consultas/algebra-relacional.qmd)
+- [Equivalencia entre lenguajes y patrones](../teoria-consultas/equivalencia-patrones.qmd)
+- [Agregación, GROUP BY y HAVING](../sql/agregacion.qmd)
+- [Outer joins](../nulos/outer-joins.qmd)
+:::
+
+## Lecturas de apoyo
+
+Las transformaciones de selecciones, proyecciones y joins se apoyan en @ramakrishnan2003 [sec. 15.3] y @silberschatz2020 [sec. 16.2]. Las diferencias entre leyes de conjuntos y bolsas y las reglas de deduplicación y agregación se desarrollan en @garciamolina2009 [secs. 16.2.1–16.2.7]. Las demostraciones por multiplicidades y las convenciones del explorador se presentan aquí de forma autocontenida.

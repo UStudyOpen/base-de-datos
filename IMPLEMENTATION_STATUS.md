@@ -2,6 +2,56 @@
 
 Actualizado: 19 de octubre de 2026. Archivo de continuidad técnica y académica del sitio; no sustituye la validación local previa a publicar.
 
+## P5 — Procesamiento y reescritura de consultas
+
+### Estado recibido y alcance
+
+- Inicio en `main`, HEAD `7e24ea9`, con `git status --short` vacío. Se trabaja sobre el repositorio real; hashing ya estaba implementado y se conserva. No se utilizan ZIPs ni restauraciones.
+- Se añaden `procesamiento/planes-logicos.qmd` y `procesamiento/reescritura.qmd`: el sitio pasa de 23 a 25 páginas académicas. Nueva categoría Procesamiento de consultas, tarjeta de inicio y enlaces desde álgebra relacional y equivalencia de lenguajes.
+- No se modifican los algoritmos, fuentes ni pruebas de B+trees, hashing, clausuras, BCNF o 3NF; su HTML cambia por la navegación generada. Tampoco se implementan almacenamiento, Buffer Manager, costos físicos ni E/R.
+
+### Comprobación académica y fuentes privadas
+
+- Consultados el PDF local de reescritura y los ejercicios 28–31 y 36 de la guía disponible en `/home/nicolas/Descargas/guia_repaso_i2.pdf`. Las extracciones de lectura quedan en `/tmp`; ningún documento, enunciado completo, atribución docente ni matriz de correspondencia se publica.
+- Pasajes contrastados en los libros locales: Ramakrishnan–Gehrke, tercera edición, catálogo y evaluación en 12.1–12.4, traducción en 15.1.2 y equivalencias/enumeración en 15.3–15.4; Silberschatz–Korth–Sudarshan, séptima edición, 15.1 y 16.2; Garcia-Molina–Ullman–Widom, segunda edición, bolsas y operadores extendidos en 5.1–5.2 y leyes de reescritura en 16.2.1–16.2.7. Las citas públicas solo usan las tres obras pertinentes a estos contenidos y conservan las cinco entradas bibliográficas existentes.
+- Comprobadas las páginas oficiales de SQLite sobre `sqlite_schema` y SELECT compuesto. Se corrige la grafía del catálogo respecto de la extracción privada y se declara expresamente que SQLite no implementa `INTERSECT ALL` ni `EXCEPT ALL`; esos operadores se prueban mediante el evaluador matemático.
+- El texto separa parser, preprocesador, reescritura, optimizador, plan lógico/físico y ejecución. Define multiplicidades, proyección de bolsas, δ, γ y τ; explica las hipótesis de conjuntos, multiconjuntos y NULL, y aporta pruebas por multiplicidades y contraejemplos mínimos.
+- El caso universitario usa tres estudiantes, dos cursos y cuatro inscripciones con llaves y referencias válidas. Dos personas llamadas Alex producen dos ocurrencias del mismo par de nombres. Los cinco planes conservan esa multiplicidad; DISTINCT exterior la reduce a uno. El ejemplo avanzado muestra por qué distribuir una disyunción solo conserva soporte si se mantiene la deduplicación final.
+
+### Componentes, algoritmos y contratos
+
+- `assets/js/visualizaciones/query-plan-model.js`: AST con identificadores estables, esquemas, atributos requeridos, predicados estructurados e hijos. Motor puro, datos y trazas congelados, sin navegador ni parser SQL.
+- Evaluador por ocurrencias para selección, proyección, renombramiento, producto, θ/equijoin, natural join, unión/intersección/diferencia de bolsas o conjuntos, δ y agregación MIN/MAX/SUM/COUNT/AVG. Comparación de frecuencias independiente del orden y cardinalidades por nodo; no son estimaciones de costo.
+- `applyRule` verifica esquemas, patrón, atributos y conservación de la salida antes de aceptar identificación de conjunciones, conversión producto→join, push-selection y push-projection. Conserva el árbol original y registra regla, precondiciones, antes/después, atributos preservados, justificación y clasificación. Las propuestas falsas se construyen aparte como diagnósticos; no se aceptan ni reparan silenciosamente mediante la API de reglas certificadas.
+- `assets/js/visualizaciones/query-plan.js`: seis recorridos y 18 estados comparables. Árboles SVG anterior/propuesto con operadores, predicados, esquemas, requisitos, cardinalidades y cambios destacados; controles, explicación, estado, errores de atributos y tablas de multiplicidad. La comparación finita se distingue explícitamente de la prueba universal.
+- Los recorridos estudian las cinco etapas válidas, disyunción solapada, proyección mal definida, eliminación indebida de DISTINCT, distributividad de bolsas y SUM frente a MIN/MAX. No se añade un segundo motor ni otra interfaz de conjuntos: la tabla de multiplicidades reutiliza el evaluador común.
+- Regiones con desplazamiento interno, alineación automática de la raíz y controles para volver a ella; texto de 14/15 px sin reducción de escala, descripciones textuales de ambos árboles, foco y anuncios. Cada instancia conserva su estado. Los fallbacks completos permanecen para impresión, JavaScript desactivado y fallo del módulo; sus títulos no se incluyen como destinos ocultos en el índice lateral.
+- Integración mínima en `_quarto.yml`, `index.qmd`, `assets/js/visualizaciones/index.js`, `assets/css/visualizaciones.css`, dos enlaces relacionados en cada página de teoría autorizada y `tests/integracion-visual.test.js`. No se modifica `core.js`, el tema, las hojas de estilo generales ni `references.bib`.
+
+### Validaciones de P5
+
+- `PATH=/usr/lib/chatgpt/resources/cua_node/bin:$PATH corepack npm test`: **55 pruebas aprobadas, 0 fallidas**, con Node 24.21.0. Incluye 20 pruebas P5, la ampliación de integración y todas las regresiones algorítmicas existentes. El oráculo cuenta tuplas posicionales sin usar las funciones de frecuencias del motor; cubre 256 pares de bolsas pequeñas para los operadores binarios, instancias con duplicados y vacíos, y 80 instancias adicionales comparadas con un evaluador independiente de tres bucles para las cinco etapas.
+- `tests/query-plan.test.js` ejecuta mediante Python/SQLite **3.51.2** los bloques SQL identificados de las fuentes públicas: DDL y datos, consulta original y reescrita, variantes DISTINCT, caso avanzado con unión aditiva y agregados. Compara multiconjuntos y reproduce los contraejemplos de disyunción, atributos ausentes, llave perdida y deduplicación antes de SUM. La intersección y diferencia ALL se comprueban con el oráculo matemático, no se anuncian como SQL ejecutado.
+- `python3 tests/sql_examples.py`: aprobado, conserva la regresión de DDL, vista, índice y operaciones de datos anteriores.
+- `quarto render`: **25 páginas**, sin errores ni warnings relevantes. `docs/` se obtiene exclusivamente con este render; scripts, CSS, búsqueda y navegación coinciden con las fuentes. El registro técnico no se publica.
+- `python3 tests/check_site.py`: aprobado, 25 HTML, 19 rutas originales, cinco claves bibliográficas, citas resueltas, enlaces y fragmentos válidos, delimitadores matemáticos de las fuentes correctos, recursos publicados idénticos e importaciones existentes. No hay PDFs, ZIPs ni carpetas privadas en `docs/`.
+- Escaneo editorial adicional: 54 fuentes y salidas públicas revisadas, sin atribuciones o dependencias docentes. Las dos exclusiones de carpetas privadas de `_quarto.yml` son deliberadas; no son atribuciones. `git diff --check -- ':!docs'`: aprobado. No se alteran manualmente los espacios de plantilla del HTML generado.
+- `tests/query-plan-browser.mjs`: aprobado en Brave/Chromium y Playwright, **18 estados en seis recorridos**, ambos árboles de cada estado y las frecuencias renderizadas contrastados con el modelo. Verifica anterior/siguiente/reinicio, selección de ejemplos, errores, nodos cambiados, dos instancias independientes, inicialización idempotente, foco, teclado, centrado de raíces y legibilidad sin etiquetas que excedan sus cajas.
+- Las dos páginas se prueban a **320, 390, 768, 1024 y 1440 px**, sin desbordamiento horizontal del documento. SVG de 14/15 px, desplazamiento local y reflujo a 640 CSS px, equivalente en geometría al escritorio de 1280 px al 200 %. También se prueban `prefers-reduced-motion`, impresión, MathJax sin `mjx-merror`, JavaScript desactivado y fallo deliberado del módulo. El zoom nativo sigue siendo una revisión humana complementaria.
+- Carga real del componente y sus importaciones bajo **`/open-study-base-de-datos/procesamiento/reescritura.html`**, sin errores de JavaScript, warnings ni recursos propios fallidos. Capturas finales inspeccionadas en escritorio y móvil: `/tmp/openstudy-query-browser-SsSXTb`.
+- Regresión de navegador de hashing: **326 snapshots**, siete presets extensibles y diez configuraciones estáticas, aprobada, sin errores ni recursos fallidos. Regresión B+: **508 snapshots**, nueve presets y dos políticas, aprobada, incluidos reflujo, fallbacks y MathJax; solo registra el 404 histórico del favicon implícito, sin recursos propios fallidos.
+- Problemas detectados y corregidos: etiquetas de identificadores largos que sobresalían de los nodos, un fragmento SQL inline que desbordaba a 320 px, raíces inicialmente fuera de la región visible y títulos estáticos ocultos que aparecían en el índice lateral. La prueba de integración admite clases adicionales de Quarto en el fallback y la prueba de foco establece primero modalidad de teclado. Dos regresiones anticipadas de navegador recargaron páginas mientras Quarto reemplazaba `docs/`; se descartaron esos resultados y se repitieron completas después de finalizar el render. Los resultados anteriores corresponden a esa salida estable.
+
+Para reproducir el navegador, servir el directorio padre con `python3 -m http.server 8765 --bind 127.0.0.1 --directory ..` y ejecutar los tres scripts `tests/query-plan-browser.mjs`, `tests/hashing-browser.mjs` y `tests/bplus-browser.mjs`. El test P5 admite `QUERY_PLAN_TEST_URL`; los demás conservan sus variables anteriores. Se usó `PLAYWRIGHT_MODULE=/usr/lib/chatgpt/resources/cua_node/lib/node_modules/playwright-core/index.mjs` y `BROWSER_EXECUTABLE=/usr/bin/brave-browser`, sin perfiles personales ni nuevas dependencias del sitio. La comprobación del prefijo exacto usó un servidor temporal que mapea `/open-study-base-de-datos/` a `docs/`.
+
+**P5 implementada y validada dentro del alcance solicitado.**
+
+### Límites y revisión humana
+
+El evaluador materializa bolsas pequeñas con valores primitivos no nulos y comparaciones bien tipadas, puras, deterministas y totales. Rechaza coerciones implícitas y predicados con NULL; no reproduce colaciones ni todos los tipos y errores de SQL. La agregación global vacía produce COUNT=0 y NULL para los otros agregados; esos marcadores no se someten a predicados clásicos. No ejecuta τ, outer joins, ventanas, límites, SQL arbitrario ni búsqueda de planes por costo. Esas restricciones se explican públicamente. El verificador de esquemas no es un sistema completo de inferencia de tipos SQL.
+
+Quedan como revisión humana complementaria la lectura editorial y matemática final, lectores de pantalla, zoom nativo del navegador y Firefox/Safari. No se declara auditoría WCAG completa ni una demostración universal obtenida por pruebas finitas. La siguiente etapa prevista es **P6, almacenamiento y buffer**, que requiere una tarea independiente. No se realizan commits, pushes ni publicación.
+
 ## P4 — Hashing: implementación actual
 
 ### Estado recibido y alcance
@@ -52,7 +102,7 @@ Para reproducir el navegador, servir el directorio padre con `python3 -m http.se
 
 La estructura materializa snapshots completos y valida globalmente cada paso: no constituye una medición de rendimiento de un índice. No simula concurrencia, recuperación, caché ni asignación física. La variante ternaria es una profundización conceptual, sin segundo motor. Quedan como revisiones humanas complementarias la lectura editorial académica, lectores de pantalla, zoom nativo y Firefox/Safari; no se declara auditoría WCAG completa.
 
-**P4 implementada y validada dentro del alcance solicitado.** P5–P8 permanecen sin iniciar. No se realizaron commits, pushes, despliegues ni modificaciones remotas.
+**P4 implementada y validada dentro del alcance solicitado.** Al cerrar P4, P5–P8 permanecían sin iniciar; P5 se desarrolla posteriormente en el registro superior. No se realizaron commits, pushes, despliegues ni modificaciones remotas.
 
 ## P3 — B+trees: implementación actual
 
@@ -110,7 +160,7 @@ P3 está implementada dentro de su alcance. La categoría Índices y la página 
 | P2: descomposiciones, BCNF, 3NF | Tres páginas ampliadas/nuevas, motor y ejemplos presentes; pruebas académicas aprobadas | Revisión visual y de casos interactivos en navegador |
 | P3: B+trees | Implementado y validado en esta etapa; véase el registro actual anterior | Revisiones humanas complementarias de accesibilidad y navegadores |
 | P4: hashing | Página, motores y exploradores implementados; validación registrada arriba | Revisiones humanas complementarias |
-| P5: procesamiento y reescritura | No implementado | Páginas, AST/visualización y pruebas |
+| P5: procesamiento y reescritura | Dos páginas, AST, evaluador y explorador implementados; véase el registro actual | Revisiones humanas complementarias |
 | P6: almacenamiento y buffer | No implementado | Páginas, simulador y pruebas |
 | P7: índices y costos | No implementado | Página y ejemplos con costos verificados |
 | P8: modelo E/R | No implementado | Páginas y ejemplos de conversión |
@@ -145,5 +195,5 @@ Las limitaciones de Quarto y conexión a localhost que siguen corresponden al en
 
 1. Completar las revisiones humanas complementarias indicadas para P3.
 2. Ejecutar las validaciones tras futuras modificaciones y conservar `docs/` generado por Quarto.
-3. P4 se desarrolló posteriormente con alcance propio; su registro actual aparece al inicio. P5–P8 requieren tareas independientes.
+3. P4 se desarrolló posteriormente con alcance propio; su registro actual aparece al inicio. P5 se desarrolló posteriormente; P6–P8 requieren tareas independientes.
 4. Mantener estas convenciones y las pruebas sin refactorizaciones innecesarias.

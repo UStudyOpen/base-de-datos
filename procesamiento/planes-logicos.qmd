@@ -1,0 +1,461 @@
+---
+title: "Planes lógicos y procesamiento de consultas"
+description: "Del SQL al árbol lógico: validación, catálogo, álgebra extendida y multiplicidades."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags"><span class="concept-tag">Parser</span><span class="concept-tag">Catálogo</span><span class="concept-tag">Plan lógico</span><span class="concept-tag">Multiconjuntos</span><span class="concept-tag">Álgebra extendida</span></div>
+</div>
+
+## De una intención a una ejecución
+
+SQL permite pedir un resultado sin escoger un algoritmo para obtenerlo. Una consulta que combina tres tablas admite distintos órdenes de combinación y distintos métodos de acceso. El procesador debe interpretar la petición, comprobar que tiene sentido y elegir cómo ejecutarla. El siguiente recorrido distingue responsabilidades; un motor real puede intercalar o fusionar algunas fases. [@ramakrishnan2003, secs. 12.1–12.4; @silberschatz2020, sec. 15.1]
+
+| Etapa o representación | Función |
+|---|---|
+| Consulta SQL | Texto declarativo enviado por el usuario. |
+| Parser | Reconoce la gramática y construye una representación sintáctica. |
+| Árbol de parsing | Expresa cláusulas, identificadores, literales y expresiones del texto. |
+| Preprocesador | Resuelve nombres y comprueba referencias y tipos usando el catálogo. |
+| Árbol validado y anotado | Vincula cada referencia con su relación, atributo y tipo. |
+| Reescritura | Traduce a operadores y aplica equivalencias con hipótesis verificadas. |
+| Planes lógicos candidatos | Árboles que especifican qué resultado calcular. |
+| Optimizador | Considera alternativas lógicas y físicas mediante costos estimados. |
+| Plan físico | Añade algoritmos, accesos e información de ejecución. |
+| Executor | Ejecuta el plan físico y entrega filas al consumidor. |
+
+El **parser no produce por sí solo un plan lógico optimizado**. El árbol sintáctico representa la estructura del texto; el árbol lógico representa operadores sobre relaciones. El optimizador tampoco demuestra que cualquier cambio sea válido: necesita transformaciones cuya conservación semántica ya esté justificada.
+
+## Parser: reconocer la sintaxis
+
+El parser verifica que el texto cumpla la gramática aceptada por el dialecto. Por ejemplo:
+
+```sql
+SELECT nombre
+FROM Estudiante
+WHERE carrera = 'Computación';
+```
+
+Tiene lista de salida, relación de origen y condición completa. El fragmento `carrera = 'Computación'` puede representarse por un nodo de comparación con dos hijos: una referencia a columna y un literal. En cambio:
+
+```sql
+SELECT nombre
+FROM Estudiante
+WHERE carrera =
+```
+
+queda incompleto: falta una expresión a la derecha de `=`. No es posible construir una comparación conforme a la gramática. El parser debe rechazarlo antes de que importe si la tabla existe.
+
+Una cadena puede ser sintácticamente válida y contener nombres inexistentes. Una consulta con `SELECT inexistente` y `FROM Estudiante` tiene estructura de consulta, pero la referencia debe comprobarse en la validación semántica. En la implementación de un motor, un mismo módulo puede combinar ambas tareas; aquí distinguimos sus responsabilidades conceptuales.
+
+## Preprocesador: resolver el significado
+
+El preprocesador vincula nombres con objetos del catálogo, comprueba que las relaciones y atributos existan y determina qué columna designa cada referencia. También verifica ámbitos y alias, compatibilidad de tipos, operadores y referencias entre expresiones. Las reglas para columnas agrupadas y agregados forman parte de esta validación, no de una medición de costos.
+
+Si `Estudiante` y `Curso` contienen `nombre`, la consulta
+
+```sql
+SELECT nombre
+FROM Estudiante, Curso;
+```
+
+es ambigua: hay dos columnas candidatas. Calificar con alias resuelve el problema:
+
+```sql
+SELECT e.nombre AS estudiante, c.nombre AS curso
+FROM Estudiante AS e, Curso AS c;
+```
+
+Esta última consulta calcula **todos los pares** de estudiantes y cursos. Puede ser válida aunque la intención fuera listar inscripciones. Una consulta válida pero conceptualmente equivocada no se convierte por ello en un error sintáctico ni semántico.
+
+Los tipos requieren atención al dialecto. Comparar una columna numérica con un literal textual no implica rechazo universal: algunos motores intentan conversiones implícitas, otros aceptan comparaciones entre clases de valores y otros rechazan determinadas combinaciones. La validación debe usar las reglas del motor concreto. No debe confundirse un fallo de conversión durante la ejecución con un error de gramática.
+
+## Catálogo del sistema
+
+El catálogo guarda información descriptiva sobre los objetos y, según el sistema, estadísticas de su contenido. Podemos organizarla en tres categorías. [@ramakrishnan2003, secs. 12.1–12.1.1]
+
+| Categoría | Información posible | Uso principal |
+|---|---|---|
+| Relaciones | Nombres, esquemas, atributos, tipos, restricciones, llaves y referencias | Resolver y validar nombres; justificar propiedades como unicidad. |
+| Estadísticas | Número de tuplas y páginas, tamaño promedio de registro, valores distintos, histogramas, distribución, máximos y mínimos | Estimar selectividad, tamaños intermedios y costos. |
+| Índices | Existencia, atributos, tipo, propiedades, tamaño y estadísticas de acceso | Elegir accesos y algoritmos físicos. |
+
+El preprocesador necesita principalmente esquemas y tipos. El reescritor puede aprovechar restricciones **garantizadas**, por ejemplo una llave que sobreviva en la salida. El optimizador usa estadísticas e índices para comparar alternativas. Una estimación de «casi todos los valores son distintos» no demuestra unicidad: las estadísticas pueden ser aproximadas o estar desactualizadas. No todos los motores guardan todas las medidas de la tabla anterior ni las exponen del mismo modo.
+
+### Un ejemplo real: SQLite
+
+En SQLite, esta consulta lista las tablas registradas en el esquema principal:
+
+```sql
+SELECT name, sql
+FROM main.sqlite_schema
+WHERE type = 'table'
+ORDER BY name;
+```
+
+`sqlite_schema` describe tablas, índices, vistas y triggers mediante columnas como `type`, `name`, `tbl_name`, `rootpage` y `sql`. No es una tabla que contenga por sí sola todas las estadísticas anteriores. Véase la [documentación del catálogo de SQLite](https://www.sqlite.org/schematab.html).
+
+## Álgebra relacional extendida {#algebra-extendida}
+
+El [álgebra clásica](../teoria-consultas/algebra-relacional.qmd) opera sobre conjuntos. Para acercarnos a SQL necesitamos también **multiconjuntos**, agregación y ordenamiento. Las convenciones siguientes se fijan para estas dos páginas y el explorador. No cambian la semántica de conjuntos usada en las páginas de teoría. Las operaciones sobre bolsas y los operadores extendidos se desarrollan en @garciamolina2009 [secs. 5.1–5.2].
+
+Trabajamos inicialmente con valores no nulos, tipos compatibles y predicados puros, deterministas y totales. Las tuplas son funciones sobre atributos nombrados. Los productos y joins con condición usan atributos disjuntos, obtenidos mediante alias o renombramiento; el natural join identifica los atributos comunes. No modelamos efectos laterales, errores de expresiones, colaciones especiales ni conversiones implícitas.
+
+### Multiplicidad y compatibilidad
+
+Para cada tupla $t$, definimos
+
+$$
+m_R(t)\in\mathbb N
+$$
+
+como su número de apariciones en el multiconjunto finito $R$. Su cardinalidad es $|R|=\sum_t m_R(t)$. En un conjunto, cada multiplicidad es cero o uno. El **soporte** es el conjunto de tuplas con multiplicidad positiva.
+
+Unión, intersección y diferencia requieren los mismos atributos y dominios compatibles. En SQL, los operadores compuestos emparejan columnas por posición; hay que alinear expresamente las columnas para representar esta convención de atributos nombrados.
+
+### Unión, intersección y diferencia
+
+Reservamos $\cup$ para la unión de conjuntos y $\uplus$ para la unión aditiva de bolsas. En las operaciones de bolsas:
+
+$$
+\begin{aligned}
+m_{R\uplus S}(t)&=m_R(t)+m_S(t),\\
+m_{R\cap S}(t)&=\min(m_R(t),m_S(t)),\\
+m_{R\setminus S}(t)&=\max(m_R(t)-m_S(t),0).
+\end{aligned}
+$$
+
+Si $R=[a,a,b]$ y $S=[a,b,b]$, se obtiene $R\uplus S=[a,a,a,b,b,b]$, $R\cap S=[a,b]$ y $R\setminus S=[a]$. Los corchetes enumeran ocurrencias sin imponer un orden.
+
+Estas tres operaciones corresponden a `UNION ALL`, `INTERSECT ALL` y `EXCEPT ALL` en dialectos que las soportan. **SQLite admite `UNION ALL`, pero no `INTERSECT ALL` ni `EXCEPT ALL`**: sus `UNION`, `INTERSECT` y `EXCEPT` eliminan duplicados. El evaluador del explorador implementa las fórmulas matemáticas anteriores. Véanse los [operadores compuestos de SQLite](https://www.sqlite.org/lang_select.html#compound_select_statements).
+
+### Selección, proyección y renombramiento
+
+La selección $\sigma_p(R)$ conserva cada ocurrencia que satisface $p$. Si $[p(t)]$ vale uno cuando $p(t)$ es verdadero y cero en otro caso:
+
+$$
+m_{\sigma_p(R)}(t)=[p(t)]m_R(t).
+$$
+
+La proyección de bolsas **suma** las multiplicidades que confluyen en una misma tupla de salida:
+
+$$
+m_{\pi_X(R)}(u)=\sum_{t:\,t[X]=u}m_R(t).
+$$
+
+Por ejemplo, proyectar `carrera` de dos estudiantes distintos de Computación devuelve dos ocurrencias de `Computación`. En álgebra de conjuntos se conserva una sola. En estas páginas $\pi$ conserva multiplicidades salvo que se declare explícitamente semántica de conjuntos.
+
+El renombramiento $\rho_{A\to B}$ cambia un nombre sin cambiar valores ni multiplicidades; exige que el nuevo nombre no colisione con otro atributo. El alias $e$ se entiende aquí como renombrar todos los atributos de `Estudiante` a `e.rut`, `e.nombre`, `e.carrera`. Para SQL, el alias es un calificador de referencias, no un cambio del esquema almacenado.
+
+### Producto y joins
+
+Si los atributos son disjuntos, el producto combina cada ocurrencia de $r\in R$ con cada ocurrencia de $s\in S$:
+
+$$
+m_{R\times S}(r\cup s)=m_R(r)m_S(s).
+$$
+
+El $\theta$-join se define por
+
+$$
+R\bowtie_\theta S=\sigma_\theta(R\times S).
+$$
+
+Un **equijoin** es un $\theta$-join cuya condición es una conjunción de igualdades entre atributos. Un **natural join** exige igualdad en **todos** los atributos compartidos y conserva una copia de cada atributo común. Para una salida $u$ compatible:
+
+$$
+m_{R\bowtie S}(u)=m_R(u[att(R)])m_S(u[att(S)]).
+$$
+
+Si no hay atributos comunes, el natural join coincide con el producto. Compartir `nombre` no implica que igualar nombres sea la intención de una consulta: el natural join puede introducir condiciones no solicitadas. Véanse [joins y operadores derivados](../teoria-consultas/joins-operadores.qmd).
+
+### Eliminación de duplicados
+
+El operador $\delta$ conserva el soporte y convierte sus multiplicidades a uno:
+
+$$
+m_{\delta(R)}(t)=
+\begin{cases}
+1 & \text{si }m_R(t)>0,\\
+0 & \text{en otro caso}.
+\end{cases}
+$$
+
+`SELECT DISTINCT carrera ...` se traduce como $\delta(\pi_{carrera}(\cdots))$. Su posición importa: $\pi_{carrera}(\delta(Estudiante))$ puede seguir devolviendo carreras repetidas.
+
+### Agregación
+
+Usamos
+
+$$
+\gamma_{G,L}(R),
+$$
+
+donde $G$ es la lista de atributos de agrupación y $L$ especifica expresiones agregadas con nombres de salida distintos. Por ejemplo:
+
+$$
+\gamma_{carrera,\,\operatorname{COUNT}(*)\to n}(Estudiante)
+$$
+
+produce una fila por carrera presente. Las salidas incluyen **todos** los atributos de $G$ y los agregados de $L$. Con $G\ne\varnothing$, una entrada vacía genera cero grupos. Sin atributos de agrupación, fijamos la convención SQL de un único grupo global, incluso sobre entrada vacía: `COUNT(*)` vale cero y `MIN`, `MAX`, `SUM`, `AVG` producen `NULL` en ese caso. Ese marcador de salida no se somete a los predicados clásicos del núcleo del explorador.
+
+| Función | Valores de un grupo $[2,2,8]$ | Efecto de eliminar una repetición de 2 |
+|---|---:|---|
+| `MIN` | 2 | No cambia. |
+| `MAX` | 8 | No cambia. |
+| `SUM` | 12 | Cambia a 10. |
+| `COUNT(*)` | 3 | Cambia a 2. |
+| `AVG` | 4 | Cambia a 5. |
+
+`COUNT(A)` coincide con `COUNT(*)` cuando $A$ no admite nulos; SQL ignora `NULL` en `COUNT(A)` y en las otras funciones de la tabla. La [página de agregación](../sql/agregacion.qmd) desarrolla `GROUP BY`, `HAVING` y `AGG(DISTINCT A)`. Deduplicar filas completas antes de agrupar no equivale a deduplicar los valores de un argumento dentro de cada grupo.
+
+### Ordenamiento
+
+El operador extendido $\tau_{A\uparrow,B\downarrow}(R)$ ordena por $A$ ascendente y luego por $B$ descendente. Devuelve una secuencia: una relación matemática no tiene orden inherente. Los empates no fijan por sí solos un orden entre filas empatadas; se necesitan criterios adicionales si importa distinguirlas.
+
+En SQL se requiere `ORDER BY` para garantizar el orden de presentación. La existencia o el uso de un índice B+ no garantiza por sí solo ese orden. El explorador compara multiconjuntos sin orden y no modela $\tau$, ventanas ni límites de filas.
+
+## De SQL a un plan lógico {#traduccion}
+
+En el fragmento básico, sin agregados ni `DISTINCT`:
+
+```sql
+SELECT atributos
+FROM R, S
+WHERE condicion;
+```
+
+se traduce en
+
+$$
+\pi_{\text{atributos}}
+\bigl(\sigma_{\text{condicion}}(R\times S)\bigr).
+$$
+
+La proyección es de bolsas para representar `SELECT` sin `DISTINCT`. Si se desea semántica de conjuntos se añade $\delta$ sobre la salida. La sintaxis esquemática anterior se concreta con nombres calificados cuando hay columnas compartidas.
+
+::: {.db-algorithm}
+### Procedimiento de traducción y construcción del árbol
+
+**Entrada:** una consulta básica ya validada, con alias resueltos. **Salida:** un AST de operadores lógicos. **Precondiciones:** relaciones existentes, atributos presentes y condiciones bien tipadas.
+
+```text
+crear una hoja por relación del FROM, con sus atributos calificados
+combinar las hojas mediante productos binarios, de izquierda a derecha
+si hay WHERE: crear una selección sobre el producto
+crear una proyección con las columnas del SELECT
+representar cada AS mediante un renombramiento de la salida
+si hay DISTINCT: colocar δ sobre esa salida
+anotar en cada nodo su esquema y atributos requeridos
+```
+
+**Corrección:** el producto enumera todas las combinaciones, el filtro conserva exactamente las que cumplen `WHERE` y la proyección entrega una ocurrencia por combinación superviviente. La suma de multiplicidades reproduce la repetición de filas de SQL en este fragmento. Construir el árbol recorre relaciones, referencias y expresiones del texto; no exige materializar el producto. La comprobación de esquemas puede usar conjuntos de nombres. Agregación, orden, subconsultas y otras extensiones requieren reglas adicionales.
+:::
+
+## Ejemplo transversal: estudiantes y cursos {#ejemplo}
+
+Usamos el esquema ficticio del sitio, con `rut` como llave de `Estudiante`, `codigo` como llave de `Curso` y `(rut,codigo,semestre)` como llave de `Inscribe`. Todos los atributos de este ejemplo son no nulos. Las inscripciones referencian estudiantes y cursos existentes.
+
+```{.sql #p5-datos}
+CREATE TABLE Estudiante (
+  rut TEXT PRIMARY KEY NOT NULL,
+  nombre TEXT NOT NULL, carrera TEXT NOT NULL
+);
+CREATE TABLE Curso (
+  codigo TEXT PRIMARY KEY NOT NULL,
+  nombre TEXT NOT NULL, creditos INTEGER NOT NULL
+);
+CREATE TABLE Inscribe (
+  rut TEXT NOT NULL REFERENCES Estudiante(rut),
+  codigo TEXT NOT NULL REFERENCES Curso(codigo),
+  semestre TEXT NOT NULL,
+  PRIMARY KEY (rut, codigo, semestre)
+);
+INSERT INTO Estudiante VALUES
+  ('r1','Alex','Computación'),
+  ('r2','Alex','Computación'),
+  ('r3','Sol','Artes');
+INSERT INTO Curso VALUES
+  ('BD101','Bases de Datos',6),
+  ('PROG101','Programación',5);
+INSERT INTO Inscribe VALUES
+  ('r1','BD101','2026-2'),
+  ('r2','BD101','2026-2'),
+  ('r3','PROG101','2026-2'),
+  ('r1','BD101','2026-1');
+```
+
+Los identificadores `r1` y `r2` pertenecen a **dos personas distintas con el mismo nombre**. Las dos primeras inscripciones producen el mismo par de nombres sin violar ninguna llave.
+
+```{.sql #p5-original}
+SELECT e.nombre AS estudiante,
+       c.nombre AS curso
+FROM Estudiante AS e,
+     Inscribe AS i,
+     Curso AS c
+WHERE e.rut = i.rut
+  AND i.codigo = c.codigo
+  AND e.carrera = 'Computación'
+  AND i.semestre = '2026-2';
+```
+
+Abreviamos $E=\rho_e(Estudiante)$, $I=\rho_i(Inscribe)$, $C=\rho_c(Curso)$ y $N=(e.nombre,c.nombre)$. Sean $a:(e.rut=i.rut)$, $b:(i.codigo=c.codigo)$, $p:(e.carrera=\text{Computación})$, $q:(i.semestre=\text{2026-2})$. Para aligerar los árboles, el renombramiento final de $N$ a `(estudiante,curso)` queda implícito.
+
+<div class="db-viz" data-db-viz="query-plan">
+<div class="db-viz-fallback">
+
+**Recorrido estático completo.**
+
+**1. Plan inicial:** producto, selección y proyección.
+
+$$
+P_0=\pi_N\bigl(\sigma_{a\land b\land p\land q}((E\times I)\times C)\bigr).
+$$
+
+```text
+π N
+└─ σ a ∧ b ∧ p ∧ q
+   └─ ×
+      ├─ ×
+      │  ├─ E
+      │  └─ I
+      └─ C
+```
+
+**2. Identificar condiciones:** separar las conjunciones deja un filtro local $p\land q$ y condiciones de combinación $a,b$.
+
+$$
+P_1=\pi_N\bigl(\sigma_{p\land q}(\sigma_b(\sigma_a(E\times I)\times C))\bigr).
+$$
+
+```text
+π N
+└─ σ p ∧ q
+   └─ σ b
+      └─ ×
+         ├─ σ a
+         │  └─ × (E, I)
+         └─ C
+```
+
+**3. Convertir productos a joins:** usar la definición de $\theta$-join.
+
+$$
+P_2=\pi_N\bigl(\sigma_{p\land q}((E\bowtie_a I)\bowtie_b C)\bigr).
+$$
+
+```text
+π N
+└─ σ p ∧ q
+   └─ ⋈ b
+      ├─ ⋈ a (E, I)
+      └─ C
+```
+
+**4. Push-selection:** $p$ solo usa atributos de $E$ y $q$ solo de $I$.
+
+$$
+P_3=\pi_N\bigl((\sigma_p(E)\bowtie_a\sigma_q(I))\bowtie_b C\bigr).
+$$
+
+```text
+π N
+└─ ⋈ b
+   ├─ ⋈ a
+   │  ├─ σ p (E)
+   │  └─ σ q (I)
+   └─ C
+```
+
+**5. Push-projection:** mantener salida y atributos de join; los filtros se evalúan antes de descartar sus atributos.
+
+$$
+\begin{aligned}
+E'&=\pi_{e.rut,e.nombre}(\sigma_p(E)),\\
+I'&=\pi_{i.rut,i.codigo}(\sigma_q(I)),\\
+C'&=\pi_{c.codigo,c.nombre}(C),\\
+P_4&=\pi_N((E'\bowtie_a I')\bowtie_b C').
+\end{aligned}
+$$
+
+```text
+π N
+└─ ⋈ b
+   ├─ ⋈ a
+   │  ├─ π e.rut,e.nombre
+   │  │  └─ σ p (E)
+   │  └─ π i.rut,i.codigo
+   │     └─ σ q (I)
+   └─ π c.codigo,c.nombre (C)
+```
+
+Los cinco planes devuelven `(Alex, Bases de Datos)` con multiplicidad **2**. Con un $\delta$ final, la multiplicidad es **1**. El producto inicial de las tres tablas tiene 24 ocurrencias; los joins antes de filtrar producen 4, y al adelantar los filtros ambas combinaciones intermedias del plan final producen 2. Estas cardinalidades pertenecen a estos datos; no son costos físicos ni una prueba universal de equivalencia.
+
+</div>
+</div>
+
+El explorador muestra esquemas, atributos requeridos, cardinalidades y resultados de ambos planes. El paso de identificación solo separa y ubica conjunciones: ninguna condición desaparece. Las pruebas de corrección de las reglas están en [reescritura y equivalencia](reescritura.qmd).
+
+### El mismo plan mediante subconsultas
+
+La siguiente consulta, compatible con SQLite, expresa los filtros y las proyecciones de las ramas. Un motor puede volver a reescribir estas subconsultas; el texto no obliga a materializarlas.
+
+```{.sql #p5-reescrito}
+SELECT e.nombre AS estudiante, c.nombre AS curso
+FROM (
+  SELECT rut, nombre FROM Estudiante
+  WHERE carrera = 'Computación'
+) AS e
+JOIN (
+  SELECT rut, codigo FROM Inscribe
+  WHERE semestre = '2026-2'
+) AS i ON e.rut = i.rut
+JOIN (
+  SELECT codigo, nombre FROM Curso
+) AS c ON i.codigo = c.codigo;
+```
+
+Sin `DISTINCT`, ambas consultas devuelven las dos ocurrencias. Para obtener pares distintos hay que usar `SELECT DISTINCT` en la salida exterior. Añadirlo a ramas arbitrarias puede cambiar multiplicidades; no es un paso implícito del procedimiento.
+
+## Plan lógico y plan físico
+
+Un join lógico exige combinar tuplas compatibles. Un plan físico decide cómo: por ejemplo, recorrer una entrada y buscar coincidencias usando un índice, o construir una estructura auxiliar para la combinación. Esas decisiones dependen de tamaños, selectividad, memoria y accesos disponibles. Los [B+trees](../indices/bplus.qmd) y el [hashing](../indices/hashing.qmd) ofrecen accesos con propiedades distintas; el operador lógico no impone ninguno. [@ramakrishnan2003, secs. 12.2–12.4]
+
+Adelantar filtros puede reducir cardinalidades intermedias; adelantar proyecciones reduce anchura, pero en bolsas no necesariamente cantidad de filas. Ninguna de esas observaciones garantiza menor tiempo en cualquier motor e instancia. Tampoco un plan lógico prescribe cuántas páginas leer: eso requiere elegir algoritmos físicos y un modelo de costos.
+
+## Autoevaluación
+
+1. Una consulta con `SELECT fantasma` y `FROM Estudiante`: ¿falla por gramática o por resolución de nombres?
+2. ¿Qué información permite demostrar que una salida no tiene duplicados? ¿Basta un histograma?
+3. ¿Por qué no se puede proyectar solo `i.codigo` antes del primer join del ejemplo?
+4. ¿Cuántas filas devuelve el ejemplo con y sin `DISTINCT`? ¿Por qué dos nombres iguales no identifican una misma persona?
+
+<details class="db-solution"><summary>Ver solución</summary>
+
+1. La estructura sintáctica es correcta; falla la resolución del atributo inexistente.
+2. Una restricción de unicidad que se conserve en la salida puede demostrarlo. Un histograma es una estimación y no basta.
+3. El primer join requiere `i.rut`; descartarlo produce una expresión mal definida.
+4. Dos sin `DISTINCT`, una con él. `r1` y `r2` son entidades diferentes; la proyección oculta los identificadores que las distinguen.
+
+</details>
+
+::: {.summary-box}
+### Resumen
+
+El parser reconoce estructura; el preprocesador resuelve referencias; la reescritura conserva significado; el optimizador compara implementaciones estimadas y el executor las ejecuta. Un plan lógico se construye composicionalmente y debe declarar si conserva multiplicidades. $\delta$, $\gamma$ y $\tau$ amplían el álgebra, con condiciones propias para duplicados, grupos y orden.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Reescritura y equivalencia de consultas](reescritura.qmd)
+- [Álgebra relacional clásica](../teoria-consultas/algebra-relacional.qmd)
+- [Equivalencia entre lenguajes](../teoria-consultas/equivalencia-patrones.qmd)
+- [Agregación en SQL](../sql/agregacion.qmd)
+- [NULL y lógica de tres valores](../nulos/null-tres-valores.qmd)
+:::
+
+## Lecturas de apoyo
+
+El catálogo y la separación entre operadores y algoritmos se apoyan en @ramakrishnan2003 [secs. 12.1–12.4]; el recorrido de procesamiento se desarrolla en @silberschatz2020 [sec. 15.1]. Para bolsas, deduplicación, agrupación y ordenamiento, véase @garciamolina2009 [secs. 5.1–5.2]. La notación concreta del explorador es una convención del sitio.

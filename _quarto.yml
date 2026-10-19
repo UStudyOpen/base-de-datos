@@ -81,6 +81,12 @@ website:
             text: Árboles B+
           - href: indices/hashing.qmd
             text: Hashing
+      - section: "Procesamiento de consultas"
+        contents:
+          - href: procesamiento/planes-logicos.qmd
+            text: Planes lógicos y procesamiento
+          - href: procesamiento/reescritura.qmd
+            text: Reescritura y equivalencia
   page-footer:
     left: "OpenStudy · Bases de Datos · Estudio por conceptos"
     right: "Sitio de estudio construido con Quarto"

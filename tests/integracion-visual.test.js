@@ -15,10 +15,12 @@ test('Rendered pages provide an intact static example and a relative module load
     ['diseno/tercera-forma-normal.html', 'normalizacion'],
     ['indices/bplus.html', 'bplus'],
     ['indices/hashing.html', 'hashing'],
+    ['procesamiento/planes-logicos.html', 'query-plan'],
+    ['procesamiento/reescritura.html', 'query-plan'],
   ]) {
     const html = load(`docs/${name}`);
     assert.match(html, new RegExp(`data-db-viz="${component}"`), name);
-    assert.match(html, /class="db-viz-fallback"/, name);
+    assert.match(html, /class="[^"]*\bdb-viz-fallback\b[^"]*"/, name);
     assert.match(html, /type="module" src="\.\.\/assets\/js\/visualizaciones\/index\.js"/, name);
   }
 });
@@ -34,6 +36,8 @@ test('Sources and deployable visualization resources are identical', () => {
     'assets/js/visualizaciones/bplus-model.js',
     'assets/js/visualizaciones/hashing.js',
     'assets/js/visualizaciones/hashing-model.js',
+    'assets/js/visualizaciones/query-plan-model.js',
+    'assets/js/visualizaciones/query-plan.js',
   ]) {
     assert.ok(existsSync(join(root, `docs/${path}`)), path);
     assert.equal(load(path), load(`docs/${path}`), path);
@@ -72,4 +76,16 @@ test('Hashing provides two independent fallbacks, citations, navigation and sear
   assert.match(load('docs/indices/bplus.html'),/hashing\.html/);
   assert.ok(JSON.parse(load('docs/search.json')).some(x=>x.href.split('#')[0]==='indices/hashing.html'));
   assert.doesNotMatch(html,/clases_referencia|libros_referencia|guia_repaso_i2/);
+});
+
+
+test('P5 is linked, searchable, cited and independent of private teaching resources', () => {
+  for(const name of ['planes-logicos','reescritura']) {
+    const path=`procesamiento/${name}.html`,html=load(`docs/${path}`);
+    assert.match(load('docs/index.html'),new RegExp(path));
+    assert.match(html,/ref-ramakrishnan2003/);assert.match(html,/ref-garciamolina2009/);assert.match(html,/mathjax/i);
+    assert.match(html,/Procesamiento de consultas/);
+    assert.ok(JSON.parse(load('docs/search.json')).some(x=>x.href.split('#')[0]===path));
+    assert.doesNotMatch(html,/clases_referencia|libros_referencia|guia_repaso_i2|Clase 16/);
+  }
 });
