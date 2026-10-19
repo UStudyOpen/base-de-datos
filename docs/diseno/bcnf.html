@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Descomposición recursiva por clausuras, prueba de pérdida y límites de preservación.">
+
+<title>Forma normal de Boyce–Codd (BCNF) – Bases de Datos</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../diseno/tercera-forma-normal.html" rel="next">
+<link href="../diseno/descomposiciones.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-9f43a20c679eb76b4703ca291990b4b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-fd39a65834ac5c5cea4c59ebc26eb91d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../styles/layout.css">
+<link rel="stylesheet" href="../styles/components.css">
+<link rel="stylesheet" href="../styles/concepts.css">
+<link rel="stylesheet" href="../styles/responsive.css">
+<link rel="stylesheet" href="../assets/css/visualizaciones.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../diseno/dependencias-llaves.html">Diseño relacional y dependencias</a></li><li class="breadcrumb-item"><a href="../diseno/bcnf.html">Forma normal de Boyce–Codd</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bases de Datos</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inicio</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Fundamentos del modelo relacional</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/sistemas-rdbms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sistemas de bases de datos y RDBMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/modelo-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modelo relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/relaciones-nombradas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Atributos y relaciones nombradas</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Teoría de consultas</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/logica-primer-orden.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lógica de primer orden y consultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/algebra-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Álgebra relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/joins-operadores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joins y operadores derivados</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/equivalencia-patrones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Equivalencia y patrones de consulta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">SQL</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/ddl-dml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DDL y DML</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/consultas-basicas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SELECT-FROM-WHERE, joins y conjuntos</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/subconsultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Subconsultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/agregacion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Agregación, GROUP BY y HAVING</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/funciones-filtros.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Funciones, filtros, orden y dialectos</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Nulos e información incompleta</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/null-tres-valores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NULL y lógica de tres valores</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/informacion-incompleta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Información incompleta y mundos posibles</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/outer-joins.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outer joins</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Diseño relacional y dependencias</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/dependencias-llaves.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Redundancia, dependencias funcionales y llaves</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/implicacion-clausura.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Implicación y clausura</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/descomposiciones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Descomposiciones y pérdida de información</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/bcnf.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Forma normal de Boyce–Codd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/tercera-forma-normal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tercera forma normal y síntesis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul>
+  <li><a href="#intuición-cada-determinante-debe-identificar-una-tupla" id="toc-intuición-cada-determinante-debe-identificar-una-tupla" class="nav-link active" data-scroll-target="#intuición-cada-determinante-debe-identificar-una-tupla">Intuición: cada determinante debe identificar una tupla</a></li>
+  <li><a href="#algoritmo-bcnf" id="toc-algoritmo-bcnf" class="nav-link" data-scroll-target="#algoritmo-bcnf">Algoritmo por clausura</a></li>
+  <li><a href="#por-qué-termina-y-qué-garantiza" id="toc-por-qué-termina-y-qué-garantiza" class="nav-link" data-scroll-target="#por-qué-termina-y-qué-garantiza">Por qué termina y qué garantiza</a>
+  <ul class="collapse">
+  <li><a href="#complejidad-y-límites" id="toc-complejidad-y-límites" class="nav-link" data-scroll-target="#complejidad-y-límites">Complejidad y límites</a></li>
+  </ul></li>
+  <li><a href="#ejemplo-corte" id="toc-ejemplo-corte" class="nav-link" data-scroll-target="#ejemplo-corte">Ejemplo completo: perder preservación sin perder información</a></li>
+  <li><a href="#el-caso-binario-con-constantes" id="toc-el-caso-binario-con-constantes" class="nav-link" data-scroll-target="#el-caso-binario-con-constantes">El caso binario con constantes</a></li>
+  <li><a href="#resumen" id="toc-resumen" class="nav-link" data-scroll-target="#resumen">Resumen</a></li>
+  <li><a href="#conceptos-relacionados" id="toc-conceptos-relacionados" class="nav-link" data-scroll-target="#conceptos-relacionados">Conceptos relacionados</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../diseno/dependencias-llaves.html">Diseño relacional y dependencias</a></li><li class="breadcrumb-item"><a href="../diseno/bcnf.html">Forma normal de Boyce–Codd</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Forma normal de Boyce–Codd (BCNF)</h1>
+</div>
+
+<div>
+  <div class="description">
+    Descomposición recursiva por clausuras, prueba de pérdida y límites de preservación.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="concept-section">
+<div class="concept-label">
+Conceptos clave
+</div>
+<div class="concept-tags">
+<p><span class="concept-tag">BCNF</span><span class="concept-tag">Clausura</span><span class="concept-tag">Descomposición sin pérdida</span><span class="concept-tag">Dependencias proyectadas</span></p>
+</div>
+</div>
+<section id="intuición-cada-determinante-debe-identificar-una-tupla" class="level2">
+<h2 class="anchored" data-anchor-id="intuición-cada-determinante-debe-identificar-una-tupla">Intuición: cada determinante debe identificar una tupla</h2>
+<p>Si un atributo no llave determina datos de otra entidad, esos datos pueden repetirse cada vez que aparece el determinante. BCNF exige que toda determinación no trivial parta de una superllave. La garantía se refiere a redundancia explicada por DF dentro de un esquema; no resuelve por sí sola todas las restricciones del dominio ni la redundancia entre varias tablas. <span class="citation" data-cites="garciamolina2009 ramakrishnan2003">(<a href="#ref-garciamolina2009" role="doc-biblioref">Garcia-Molina et&nbsp;al. 2009, sec. 3.3.3</a>; <a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 19.6.1</a>)</span></p>
+<div id="def-bcnf" class="theorem definition">
+<p><span class="theorem-title"><strong>Definición 1 (Forma normal de Boyce–Codd)</strong></span> Un esquema <span class="math inline">\(U\)</span> con DF <span class="math inline">\(F\)</span> está en <strong>BCNF</strong> si, para toda DF <span class="math inline">\(X\to Y\)</span> implicada por <span class="math inline">\(F\)</span>, se cumple</p>
+<p><span class="math display">\[
+Y\setminus X\ne\varnothing\quad\Longrightarrow\quad X_F^+=U.
+\]</span></p>
+</div>
+<p>Se cuantifica sobre las consecuencias de <span class="math inline">\(F\)</span>, no solo sobre reglas escritas. Para decidirlo se pueden enumerar <span class="math inline">\(X\subseteq U\)</span>: hay violación exactamente cuando <span class="math inline">\(X\subsetneq X_F^+\subsetneq U\)</span>. Las <a href="../diseno/descomposiciones.html#contrato-proyeccion">proyecciones de DF</a> son esenciales al aplicar la definición a un componente.</p>
+</section>
+<section id="algoritmo-bcnf" class="level2">
+<h2 class="anchored" data-anchor-id="algoritmo-bcnf">Algoritmo por clausura</h2>
+<p>El procedimiento separa todos los atributos que determina una violación. Esta variante incorpora la clausura completa, como la estrategia de <span class="citation" data-cites="garciamolina2009">Garcia-Molina et&nbsp;al. (<a href="#ref-garciamolina2009" role="doc-biblioref">2009, sec. 3.3.4</a>)</span>. Otra variante corta por <span class="math inline">\(XY\)</span> y <span class="math inline">\(U\setminus(Y\setminus X)\)</span>; puede producir un árbol diferente. Aquí siempre se utiliza el corte siguiente.</p>
+<div id="procedimiento-bcnf" class="db-algorithm">
+<p><strong>Entrada:</strong> esquema finito <span class="math inline">\(U\)</span> y una base <span class="math inline">\(F\)</span> de sus DF. <strong>Salida:</strong> esquemas que cubren <span class="math inline">\(U\)</span>, con sus DF proyectadas, todos en BCNF y sin pérdida bajo <span class="math inline">\(F\)</span>. <strong>Precondiciones:</strong> relaciones de conjuntos sin nulos; las reglas usan atributos de <span class="math inline">\(U\)</span>.</p>
+<pre class="text"><code>1  toBCNF(U, F):
+2    si U está en BCNF bajo F: devolver [(U, F)]
+3    elegir X → Y no trivial implicada por F con X no superllave
+4    C ← clausura(F, X)
+5    U+ ← C
+6    U− ← (U − C) ∪ X
+7    F+ ← proyectar(F, U+); F− ← proyectar(F, U−)
+8    devolver toBCNF(U+, F+) concatenado con toBCNF(U−, F−)</code></pre>
+<p><strong>Invariante:</strong> cada nodo conserva las consecuencias de las dependencias de su padre que corresponden a su esquema; las hojas actuales reconstruyen sin pérdida la relación del nodo inicial.</p>
+</div>
+<p>La elección de violación no es única. El explorador permite elegir el primer determinante; los cortes posteriores siguen el orden de subconjuntos por tamaño y orden alfabético. Esta política de elección es una convención del sitio, no un teorema de unicidad.</p>
+</section>
+<section id="por-qué-termina-y-qué-garantiza" class="level2">
+<h2 class="anchored" data-anchor-id="por-qué-termina-y-qué-garantiza">Por qué termina y qué garantiza</h2>
+<div id="thm-bcnf-correcto" class="theorem">
+<p><span class="theorem-title"><strong>Teorema 1 (Corrección de la descomposición por clausura)</strong></span> El algoritmo anterior termina en una descomposición sin pérdida, con todas sus componentes en BCNF.</p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Demostración</em>. </span>Una violación cumple <span class="math inline">\(X\subsetneq C\subsetneq U\)</span>. Por ello <span class="math inline">\(U^+=C\)</span> es propio. Como <span class="math inline">\(C\setminus X\)</span> no es vacío, también <span class="math inline">\(U^-=(U\setminus C)\cup X\)</span> es propio. Su unión es <span class="math inline">\(U\)</span> y su intersección es exactamente <span class="math inline">\(X\)</span>. Dado que <span class="math inline">\(F\models X\to C\)</span>, el <a href="../diseno/descomposiciones.html#criterio-binario">criterio binario</a> demuestra que el corte es sin pérdida.</p>
+<p>En cada rama disminuye estrictamente el número de atributos; así, la recursión termina. Una hoja se devuelve únicamente después de comprobar BCNF. Las proyecciones de una instancia válida satisfacen las DF proyectadas, de modo que cada corte posterior vuelve a ser aplicable. Reemplazar una componente por sus proyecciones sin pérdida conserva la reconstrucción de todo el árbol; por inducción, el join de todas las hojas recupera la instancia original.</p>
+</div>
+<section id="complejidad-y-límites" class="level3">
+<h3 class="anchored" data-anchor-id="complejidad-y-límites">Complejidad y límites</h3>
+<p>La profundidad del árbol es a lo sumo <span class="math inline">\(n=|U|\)</span>, pero eso no hace polinomial el algoritmo completo. En un nodo de <span class="math inline">\(s\)</span> atributos se enumeran hasta <span class="math inline">\(2^s\)</span> determinantes y, para cada proyección, otros tantos subconjuntos del componente. Si <span class="math inline">\(C_v\)</span> es el costo de clausura con la base del nodo, una cota conservadora por nodo es <span class="math inline">\(O(2^s(C_v+s))\)</span>, multiplicada por una constante para sus dos proyecciones. El costo total suma esas cotas sobre los nodos; las bases proyectadas pueden tener tamaño exponencial. La visualización limita el esquema a seis atributos y cuarenta reglas iniciales.</p>
+<p>BCNF <strong>no garantiza preservación de dependencias ni un resultado único</strong>. Una descomposición concreta puede preservar las DF, pero debe comprobarse por implicación.</p>
+</section>
+</section>
+<section id="ejemplo-corte" class="level2">
+<h2 class="anchored" data-anchor-id="ejemplo-corte">Ejemplo completo: perder preservación sin perder información</h2>
+<p>Para el <a href="../diseno/dependencias-llaves.html#ejemplo-abcde">esquema <span class="math inline">\(ABCDE\)</span></a>, elegimos <span class="math inline">\(B\to E\)</span>. Tenemos <span class="math inline">\(B^+=BE\ne ABCDE\)</span>, por lo que es violatoria:</p>
+<p><span class="math display">\[
+U^+=BE,\qquad U^-=(ABCDE\setminus BE)\cup B=ABCD.
+\]</span></p>
+<p>El árbol queda:</p>
+<pre class="text"><code>ABCDE — B → E, B+ = BE
+├── BE    : B → E
+└── ABCD  : A → BCD, BC → A   (base equivalente)</code></pre>
+<p>En <span class="math inline">\(BE\)</span>, todo determinante no trivial contiene <span class="math inline">\(B\)</span>, que es llave. En <span class="math inline">\(ABCD\)</span>, cualquier consecuencia no trivial necesita <span class="math inline">\(A\)</span> o <span class="math inline">\(BC\)</span> en el antecedente; ambos son llaves. Las dos hojas están en BCNF. El corte es sin pérdida porque <span class="math inline">\(B\)</span> determina <span class="math inline">\(BE\)</span>.</p>
+<p>Sin embargo, con la unión de las bases locales, <span class="math inline">\((CE)^+=CE\)</span>. Se pierden las implicaciones <span class="math inline">\(CE\to A\)</span> y <span class="math inline">\(CE\to D\)</span>. El <a href="../diseno/descomposiciones.html#preservacion">contraejemplo con dos relaciones locales</a> muestra que no se trata de una mera ausencia textual de reglas.</p>
+<div class="db-viz" data-db-viz="normalizacion">
+<div class="db-viz-fallback">
+<p><strong>Traza estática para estudiar sin JavaScript.</strong> Estado 0: nodo <span class="math inline">\(ABCDE\)</span> y las cinco DF originales. Estado 1: violación <span class="math inline">\(B\to E\)</span>; clausura <span class="math inline">\(BE\)</span>; corte propio <span class="math inline">\(BE/ABCD\)</span>, con intersección <span class="math inline">\(B\)</span>. Estado 2: <span class="math inline">\(BE\)</span> se certifica BCNF bajo <span class="math inline">\(B\to E\)</span>. Estado 3: <span class="math inline">\(ABCD\)</span> se certifica BCNF bajo <span class="math inline">\(A\to BCD,BC\to A\)</span>. Estado 4: la unión de proyecciones no implica <span class="math inline">\(CE\to A,D\)</span> porque su clausura de <span class="math inline">\(CE\)</span> es <span class="math inline">\(CE\)</span>. Los esquemas y el testigo se desarrollan arriba y en la página de descomposiciones.</p>
+</div>
+</div>
+</section>
+<section id="el-caso-binario-con-constantes" class="level2">
+<h2 class="anchored" data-anchor-id="el-caso-binario-con-constantes">El caso binario con constantes</h2>
+<p>No se debe usar «dos atributos» como base automática de la recursión. Para <span class="math inline">\(U=AB\)</span>, <span class="math inline">\(F=\{\varnothing\to A\}\)</span>, el determinante vacío no determina <span class="math inline">\(B\)</span> y viola BCNF. El algoritmo obtiene <span class="math inline">\(A\)</span> y <span class="math inline">\(B\)</span>: en <span class="math inline">\(A\)</span>, el vacío es superllave; en <span class="math inline">\(B\)</span> solo hay DF triviales. El join es producto cartesiano y reconstruye la instancia porque <span class="math inline">\(A\)</span> es constante en ella.</p>
+<p>Si <span class="math inline">\(\varnothing^+=\varnothing\)</span>, todo esquema binario sí está en BCNF: una DF no trivial debe tener antecedente unitario y determinar el otro atributo, por lo que ese antecedente es superllave. La hipótesis excluye constantes no triviales. Un esquema vacío o unitario satisface BCNF incluso admitiendo constantes.</p>
+<div id="exr-bcnf-cadena" class="theorem exercise">
+<p><span class="theorem-title"><strong>Ejercicio 1</strong></span> Descompón <span class="math inline">\(ABC\)</span> con <span class="math inline">\(F=\{A\to B,B\to C\}\)</span> empezando por <span class="math inline">\(B\to C\)</span>. ¿Se preservan las DF? ¿Qué sucede si <span class="math inline">\(F\)</span> es vacío?</p>
+</div>
+<details class="db-solution">
+<summary>
+Solución razonada
+</summary>
+<p><span class="math inline">\(B^+=BC\)</span> y el complemento con <span class="math inline">\(B\)</span> es <span class="math inline">\(AB\)</span>. Ambas relaciones son BCNF bajo <span class="math inline">\(B\to C\)</span> y <span class="math inline">\(A\to B\)</span>, respectivamente. Se preservan las dos DF y el corte es sin pérdida. Con <span class="math inline">\(F=\varnothing\)</span> no hay DF no triviales implicadas; el esquema completo ya es BCNF y se devuelve sin cortar.</p>
+</details>
+</section>
+<section id="resumen" class="level2 summary-box">
+<h2 class="anchored" data-anchor-id="resumen">Resumen</h2>
+<p>BCNF exige superllaves en todo determinante no trivial. El corte por clausura produce componentes propias y es sin pérdida. Proyectar consecuencias y comprobar las hojas es obligatorio; ni la preservación ni la unicidad vienen garantizadas.</p>
+</section>
+<section id="conceptos-relacionados" class="level2 related-links">
+<h2 class="anchored" data-anchor-id="conceptos-relacionados">Conceptos relacionados</h2>
+<ul>
+<li><a href="../diseno/dependencias-llaves.html">Dependencias y llaves</a></li>
+<li><a href="../diseno/implicacion-clausura.html">Clausura e implicación</a></li>
+<li><a href="../diseno/descomposiciones.html">Pérdida y preservación</a></li>
+<li><a href="../diseno/tercera-forma-normal.html">Tercera forma normal y síntesis</a></li>
+</ul>
+</section>
+
+
+
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Volver arriba</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Referencias</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-garciamolina2009" class="csl-entry" role="listitem">
+Garcia-Molina, Hector, Jeffrey D. Ullman, y Jennifer Widom. 2009. <em>Database Systems: The Complete Book</em>. 2.ª ed. Pearson Prentice Hall.
+</div>
+<div id="ref-ramakrishnan2003" class="csl-entry" role="listitem">
+Ramakrishnan, Raghu, y Johannes Gehrke. 2003. <em>Database Management Systems</em>. 3.ª ed. McGraw-Hill.
+</div>
+</div></section></div></main> <!-- /main -->
+<script type="module" src="../assets/js/visualizaciones/index.js"></script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../diseno/descomposiciones.html" class="pagination-link" aria-label="Descomposiciones y pérdida de información">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Descomposiciones y pérdida de información</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../diseno/tercera-forma-normal.html" class="pagination-link" aria-label="Tercera forma normal y síntesis">
+        <span class="nav-page-text">Tercera forma normal y síntesis</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>OpenStudy · Bases de Datos · Estudio por conceptos</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Sitio de estudio construido con Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
