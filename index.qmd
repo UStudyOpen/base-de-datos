@@ -74,6 +74,13 @@ Del parser al plan lógico: álgebra extendida, multiplicidades y reescrituras c
 
 [Planes lógicos](procesamiento/planes-logicos.qmd) · [Reescritura y equivalencia](procesamiento/reescritura.qmd)
 :::
+::: {.topic-card}
+### Almacenamiento y organización física
+
+Páginas, registros, RIDs y compactación. Simula pins, dirty bits y reemplazo FIFO/LRU, y compara sus lecturas y escrituras.
+
+[Páginas y registros](almacenamiento/paginas-registros.qmd) · [Buffer Manager](almacenamiento/buffer-manager.qmd)
+:::
 ::::
 
 ## Ejemplo transversal

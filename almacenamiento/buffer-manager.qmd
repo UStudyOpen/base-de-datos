@@ -1,0 +1,337 @@
+---
+title: "Buffer Manager: FIFO y LRU"
+description: "Frames, pin/unpin, dirty bits y E/S: simulador, anomalía de Belady y acceso a árboles B+."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags"><span class="concept-tag">Buffer pool</span><span class="concept-tag">Pin count</span><span class="concept-tag">Dirty bit</span><span class="concept-tag">FIFO</span><span class="concept-tag">LRU</span><span class="concept-tag">Belady</span></div>
+</div>
+
+## Intuición: una mesa de trabajo limitada
+
+Imagina un archivo cuyos documentos solo pueden consultarse sobre una mesa con pocas posiciones. Puedes conservar los que usarás otra vez, pero debes devolver alguno para traer otro. Si lo modificaste, antes debes guardar sus cambios. En el DBMS, la mesa es el **buffer pool**, cada posición es un **frame** y cada documento es una **página**.
+
+Una base grande puede superar la RAM asignada al DBMS; incluso si cupiera, otras tareas comparten esa memoria. El Buffer Manager carga páginas bajo demanda, conserva las que pueden reutilizarse y decide qué reemplazar al llenarse el buffer. La ejecución de consultas solicita páginas sin tener que decidir directamente dónde ponerlas en RAM. [@ramakrishnan2003, sec. 9.4]
+
+## Modelo formal e invariantes {#modelo}
+
+Una página de almacenamiento tiene un **PageID**. Un frame es una región de RAM capaz de alojar una página; $N\geq1$ frames forman el buffer pool. La **page table** asocia cada PageID residente con su frame. No es el directorio de slots ni el directorio de espacio libre de [organización física](paginas-registros.qmd#organizacion).
+
+| Campo conceptual por frame ocupado | Significado |
+|---|---|
+| `pageId` | Página cargada. |
+| `pinCount` | Cantidad de fijaciones exitosas aún no liberadas. |
+| `dirty` | Hay modificaciones pendientes de escritura a almacenamiento. |
+| `ordenDeCarga` | Instante lógico de la última carga de esa página: prioridad FIFO. |
+| `ultimoAcceso` | Instante del último `pin` exitoso: prioridad LRU en este sitio. |
+
+Los dos últimos campos expresan información de política, no un formato físico obligatorio. Un **hit** encuentra la página en un frame; un **miss** no la encuentra. Un frame **libre** no contiene página válida. Una **víctima** es una página elegida para expulsión por la política de reemplazo. Solo es elegible si su `pinCount` es **cero**. Una lectura transfiere una página al buffer; una escritura lleva los cambios de una página a almacenamiento.
+
+::: {.callout-important}
+## Una sola fijación ya protege la página
+
+`pinCount = 1` impide expulsar la página, igual que cualquier valor mayor. Dirty y pinned son propiedades distintas: una página puede estar dirty y completamente liberada. Los pins protegen la residencia; no sustituyen los mecanismos de concurrencia ni la recuperación de transacciones.
+:::
+
+Los invariantes del modelo son: PageIDs únicos entre frames, contadores enteros no negativos y page table exactamente igual a las asociaciones de los frames ocupados. Un frame libre tiene pin cero y dirty falso. Las llamadas `pin` y `unpin` son **operaciones internas conceptuales del DBMS, no comandos SQL estándar**. [@silberschatz2020, sec. 13.5.1]
+
+## Operaciones y escrituras {#operaciones}
+
+### `pin(p)`
+
+::: {.db-algorithm}
+**Entrada:** PageID válido. **Salida:** frame protegido o rechazo sin cambios en el buffer.
+
+```text
+si p está en la page table:                    // hit
+  incrementar su pinCount
+  actualizar ultimoAcceso
+  devolver su frame, sin lectura
+si hay frame libre: elegir el primero
+si no:
+  candidatos ← frames ocupados con pinCount = 0
+  si candidatos está vacío: rechazar la petición
+  víctima ← mínimo ordenDeCarga (FIFO)
+             o mínimo ultimoAcceso (LRU), entre candidatos
+  si víctima.dirty: escribirla antes de reutilizar el frame
+  retirar la asociación anterior de la page table
+leer p desde almacenamiento                    // miss atendido
+asignar pageId=p, pinCount=1, dirty=false
+inicializar ordenDeCarga y ultimoAcceso
+registrar p → frame en la page table y devolver frame
+```
+:::
+
+Se usa un frame libre antes de expulsar páginas. Si todos están fijados, este simulador **rechaza** la solicitud inmediatamente, sin encolarla ni reintentar automáticamente; registra el diagnóstico, pero conserva frames, tiempos de política y contadores de E/S. El miss rechazado no genera lectura. Un sistema real puede esperar o coordinar la liberación de recursos. Suponemos E/S exitosa y secuencial; no se simulan fallas de dispositivo.
+
+### `unpin(p, modificado)`
+
+La página debe estar cargada y tener `pinCount > 0`. Si no, se rechaza sin cambiar el estado operativo. Si es legal, decrementa el contador y acumula las modificaciones:
+
+$$
+dirty_{\text{nuevo}}=dirty_{\text{anterior}}\lor dirty_{\text{argumento}}.
+$$
+
+Por ejemplo, `pin(A), pin(A), unpin(A,true), unpin(A,false)` deja A con pin cero y dirty verdadero. El segundo `false` no borra el cambio anterior. Tampoco `unpin` genera una escritura: liberar una referencia y persistir cambios son acciones distintas. La política no actualiza recencia al liberar.
+
+Al expulsar una víctima dirty, se escribe **una vez** antes de cargar la nueva página; expulsar una clean no escribe. No se realiza flush automático al finalizar una secuencia. Las páginas dirty aún residentes siguen pendientes. Un DBMS real puede escribir por otros motivos y debe respetar su protocolo de recuperación; aquí aislamos las escrituras por reemplazo. [@ramakrishnan2003, sec. 9.4; @silberschatz2020, sec. 13.5.1]
+
+El contador valida el balance por página. No identifica qué proceso posee cada fijación; por tanto, no demuestra que cada proceso haya liberado únicamente sus propios pins.
+
+## Políticas FIFO y LRU {#politicas}
+
+| Aspecto | FIFO | LRU del simulador |
+|---|---|---|
+| Información | Orden de carga actual | Orden de último `pin` exitoso |
+| Víctima | Elegible cargada más antiguamente | Elegible usada menos recientemente |
+| Hit | No cambia la prioridad | Renueva la recencia |
+| `unpin` | No cambia la prioridad | No cambia la recencia |
+| Página fijada | Se omite aunque sea la más antigua | Se omite aunque sea la menos reciente |
+
+**Ejemplo.** Tras `usar(A), usar(B), usar(C), usar(A)`, FIFO mantiene el orden A,B,C; LRU tiene B,C,A. Con todos liberados, `pin(D)` expulsa A en FIFO y B en LRU. Aquí `usar(p)` abrevia `pin(p)` seguido inmediatamente de `unpin(p,false)`.
+
+Seleccionar el mínimo puede hacerse recorriendo $N$ frames, como en el motor pedagógico. Una implementación real puede mantener colas, listas o aproximaciones para reducir mantenimiento y búsqueda. La recencia exacta tiene costo: FIFO no actualiza su orden en cada hit. Ninguna de las dos políticas minimiza las lecturas en toda secuencia; LRU puede sufrir al recorrer repetidamente más páginas que frames. Las escrituras dependen además de qué víctimas estén dirty. [@garciamolina2009, sec. 15.7.2; @ramakrishnan2003, sec. 9.4.1]
+
+La elección de contar cada `pin` como uso y no cada `unpin` es una **convención del sitio**, mantenida durante toda la ejecución. No trasladamos resultados de otra convención sin volver a analizarlos.
+
+## Ejemplo completo: 18 operaciones {#dieciocho}
+
+Partimos con **tres frames vacíos**, sin flush final. En las tablas, cada frame se escribe `página/pins/dirty`, con `1` para dirty verdadero, `0` para falso y `—` para frame libre. Los totales son lecturas L y escrituras E acumuladas. La misma secuencia permite comparar las políticas sin cambiar las solicitudes.
+
+### FIFO
+
+::: {.table-responsive tabindex="0" role="region" aria-label="Traza FIFO de 18 operaciones"}
+
+| Paso | Operación | Frame 0 | Frame 1 | Frame 2 | Resultado | Víctima | L | E |
+|---:|---|---|---|---|---|---|---:|---:|
+| 1 | `pin(A)` | A/1/0 | — | — | miss | — | 1 | 0 |
+| 2 | `unpin(A, false)` | A/0/0 | — | — | liberar | — | 1 | 0 |
+| 3 | `pin(B)` | A/0/0 | B/1/0 | — | miss | — | 2 | 0 |
+| 4 | `unpin(B, true)` | A/0/0 | B/0/1 | — | liberar | — | 2 | 0 |
+| 5 | `pin(C)` | A/0/0 | B/0/1 | C/1/0 | miss | — | 3 | 0 |
+| 6 | `unpin(C, false)` | A/0/0 | B/0/1 | C/0/0 | liberar | — | 3 | 0 |
+| 7 | `pin(A)` | A/1/0 | B/0/1 | C/0/0 | hit | — | 3 | 0 |
+| 8 | `unpin(A, false)` | A/0/0 | B/0/1 | C/0/0 | liberar | — | 3 | 0 |
+| 9 | `pin(D)` | D/1/0 | B/0/1 | C/0/0 | miss | A | 4 | 0 |
+| 10 | `pin(A)` | D/1/0 | A/1/0 | C/0/0 | miss | B | 5 | 1 |
+| 11 | `unpin(A, true)` | D/1/0 | A/0/1 | C/0/0 | liberar | — | 5 | 1 |
+| 12 | `pin(B)` | D/1/0 | A/0/1 | B/1/0 | miss | C | 6 | 1 |
+| 13 | `unpin(B, false)` | D/1/0 | A/0/1 | B/0/0 | liberar | — | 6 | 1 |
+| 14 | `unpin(D, false)` | D/0/0 | A/0/1 | B/0/0 | liberar | — | 6 | 1 |
+| 15 | `pin(E)` | E/1/0 | A/0/1 | B/0/0 | miss | D | 7 | 1 |
+| 16 | `unpin(E, false)` | E/0/0 | A/0/1 | B/0/0 | liberar | — | 7 | 1 |
+| 17 | `pin(A)` | E/0/0 | A/1/1 | B/0/0 | hit | — | 7 | 1 |
+| 18 | `unpin(A, false)` | E/0/0 | A/0/1 | B/0/0 | liberar | — | 7 | 1 |
+
+:::
+
+### LRU
+
+::: {.table-responsive tabindex="0" role="region" aria-label="Traza LRU de 18 operaciones"}
+
+| Paso | Operación | Frame 0 | Frame 1 | Frame 2 | Resultado | Víctima | L | E |
+|---:|---|---|---|---|---|---|---:|---:|
+| 1 | `pin(A)` | A/1/0 | — | — | miss | — | 1 | 0 |
+| 2 | `unpin(A, false)` | A/0/0 | — | — | liberar | — | 1 | 0 |
+| 3 | `pin(B)` | A/0/0 | B/1/0 | — | miss | — | 2 | 0 |
+| 4 | `unpin(B, true)` | A/0/0 | B/0/1 | — | liberar | — | 2 | 0 |
+| 5 | `pin(C)` | A/0/0 | B/0/1 | C/1/0 | miss | — | 3 | 0 |
+| 6 | `unpin(C, false)` | A/0/0 | B/0/1 | C/0/0 | liberar | — | 3 | 0 |
+| 7 | `pin(A)` | A/1/0 | B/0/1 | C/0/0 | hit | — | 3 | 0 |
+| 8 | `unpin(A, false)` | A/0/0 | B/0/1 | C/0/0 | liberar | — | 3 | 0 |
+| 9 | `pin(D)` | A/0/0 | D/1/0 | C/0/0 | miss | B | 4 | 1 |
+| 10 | `pin(A)` | A/1/0 | D/1/0 | C/0/0 | hit | — | 4 | 1 |
+| 11 | `unpin(A, true)` | A/0/1 | D/1/0 | C/0/0 | liberar | — | 4 | 1 |
+| 12 | `pin(B)` | A/0/1 | D/1/0 | B/1/0 | miss | C | 5 | 1 |
+| 13 | `unpin(B, false)` | A/0/1 | D/1/0 | B/0/0 | liberar | — | 5 | 1 |
+| 14 | `unpin(D, false)` | A/0/1 | D/0/0 | B/0/0 | liberar | — | 5 | 1 |
+| 15 | `pin(E)` | A/0/1 | E/1/0 | B/0/0 | miss | D | 6 | 1 |
+| 16 | `unpin(E, false)` | A/0/1 | E/0/0 | B/0/0 | liberar | — | 6 | 1 |
+| 17 | `pin(A)` | A/1/1 | E/0/0 | B/0/0 | hit | — | 6 | 1 |
+| 18 | `unpin(A, false)` | A/0/1 | E/0/0 | B/0/0 | liberar | — | 6 | 1 |
+
+:::
+
+En el paso 9, FIFO expulsa A clean y LRU expulsa B dirty. En el 10, FIFO debe volver a leer A y escribir B; LRU hace hit de A. En el paso **12, D no es elegible**: conserva `pinCount = 1` desde `pin(D)` en el paso 9 hasta `unpin(D,false)` en el 14. Ambas políticas expulsan C.
+
+| Política | Lecturas finales | Escrituras finales | Dirty pendiente |
+|---|---:|---:|---|
+| FIFO | 7 | 1 | A |
+| LRU | 6 | 1 | A |
+
+### Variante: dos pins antes de liberar
+
+Insertamos `pin(C), pin(E)` entre los pasos 12 y 13. Después del 12, D y B están fijadas; A está libre y dirty. El primer pin expulsa **A**, la escribe y carga C. Los tres frames quedan fijados, por lo que el pin de E se **rechaza** sin E/S. FIFO llega a 7 lecturas/2 escrituras y LRU a 6/2 en ese momento. No se desplaza D ni se continúa silenciosamente como si E hubiese entrado. Al seguir con las liberaciones originales puede haber nuevos progresos; el pin intercalado de C queda sin liberar hasta que se solicite explícitamente.
+
+## Simulador de Buffer Manager {#simulador}
+
+Elige política, cantidad de frames y recorrido. El resumen compara FIFO y LRU para **el mismo prefijo**. La segunda instancia de esta página comienza en Belady y tiene estado independiente. La línea de prioridad muestra todas las páginas residentes; la lista de candidatos corresponde al estado **anterior** a la operación actual, que es donde se decide la víctima. Las marcas textuales complementan los colores.
+
+<div class="db-viz" data-db-viz="buffer" data-buffer-example="principal">
+<div class="db-viz-fallback">
+
+**Resultado estático del recorrido principal.** Los estados completos están en las tablas FIFO y LRU anteriores. Inicio vacío; al finalizar: FIFO `[E/0/0, A/0/1, B/0/0]`, LRU `[A/0/1, E/0/0, B/0/0]`. FIFO hace 7 lecturas y 1 escritura; LRU hace 6 y 1. A queda dirty en ambos. El paso 12 preserva D fijada. En la variante intercalada C sustituye A dirty y E se rechaza porque no hay víctima elegible.
+
+</div>
+</div>
+
+La entrada manual admite PageIDs de 1 a 16 letras ASCII, dígitos o guiones bajos y hasta 120 operaciones. Agrega una operación desde el paso visible, conservando ese prefijo y reemplazando el futuro del recorrido. No hay parser SQL, flush ni ejecución concurrente. Anterior/siguiente restaura snapshots completos; no intenta invertir escrituras ni deshacer parcialmente pins.
+
+## Belady y propiedad de inclusión {#belady}
+
+Usamos solo solicitudes `usar(p)`, con buffer inicialmente vacío, páginas clean y sin restricciones de reemplazo adicionales:
+
+```text
+1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+```
+
+::: {.table-responsive tabindex="0" role="region" aria-label="Comparación de Belady después de cada solicitud"}
+
+| Petición | FIFO 3: páginas; L | FIFO 4: páginas; L | LRU 3: páginas; L | LRU 4: páginas; L |
+|---|---|---|---|---|
+| 1: usar(1) | `{1}`; 1 | `{1}`; 1 | `{1}`; 1 | `{1}`; 1 |
+| 2: usar(2) | `{1,2}`; 2 | `{1,2}`; 2 | `{1,2}`; 2 | `{1,2}`; 2 |
+| 3: usar(3) | `{1,2,3}`; 3 | `{1,2,3}`; 3 | `{1,2,3}`; 3 | `{1,2,3}`; 3 |
+| 4: usar(4) | `{2,3,4}`; 4 | `{1,2,3,4}`; 4 | `{2,3,4}`; 4 | `{1,2,3,4}`; 4 |
+| 5: usar(1) | `{1,3,4}`; 5 | `{1,2,3,4}`; 4 | `{1,3,4}`; 5 | `{1,2,3,4}`; 4 |
+| 6: usar(2) | `{1,2,4}`; 6 | `{1,2,3,4}`; 4 | `{1,2,4}`; 6 | `{1,2,3,4}`; 4 |
+| 7: usar(5) | `{1,2,5}`; 7 | `{2,3,4,5}`; 5 | `{1,2,5}`; 7 | `{1,2,4,5}`; 5 |
+| 8: usar(1) | `{1,2,5}`; 7 | `{1,3,4,5}`; 6 | `{1,2,5}`; 7 | `{1,2,4,5}`; 5 |
+| 9: usar(2) | `{1,2,5}`; 7 | `{1,2,4,5}`; 7 | `{1,2,5}`; 7 | `{1,2,4,5}`; 5 |
+| 10: usar(3) | `{2,3,5}`; 8 | `{1,2,3,5}`; 8 | `{1,2,3}`; 8 | `{1,2,3,5}`; 6 |
+| 11: usar(4) | `{3,4,5}`; 9 | `{1,2,3,4}`; 9 | `{2,3,4}`; 9 | `{1,2,3,4}`; 7 |
+| 12: usar(5) | `{3,4,5}`; 9 | `{2,3,4,5}`; 10 | `{3,4,5}`; 10 | `{2,3,4,5}`; 8 |
+
+:::
+
+Los conjuntos se muestran sin orden; los totales cuentan lecturas, que coinciden con misses atendidos. FIFO hace **9 lecturas con 3 frames y 10 con 4**: aumentar memoria puede aumentar misses. Es la **anomalía de Belady**, no una afirmación sobre todas las secuencias. LRU hace **10 y 8**, respectivamente.
+
+Después de la séptima solicitud, FIFO tiene $\{1,2,5\}$ con tres frames y $\{2,3,4,5\}$ con cuatro. La página 1 del buffer menor falta en el mayor: no hay inclusión.
+
+<div class="db-viz" data-db-viz="buffer" data-buffer-example="belady">
+<div class="db-viz-fallback">
+
+**Comparación estática de Belady.** FIFO 3: 9 lecturas; FIFO 4: 10; LRU 3: 10; LRU 4: 8. Tras siete solicitudes FIFO rompe inclusión con `{1,2,5}` y `{2,3,4,5}`. La tabla anterior compara los cuatro buffers después de cada `usar`. No hay páginas dirty ni escrituras en este recorrido.
+
+</div>
+</div>
+
+### Por qué LRU sí tiene inclusión
+
+Sea $S_N(t)$ el conjunto de páginas residentes en LRU con $N$ frames después de las primeras $t$ solicitudes de tipo `usar`. Ordenemos **todas las páginas ya solicitadas** de más a menos reciente, conservando solo la aparición más reciente de cada una. Un acceso mueve su página al principio. Por inducción, LRU de $N$ frames contiene exactamente las primeras $N$ páginas de esa lista, o todas si todavía hay menos de $N$ distintas.
+
+Así, para todo $t\geq0$ y $N\geq1$:
+
+$$
+S_N(t)\subseteq S_{N+1}(t).
+$$
+
+Antes de cada petición, un hit en el buffer menor es también hit en el mayor. Por contraposición, un miss en el mayor también lo es en el menor; sumar por posiciones demuestra que agregar frames no aumenta misses. Esta es la **propiedad de pila** (*stack property*).
+
+La demostración usa la misma secuencia, buffers vacíos y ninguna página retenida por pins entre solicitudes. Con fijaciones prolongadas se omiten candidatos y el contenido deja de ser necesariamente el prefijo de una lista global de recencia. No extrapolamos la prueba a esas cargas. FIFO ordena cargas en vez de últimos usos: los hits no lo reorganizan y el argumento del prefijo compartido falla.
+
+## Profundización: secuencias adversarias {#adversarias}
+
+Una política determinista elige siempre la misma víctima para el mismo estado e historia. Fijemos $N$ frames llenos de páginas clean liberadas, y supongamos que hay al menos una página externa, sin prefetch ni bypass. Para **cada** política determinista $P$ podemos construir una secuencia $S$ de $N$ solicitudes `usar` que produzca $N$ lecturas:
+
+1. Pedir una página externa $x_1$ obliga a un miss; sea $v_1$ la víctima.
+2. Pedir $x_2=v_1$ vuelve a producir miss; sea $v_2$ su víctima.
+3. Continuar pidiendo la última víctima hasta completar $N$ solicitudes.
+
+Como la política está fijada y es determinista, toda la secuencia puede calcularse de antemano a partir del estado inicial. El universo utilizado tiene solo las $N+1$ páginas iniciales y externa. La secuencia de longitud $N$ contiene a lo sumo $N$ páginas distintas; existe una página inicial $q$ que nunca se pide. Una política alternativa $P'_S$ que **conoce esta secuencia** puede expulsar q al cargar $x_1$ y conservar todas las páginas que se pedirán: hace una sola lectura.
+
+Los cuantificadores son $\forall P\;\exists S\;\exists P'_S$. No se ha construido un único algoritmo online que haga una lectura frente a cualquier secuencia. Una política online decide sin conocer peticiones futuras; la alternativa del argumento usa información offline.
+
+Con $N=3$, buffer inicial A,B,C, cargado y usado en ese orden, y D externa:
+
+| Política atacada | Secuencia construida | Víctimas | Alternativa que solo lee D |
+|---|---|---|---|
+| FIFO | D,A,B | A,B,C | Expulsar C al llegar D y conservar A,B,D. |
+| LRU | D,A,B | A,B,C | La misma elección offline. |
+| MRU (expulsa la más reciente) | D,C,D | C,D,C | Expulsar A al llegar D y conservar B,C,D. |
+
+Ante aleatoriedad, el siguiente pedido construido depende de la víctima aleatoria observada. Eso describe un adversario **adaptativo**, no una única secuencia fija que fuerce todos los resultados aleatorios. La prueba determinista no establece por sí sola una cota esperada frente a un adversario que fija la secuencia antes de los sorteos, ni prueba que aleatorizar siempre mejore el peor caso.
+
+## B+trees y lecturas efectivas {#bplus-buffer}
+
+Consideremos este árbol conceptual de ocho páginas distintas:
+
+```text
+          R
+       /     \
+      D1      D2
+    / | \    /  \
+   L1 L2 L3 L4  L5
+```
+
+Buscar una clave que termina en Lj ejecuta `usar(R), usar(Di), usar(Lj)` en ese orden; D1 es padre de L1–L3 y D2 de L4–L5. Las búsquedas son las únicas operaciones, no dejan pins pendientes, no modifican páginas y parten de buffer vacío. Contamos solo páginas del índice, no la posible lectura posterior de un registro de datos. [Árboles B+](../indices/bplus.qmd#busqueda) explica el descenso lógico; aquí calculamos cuándo se convierte en lectura.
+
+### LRU con tres frames
+
+La primera búsqueda lee tres páginas. Al terminar cualquier búsqueda, las tres páginas de su ruta son las tres más recientes: en orden antiguo→nuevo, R,Di,Lj. La próxima petición es R, que hace hit y la vuelve la más reciente; los otros dos accesos pueden fallar, pero no expulsan R antes de volver a usarla. Desde la segunda búsqueda hay como máximo dos lecturas:
+
+$$
+L_{\mathrm{LRU},3}(m)\leq3+2(m-1)=2m+1\qquad(m\geq1).
+$$
+
+Alternar búsquedas a L1 y L4 alcanza la cota: cada cambio necesita el otro directorio y la otra hoja. **La altura fija dos aristas y tres visitas, pero los hits reducen las lecturas.**
+
+### FIFO con tres frames
+
+Si una búsqueda lee tres páginas, termina con cola de carga R,Di,Lj. En la siguiente R hace hit; a lo sumo se leen directorio y hoja. Por tanto, no hay dos búsquedas consecutivas de costo tres. Agrupando pares, cada par cuesta a lo sumo cinco; una búsqueda restante cuesta a lo sumo tres:
+
+$$
+L_{\mathrm{FIFO},3}(m)\leq\left\lceil\frac{5m}{2}\right\rceil\qquad(m\geq1).
+$$
+
+Alternar L1,L4 alcanza 3,2,3,2,… lecturas por búsqueda: al cambiar de rama, el primer miss expulsa R si es la más antigua, pero ya se usó en esa búsqueda. Para seis búsquedas L1,L4,L1,L4,L1,L4, FIFO acumula **15** y LRU **13**. El preset B+ del simulador reproduce exactamente esos accesos, con un paso por `pin` o `unpin`.
+
+### Ocho frames y el umbral de LRU
+
+Con ocho frames caben todas las páginas: se leen a lo sumo **8**, independientemente de $m$; una página ya cargada no vuelve a salir. No significa que deban leerse las ocho si solo se visita una rama.
+
+Con LRU y siete frames, una vez cargada, R permanece: entre sus usos solo hay un directorio y una hoja. D1 tampoco se expulsa: entre dos accesos suyos pueden hacerse recientes la hoja inmediatamente posterior al primer acceso, R,D2,L4,L5; son a lo sumo cinco páginas distintas. Para D2, son su hoja inmediatamente posterior, R,D1,L1,L2,L3: a lo sumo seis. Ambas distancias son menores que siete. Así, raíz y directorios se leen como máximo una vez cada uno, y cada búsqueda lee a lo sumo una hoja:
+
+$$
+L_{\mathrm{LRU},7}(m)\leq m+3\qquad(m\geq2).
+$$
+
+La primera búsqueda cuesta tres; con dos búsquedas opuestas se cargan ambos directorios y se alcanza cinco. Para todo $m\geq2$, el prefijo de la repetición **L1,L4,L2,L5,L3** alcanza $m+3$: las primeras cuatro hojas llenan las cuatro posiciones disponibles para hojas y cada hoja siguiente es la menos reciente que acaba de salir. Los tres nodos superiores permanecen.
+
+La misma repetición produce al menos una lectura por búsqueda con siete frames. Por inclusión de LRU, cualquier $N\leq7$ tiene al menos los misses del buffer de siete sobre la misma secuencia de `usar`, y por tanto al menos $m$ lecturas. No hay cota independiente de $m$ para esos tamaños. **Ocho es el menor N con cota constante para toda secuencia de búsquedas de este árbol**, bajo las hipótesis declaradas; no es una regla sobre cualquier B+tree. El preset «B+: cinco hojas» permite comprobar prefijos con siete y ocho frames.
+
+## Autoevaluación con solución
+
+1. A tiene pins 2 y dirty verdadero. Se ejecuta `unpin(A,false)`. ¿Se puede expulsar?
+2. Si todos los frames están fijados, ¿puede atenderse un hit? ¿Y un miss?
+3. ¿Agregar frames siempre ayuda a FIFO? ¿LRU domina siempre a FIFO con igual capacidad?
+4. ¿Terminar con A dirty significa que falta contar una escritura en los totales anteriores?
+
+<details class="db-solution"><summary>Ver solución</summary>
+
+1. Queda pin 1, dirty verdadero: sigue protegida. Otro unpin legal la hace elegible sin limpiarla.
+2. El hit sí: incrementa el pin del frame existente, sin lectura. El miss se rechaza mientras no haya frame libre ni víctima elegible.
+3. No: Belady refuta lo primero. La inclusión compara LRU consigo misma a distinta capacidad; no prueba dominación frente a FIFO. En Belady con tres frames FIFO hace 9 lecturas y LRU 10.
+4. No: la escritura no ocurrió. Se informa como dirty pendiente. Añadir un flush sería otra secuencia y otro modelo de costos.
+
+</details>
+
+::: {.summary-box}
+### Resumen
+
+El Buffer Manager traduce solicitudes de páginas en hits, lecturas y escrituras. Pin protege la residencia; dirty conserva modificaciones pendientes. FIFO ordena cargas y LRU últimos usos, siempre restringidos a páginas sin pins. La inclusión de LRU exige hipótesis precisas y FIFO puede presentar Belady. En índices, reutilizar páginas superiores separa las visitas lógicas de las lecturas efectivas.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Páginas, registros y RIDs](paginas-registros.qmd)
+- [Árboles B+: búsqueda y páginas](../indices/bplus.qmd#busqueda)
+- [Hashing: buckets y overflow](../indices/hashing.qmd)
+- [Planes lógicos y ejecución](../procesamiento/planes-logicos.qmd)
+:::
+
+## Lecturas de apoyo
+
+@ramakrishnan2003 [secs. 9.4–9.4.1] fundamenta buffer pool, pins, dirty y reemplazo. @silberschatz2020 [sec. 13.5.1] distingue fijación y escritura; @garciamolina2009 [sec. 15.7.2] compara FIFO y LRU. Las convenciones operativas, trazas y demostraciones de los ejemplos se desarrollan aquí de forma autocontenida.

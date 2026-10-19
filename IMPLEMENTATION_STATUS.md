@@ -2,6 +2,59 @@
 
 Actualizado: 19 de octubre de 2026. Archivo de continuidad técnica y académica del sitio; no sustituye la validación local previa a publicar.
 
+## P6 — Almacenamiento y Buffer Manager
+
+### Alcance y estado recibido
+
+- Inicio en `main`, HEAD `b25c824`, con `git status --short` vacío. Se conserva el estado local de P1–P5. No se usan restauraciones, nuevas dependencias, cambios remotos, commits ni publicación.
+- Se añaden `almacenamiento/paginas-registros.qmd` y `almacenamiento/buffer-manager.qmd`; el sitio pasa de 25 a 27 páginas. Navegación nueva en la categoría Almacenamiento y organización física y una tarjeta en portada. La única modificación de contenido anterior es un enlace relacionado desde B+trees; no cambia ningún motor previo.
+- Se contrastaron directamente pasajes de Ramakrishnan–Gehrke (tercera edición, 9.1 y 9.4–9.7), Silberschatz–Korth–Sudarshan (séptima edición, 13.2.2–13.2.3 y 13.5.1–13.5.2) y Garcia-Molina–Ullman–Widom (segunda edición, 13.2.3 y 15.7.2). Las cinco entradas y claves bibliográficas existentes no cambian. Las páginas son autocontenidas y las convenciones del simulador se presentan como decisiones del sitio.
+
+### Contenido, algoritmos y componentes
+
+- Organización física: jerarquía, latencia/ancho de banda, persistencia, geometría HDD con SVG original, sector/bloque/página, costo por E/S y diferencias SSD. Registros fijos/variables, metadatos, nulos físicos frente a NULL lógico, RID frente a llaves y forwarding; archivos contiguos, listas y directorio de espacio libre.
+- Slotted page de 128 bytes con encabezado de 12 B y slots de 4 B. Secuencia pequeña de ocho snapshots: inserciones t1–t3, eliminación diferida de t2, compactación, reutilización para t4 y rechazo de t5. Se muestran offsets, RIDs y libre total, central y máximo contiguo. No hay un segundo motor general de almacenamiento.
+- `buffer-model.js` es un modelo puro e inmutable, independiente del navegador. Frames, page table, pins, dirty acumulativo, FIFO por carga y LRU por último pin exitoso; unpin no renueva recencia. Frames libres antes de víctimas, elegibles solo con pin cero, escritura de víctima dirty antes de lectura. Los rechazos preservan exactamente el estado operativo, incluidos reloj y contadores.
+- Snapshots completos con operación, explicación, prioridad, candidatos previos, víctima, cambios y E/S; restauración validada sin deshacer parcialmente operaciones. PageIDs de 1–16 letras ASCII/dígitos/guiones bajos y 1–8 frames. Las claves especiales del objeto JavaScript no pueden alterar la page table por herencia.
+- `buffer.js` usa el motor para seis presets: 18 operaciones, intercaladas, Belady, casos límite, alternancia B+ y ciclo de cinco hojas. Dos instancias independientes en la página. Navegación, selección de política/capacidad, comparación FIFO/LRU del mismo prefijo y comparación Belady con 3/4 frames. Operaciones manuales hasta 120 pasos, con ramificación desde el prefijo visible.
+- Los frames muestran texto y símbolos además de color; se distinguen protección, dirty, página activa, prioridad, candidatos, víctima y E/S. Diagrama de repositorio en disco, contadores y dirty pendientes. No se implementa flush automático ni explícito, concurrencia, recuperación o fallos de dispositivo.
+- Demostraciones autocontenidas de inclusión LRU (solo referencias usar sin pins retenidos), anomalía FIFO, adversario determinista y diferencia online/offline. Integración B+ con hipótesis de búsquedas exclusivas sobre ocho páginas: cotas de tres, siete y ocho frames y construcciones que las alcanzan. No se modifica el motor de B+trees.
+- Fallbacks estáticos y trazas completas disponibles sin JavaScript, ante fallo del módulo y para impresión; SVG y tablas extensas con desplazamiento local accesible y texto legible. Se reutilizan `core.js`, el cargador, la tipografía y la paleta existentes.
+
+### Resultados numéricos verificados
+
+- 1000 bloques: 10 760 ms aleatorios frente a 140,63 ms contiguos, cociente 76,512835… bajo los parámetros históricos de ejercicio. La transferencia de 0,13 ms se fija como parámetro independiente del tamaño de página; no se anuncia como rendimiento universal de hardware.
+- Registros fijos: 40 por página de 4096 B, 25 000 páginas para un millón, recorrido frío con 25 000 lecturas. Tiempos idealizados: 3260,63 ms contiguos y 269 000 ms dispersos. Directorio: 512 entradas de 8 B por página, dos páginas para 1000 entradas; se explicitan encabezados y residencia en RAM.
+- Slotted page: libres totales 116,82,58,14,34,34,4,4 B. Tras eliminar t2 hay libre central de 14 B y hueco de 20 B. Compactar cambia el offset de t3 de 38 a 58 y conserva `(P,3)`; t4 reutiliza slot 2. t5 necesita 14 B y no cabe.
+- 18 operaciones, sin flush: FIFO **7 lecturas/1 escritura**, LRU **6/1**, A dirty pendiente en ambos. D está protegida en paso 12. Pins intercalados: C expulsa A dirty y E se rechaza con los tres frames fijados (FIFO 7/2, LRU 6/2 en ese instante).
+- Belady: FIFO 3/4 frames **9/10 lecturas**; LRU 3/4 **10/8**. FIFO rompe inclusión tras solicitud 7 con {1,2,5} frente a {2,3,4,5}.
+- B+ alternando dos ramas: LRU con tres frames alcanza `2m+1`, FIFO alcanza `ceil(5m/2)`; para seis búsquedas son 13 y 15 lecturas. Ciclo L1,L4,L2,L5,L3 con LRU y siete frames alcanza `m+3` para m≥2; con ocho se leen como máximo ocho páginas. Al contar la distancia entre usos de un directorio se incluye la hoja inmediatamente posterior a su uso previo.
+
+### Validación
+
+- `npm test`: 67 pruebas aprobadas en la ejecución final completa, incluidas 11 pruebas P6 y toda la regresión previa. El oráculo independiente usa colas de PageIDs y un diccionario; contrasta frames, pins, dirty, orden, víctimas, reloj y E/S de cada paso. Se comprueban también las dos tablas públicas de 18 operaciones, restauración exacta, entradas ilegales y claves especiales.
+- Secuencias reproducibles con 1,2,3,4,7,8 frames, recorridos cíclicos, cobertura byte a byte de la página y 625 secuencias exhaustivas de cuatro búsquedas para las cotas B+. Las pruebas finitas complementan las demostraciones. Se añade una carga de 500 búsquedas para verificar que R,D1,D2 permanecen con siete frames.
+- `python3 tests/sql_examples.py`: aprobado con SQLite 3.51.2.
+- `quarto render`: render final completo de 27 páginas sin errores ni warnings relevantes. `docs/` se genera exclusivamente con Quarto, incluidos búsqueda, navegación, CSS y módulos.
+- `python3 tests/check_site.py`: 27 HTML, 19 rutas originales, cinco claves, citas y enlaces/fragmentos válidos, recursos publicados coincidentes y sin documentos no publicables. Una ejecución anticipada mientras Quarto todavía generaba búsqueda no fue válida; se repitió al terminar el render y pasó.
+- Regresiones finales de navegador aprobadas: B+trees **508 snapshots**, hashing **326 snapshots** (siete presets y diez configuraciones estáticas), y planes de consulta **18 estados** en seis recorridos. Todas conservan sus controles, responsive, fallbacks y MathJax. B+ registra únicamente el 404 del favicon implícito ya conocido; no falla ningún recurso propio. Hashing y planes no registran errores ni recursos fallidos.
+- `tests/buffer-browser.mjs`: **670 snapshots aprobados**, 18 combinaciones de presets/políticas/capacidades y ocho estados de página. Contrasta DOM con el modelo; verifica anterior/siguiente/reinicio, cambios de política/capacidad, comparación Belady, pins y dirty, errores, ramificación manual y dos instancias independientes. Sin errores de consola ni recursos propios fallidos.
+- Ambas páginas se probaron a **320, 390, 768, 1024 y 1440 px**, sin overflow del documento, con foco visible, teclado, movimiento reducido, fallbacks sin JavaScript, fallo deliberado de módulo, impresión y MathJax sin errores. Se comprueba reflujo a 640 CSS px como geometría equivalente a 200 % sobre 1280 px; el zoom nativo queda como revisión humana complementaria.
+- Capturas inspeccionadas de escritorio y móvil: `/tmp/openstudy-buffer-browser-HxT8Li`. La inspección detectó encabezados de tablas demasiado partidos en móvil: se establece ancho mínimo y scroll local únicamente en tablas P6. La corrección pasa una revisión focalizada posterior al render incremental Quarto: ambas páginas y los cinco anchos, impresión, JavaScript desactivado, MathJax y prefijo de publicación. Se vuelven a aprobar las siete pruebas de integración y `check_site.py`; las copias CSS/JS publicadas son idénticas a las fuentes.
+- Carga y controles comprobados también bajo el prefijo exacto **`/open-study-base-de-datos/almacenamiento/`**, con importaciones relativas y sin fallos propios.
+- Dos pasadas iniciales de navegador se interrumpieron por esperas de interacción/estabilidad. La ejecución final P6 se hizo aislada; la enumeración masiva activa clics DOM y reserva clics reales y teclado para comprobar controles. Los 670 estados y todas las interacciones restantes pasan en esa ejecución. No se contabilizan como aprobadas las pasadas interrumpidas.
+
+**P6 implementada y validada dentro del alcance solicitado.**
+
+### Archivos y continuidad
+
+- Nuevos: las dos páginas `almacenamiento/*.qmd`, `assets/js/visualizaciones/buffer-model.js`, `buffer.js`, `paginas.js`, `tests/buffer.test.js` y `tests/buffer-browser.mjs`.
+- Integración: `_quarto.yml`, `index.qmd`, `indices/bplus.qmd`, `assets/js/visualizaciones/index.js`, `assets/css/visualizaciones.css`, `tests/integracion-visual.test.js`, este registro y la salida `docs/` regenerada. Sin cambios en `references.bib`, estilos generales, `core.js` ni motores anteriores.
+Para reproducir: usar el mismo Node/Corepack del entorno (`PATH=/usr/lib/chatgpt/resources/cua_node/bin:$PATH corepack npm test`). Servir el directorio padre con `python3 -m http.server 8766 --bind 127.0.0.1 --directory ..` y ejecutar `tests/buffer-browser.mjs` con `BUFFER_TEST_URL=http://127.0.0.1:8766/open-study-base-de-datos/docs/almacenamiento/buffer-manager.html`, `PLAYWRIGHT_MODULE=/usr/lib/chatgpt/resources/cua_node/lib/node_modules/playwright-core/index.mjs` y `BROWSER_EXECUTABLE=/usr/bin/brave-browser`. No se instala ninguna dependencia del sitio.
+
+- Revisión humana complementaria: lectura editorial y matemática final, lectores de pantalla, zoom nativo y Firefox/Safari. No se afirma una auditoría WCAG completa ni corrección universal deducida solo de pruebas finitas.
+- P7 y P8 permanecen **pendientes y fuera del alcance**; no se desarrollan optimización física general ni modelado E/R en esta etapa.
+
 ## P5 — Procesamiento y reescritura de consultas
 
 ### Estado recibido y alcance
@@ -50,7 +103,7 @@ Para reproducir el navegador, servir el directorio padre con `python3 -m http.se
 
 El evaluador materializa bolsas pequeñas con valores primitivos no nulos y comparaciones bien tipadas, puras, deterministas y totales. Rechaza coerciones implícitas y predicados con NULL; no reproduce colaciones ni todos los tipos y errores de SQL. La agregación global vacía produce COUNT=0 y NULL para los otros agregados; esos marcadores no se someten a predicados clásicos. No ejecuta τ, outer joins, ventanas, límites, SQL arbitrario ni búsqueda de planes por costo. Esas restricciones se explican públicamente. El verificador de esquemas no es un sistema completo de inferencia de tipos SQL.
 
-Quedan como revisión humana complementaria la lectura editorial y matemática final, lectores de pantalla, zoom nativo del navegador y Firefox/Safari. No se declara auditoría WCAG completa ni una demostración universal obtenida por pruebas finitas. La siguiente etapa prevista es **P6, almacenamiento y buffer**, que requiere una tarea independiente. No se realizan commits, pushes ni publicación.
+Quedan como revisión humana complementaria la lectura editorial y matemática final, lectores de pantalla, zoom nativo del navegador y Firefox/Safari. No se declara auditoría WCAG completa ni una demostración universal obtenida por pruebas finitas. La ampliación posterior de almacenamiento y buffer se registra en P6. No se realizan commits, pushes ni publicación.
 
 ## P4 — Hashing: implementación actual
 

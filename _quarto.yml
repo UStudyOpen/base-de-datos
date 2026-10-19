@@ -87,6 +87,12 @@ website:
             text: Planes lógicos y procesamiento
           - href: procesamiento/reescritura.qmd
             text: Reescritura y equivalencia
+      - section: "Almacenamiento y organización física"
+        contents:
+          - href: almacenamiento/paginas-registros.qmd
+            text: Páginas y registros
+          - href: almacenamiento/buffer-manager.qmd
+            text: Buffer Manager
   page-footer:
     left: "OpenStudy · Bases de Datos · Estudio por conceptos"
     right: "Sitio de estudio construido con Quarto"

@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Jerarquía de memoria, costos de E/S, RIDs, registros y compactación de slotted pages.">
+
+<title>Almacenamiento: páginas y registros – Bases de Datos</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../almacenamiento/buffer-manager.html" rel="next">
+<link href="../procesamiento/reescritura.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-9f43a20c679eb76b4703ca291990b4b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-fd39a65834ac5c5cea4c59ebc26eb91d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../styles/layout.css">
+<link rel="stylesheet" href="../styles/components.css">
+<link rel="stylesheet" href="../styles/concepts.css">
+<link rel="stylesheet" href="../styles/responsive.css">
+<link rel="stylesheet" href="../assets/css/visualizaciones.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../almacenamiento/paginas-registros.html">Almacenamiento y organización física</a></li><li class="breadcrumb-item"><a href="../almacenamiento/paginas-registros.html">Páginas y registros</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bases de Datos</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inicio</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Fundamentos del modelo relacional</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/sistemas-rdbms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sistemas de bases de datos y RDBMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/modelo-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modelo relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/relaciones-nombradas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Atributos y relaciones nombradas</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Teoría de consultas</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/logica-primer-orden.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lógica de primer orden y consultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/algebra-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Álgebra relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/joins-operadores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joins y operadores derivados</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/equivalencia-patrones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Equivalencia y patrones de consulta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">SQL</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/ddl-dml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DDL y DML</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/consultas-basicas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SELECT-FROM-WHERE, joins y conjuntos</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/subconsultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Subconsultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/agregacion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Agregación, GROUP BY y HAVING</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/funciones-filtros.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Funciones, filtros, orden y dialectos</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Nulos e información incompleta</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/null-tres-valores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NULL y lógica de tres valores</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/informacion-incompleta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Información incompleta y mundos posibles</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/outer-joins.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outer joins</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
+ <span class="menu-text">Diseño relacional y dependencias</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/dependencias-llaves.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Redundancia, dependencias funcionales y llaves</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/implicacion-clausura.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Implicación y clausura</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/descomposiciones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Descomposiciones y pérdida de información</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/bcnf.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Forma normal de Boyce–Codd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/tercera-forma-normal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tercera forma normal y síntesis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false">
+ <span class="menu-text">Índices</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../indices/bplus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Árboles B+</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../indices/hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hashing</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false">
+ <span class="menu-text">Procesamiento de consultas</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../procesamiento/planes-logicos.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Planes lógicos y procesamiento</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../procesamiento/reescritura.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reescritura y equivalencia</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Almacenamiento y organización física</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../almacenamiento/paginas-registros.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Páginas y registros</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../almacenamiento/buffer-manager.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Buffer Manager</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul>
+  <li><a href="#del-modelo-lógico-a-los-bytes" id="toc-del-modelo-lógico-a-los-bytes" class="nav-link active" data-scroll-target="#del-modelo-lógico-a-los-bytes">Del modelo lógico a los bytes</a></li>
+  <li><a href="#jerarquía-de-almacenamiento" id="toc-jerarquía-de-almacenamiento" class="nav-link" data-scroll-target="#jerarquía-de-almacenamiento">Jerarquía de almacenamiento</a></li>
+  <li><a href="#un-disco-duro-por-dentro" id="toc-un-disco-duro-por-dentro" class="nav-link" data-scroll-target="#un-disco-duro-por-dentro">Un disco duro por dentro</a>
+  <ul class="collapse">
+  <li><a href="#sector-bloque-y-página" id="toc-sector-bloque-y-página" class="nav-link" data-scroll-target="#sector-bloque-y-página">Sector, bloque y página</a></li>
+  </ul></li>
+  <li><a href="#costos" id="toc-costos" class="nav-link" data-scroll-target="#costos">Modelo de costos de E/S</a>
+  <ul class="collapse">
+  <li><a href="#ejemplo-resuelto-1000-bloques" id="toc-ejemplo-resuelto-1000-bloques" class="nav-link" data-scroll-target="#ejemplo-resuelto-1000-bloques">Ejemplo resuelto: 1000 bloques</a></li>
+  <li><a href="#contar-páginas-no-es-medir-todo-el-tiempo" id="toc-contar-páginas-no-es-medir-todo-el-tiempo" class="nav-link" data-scroll-target="#contar-páginas-no-es-medir-todo-el-tiempo">Contar páginas no es medir todo el tiempo</a></li>
+  </ul></li>
+  <li><a href="#una-tupla-como-registro-de-bytes" id="toc-una-tupla-como-registro-de-bytes" class="nav-link" data-scroll-target="#una-tupla-como-registro-de-bytes">Una tupla como registro de bytes</a></li>
+  <li><a href="#fijos" id="toc-fijos" class="nav-link" data-scroll-target="#fijos">Registros de longitud fija</a></li>
+  <li><a href="#rid" id="toc-rid" class="nav-link" data-scroll-target="#rid">Record ID: dirección e identidad</a></li>
+  <li><a href="#slotted" id="toc-slotted" class="nav-link" data-scroll-target="#slotted">Slotted pages y compactación</a>
+  <ul class="collapse">
+  <li><a href="#caso-resuelto-128-bytes" id="toc-caso-resuelto-128-bytes" class="nav-link" data-scroll-target="#caso-resuelto-128-bytes">Caso resuelto: 128 bytes</a></li>
+  </ul></li>
+  <li><a href="#organizacion" id="toc-organizacion" class="nav-link" data-scroll-target="#organizacion">Una relación en varias páginas</a>
+  <ul class="collapse">
+  <li><a href="#ejemplo-localizar-espacio" id="toc-ejemplo-localizar-espacio" class="nav-link" data-scroll-target="#ejemplo-localizar-espacio">Ejemplo: localizar espacio</a></li>
+  </ul></li>
+  <li><a href="#autoevaluación-con-solución" id="toc-autoevaluación-con-solución" class="nav-link" data-scroll-target="#autoevaluación-con-solución">Autoevaluación con solución</a>
+  <ul class="collapse">
+  <li><a href="#resumen" id="toc-resumen" class="nav-link" data-scroll-target="#resumen">Resumen</a></li>
+  </ul></li>
+  <li><a href="#conceptos-relacionados" id="toc-conceptos-relacionados" class="nav-link" data-scroll-target="#conceptos-relacionados">Conceptos relacionados</a></li>
+  <li><a href="#lecturas-de-apoyo" id="toc-lecturas-de-apoyo" class="nav-link" data-scroll-target="#lecturas-de-apoyo">Lecturas de apoyo</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../almacenamiento/paginas-registros.html">Almacenamiento y organización física</a></li><li class="breadcrumb-item"><a href="../almacenamiento/paginas-registros.html">Páginas y registros</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Almacenamiento: páginas y registros</h1>
+</div>
+
+<div>
+  <div class="description">
+    Jerarquía de memoria, costos de E/S, RIDs, registros y compactación de slotted pages.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="concept-section">
+<div class="concept-label">
+Conceptos clave
+</div>
+<div class="concept-tags">
+<span class="concept-tag">Persistencia</span><span class="concept-tag">Página</span><span class="concept-tag">E/S</span><span class="concept-tag">RID</span><span class="concept-tag">Slots</span><span class="concept-tag">Compactación</span>
+</div>
+</div>
+<section id="del-modelo-lógico-a-los-bytes" class="level2">
+<h2 class="anchored" data-anchor-id="del-modelo-lógico-a-los-bytes">Del modelo lógico a los bytes</h2>
+<p>Una relación matemática es un conjunto de tuplas; no prescribe un orden de bytes ni una región contigua de disco. Una tabla SQL admite además multiplicidades. El DBMS debe representar esas filas mediante <strong>registros</strong>, distribuirlos en <strong>páginas</strong> y localizar las páginas mediante archivos y métodos de acceso. Dos representaciones físicas distintas pueden corresponder a los mismos valores lógicos.</p>
+<p>Por ejemplo, <code>Estudiante(rut,nombre,carrera)</code> puede ocupar miles de páginas dispersas. Una consulta por <code>rut</code> puede recorrerlas todas o usar un índice para llegar a unas pocas. La organización física cambia los accesos necesarios, sin cambiar el significado de la consulta. La localidad espacial permite traer varios datos próximos mediante una misma transferencia. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003</a>, secs. 9.1, 9.5–9.7)</span></p>
+</section>
+<section id="jerarquía-de-almacenamiento" class="level2">
+<h2 class="anchored" data-anchor-id="jerarquía-de-almacenamiento">Jerarquía de almacenamiento</h2>
+<p>La capacidad y el costo por byte suelen favorecer a los niveles más alejados del procesador; la latencia suele favorecer a los más próximos. <strong>Latencia</strong> es el tiempo hasta atender una petición; <strong>ancho de banda</strong> es la cantidad transferida por unidad de tiempo. Un gran ancho de banda no implica baja latencia para una petición pequeña.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Nivel</th>
+<th>Capacidad y costo relativos</th>
+<th>Acceso y persistencia</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Registros y cachés del procesador</td>
+<td>Muy poca capacidad; alto costo por byte</td>
+<td>Muy baja latencia; normalmente volátiles.</td>
+</tr>
+<tr class="even">
+<td>Memoria principal (RAM)</td>
+<td>Mayor capacidad que las cachés</td>
+<td>Acceso directo y rápido; la RAM convencional pierde contenido sin alimentación.</td>
+</tr>
+<tr class="odd">
+<td>SSD</td>
+<td>Gran capacidad; menor costo por byte que RAM</td>
+<td>Persistente; sin partes mecánicas, con latencia de controlador y transferencia.</td>
+</tr>
+<tr class="even">
+<td>Disco duro (HDD)</td>
+<td>Gran capacidad; generalmente económico por byte</td>
+<td>Persistente; el acceso aleatorio agrega movimiento y espera rotacional.</td>
+</tr>
+<tr class="odd">
+<td>Almacenamiento terciario, por ejemplo cintas</td>
+<td>Capacidad destinada a archivo y respaldo</td>
+<td>Persistente; acceso inicial costoso, apropiado para grandes transferencias secuenciales.</td>
+</tr>
+</tbody>
+</table>
+<p>Son tendencias de una jerarquía, no especificaciones universales de productos. Capacidad, paralelismo y costo dependen de la configuración. Persistente significa que los datos se conservan sin alimentación; no significa que un dispositivo no pueda fallar. La base puede superar ampliamente la RAM disponible: el DBMS trabaja con una parte cargada en memoria. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.1</a>)</span></p>
+</section>
+<section id="un-disco-duro-por-dentro" class="level2">
+<h2 class="anchored" data-anchor-id="un-disco-duro-por-dentro">Un disco duro por dentro</h2>
+<p>Un <strong>plato</strong> tiene una o dos superficies grabables. Cada superficie contiene <strong>pistas</strong> concéntricas; cada pista se divide en <strong>sectores</strong>. Las pistas del mismo radio en las distintas superficies forman un <strong>cilindro</strong>. Un cabezal lee o escribe una superficie y el brazo desplaza los cabezales hacia la pista buscada. Tras posicionarse, debe esperar a que el sector pase bajo el cabezal. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.1.1</a>)</span></p>
+<figure class="db-storage-diagram figure" tabindex="0" role="group" aria-label="Diagrama de almacenamiento con desplazamiento horizontal">
+<svg viewbox="0 0 680 260" role="img" aria-label="Disco duro: pistas concéntricas, sector, cabezal y superficies de un cilindro">
+<title>Geometría simplificada de un HDD</title>
+<g fill="none" stroke="#58677b" stroke-width="2"><ellipse cx="150" cy="127" rx="115" ry="94" fill="#f7f9fc"></ellipse><ellipse cx="150" cy="127" rx="85" ry="68"></ellipse><ellipse cx="150" cy="127" rx="57" ry="44"></ellipse><ellipse cx="150" cy="127" rx="18" ry="14"></ellipse><path d="M150 127 L254 87 M150 127 L265 127" stroke="#147d78" stroke-width="3"></path><path d="M315 217 L214 106 L200 110" stroke="#2563eb" stroke-width="8"></path><ellipse cx="485" cy="84" rx="95" ry="23" fill="#f7f9fc"></ellipse><ellipse cx="485" cy="133" rx="95" ry="23" fill="#f7f9fc"></ellipse><ellipse cx="485" cy="182" rx="95" ry="23" fill="#f7f9fc"></ellipse><ellipse cx="485" cy="84" rx="56" ry="14" stroke="#147d78"></ellipse><ellipse cx="485" cy="133" rx="56" ry="14" stroke="#147d78"></ellipse><ellipse cx="485" cy="182" rx="56" ry="14" stroke="#147d78"></ellipse><path d="M429 84 V182 M541 84 V182" stroke="#147d78" stroke-dasharray="5 4"></path></g>
+<g fill="#243247" font-size="15"><text x="45" y="22">Superficie de un plato</text><text x="44" y="245">Pistas concéntricas</text><text x="265" y="87">Sector</text><text x="236" y="158">Cabezal</text><text x="272" y="244">Brazo</text><text x="400" y="30">Platos apilados</text><text x="397" y="237">Cilindro: mismo radio</text></g>
+</svg>
+<figcaption>Esquema original, sin escala. El brazo cambia de pista; la rotación acerca el sector al cabezal. Las líneas discontinuas reúnen pistas del mismo cilindro.</figcaption>
+</figure>
+<section id="sector-bloque-y-página" class="level3">
+<h3 class="anchored" data-anchor-id="sector-bloque-y-página">Sector, bloque y página</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Término</th>
+<th>Nivel y significado en este sitio</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sector</td>
+<td>Unidad de organización física del dispositivo en el modelo de disco.</td>
+</tr>
+<tr class="even">
+<td>Bloque</td>
+<td>Unidad de transferencia o direccionamiento lógico del almacenamiento.</td>
+</tr>
+<tr class="odd">
+<td>Página</td>
+<td>Unidad lógica que gestiona el DBMS y que carga en un frame de memoria.</td>
+</tr>
+</tbody>
+</table>
+<p>Sus tamaños no tienen por qué coincidir: una página puede abarcar varios sectores o bloques. En los cálculos siguientes <strong>suponemos una página por bloque</strong>, transferida de una vez. Es una simplificación explícita; el direccionamiento lógico tampoco expone necesariamente la geometría real del HDD.</p>
+</section>
+</section>
+<section id="costos" class="level2">
+<h2 class="anchored" data-anchor-id="costos">Modelo de costos de E/S</h2>
+<p>Para un acceso HDD sin solapamiento:</p>
+<p><span class="math display">\[
+T_{\text{acceso}}=T_{\text{seek}}+T_{\text{rotación}}+T_{\text{transferencia}}.
+\]</span></p>
+<p>El seek posiciona el cabezal, la rotación aporta la espera hasta el dato y la transferencia mueve sus bytes. Todos los sumandos son tiempos. Si se conoce un volumen <span class="math inline">\(S\)</span> y una tasa <span class="math inline">\(v\)</span> en unidades compatibles:</p>
+<p><span class="math display">\[
+T_{\text{transferencia}}=\frac{S}{v}.
+\]</span></p>
+<p>Una lectura <strong>aleatoria</strong> puede pagar el posicionamiento completo cada vez; una <strong>secuencial</strong> aprovecha la proximidad. En un tramo de bloques contiguos idealizado se paga un solo posicionamiento. Un dispositivo real puede requerir cambios de pista, colas y otras esperas. <span class="citation" data-cites="garciamolina2009">(<a href="#ref-garciamolina2009" role="doc-biblioref">Garcia-Molina et&nbsp;al. 2009, sec. 13.2.3</a>)</span></p>
+<section id="ejemplo-resuelto-1000-bloques" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-resuelto-1000-bloques">Ejemplo resuelto: 1000 bloques</h3>
+<p>Fijamos parámetros históricos de ejercicio: seek promedio de <strong>6,46 ms</strong>, retraso rotacional de <strong>4,17 ms</strong> y transferencia de <strong>0,13 ms por bloque</strong>. No son medidas actuales universales. Adoptamos la última cifra como parámetro independiente del tamaño de bloque; no la deducimos del tamaño de página del próximo ejemplo.</p>
+<p><span class="math display">\[
+\begin{aligned}
+T_{\text{aleatorio}}&amp;=1000(6{,}46+4{,}17+0{,}13)\\
+&amp;=10760\text{ ms},\\
+T_{\text{contiguo}}&amp;=6{,}46+4{,}17+1000(0{,}13)\\
+&amp;=140{,}63\text{ ms}.
+\end{aligned}
+\]</span></p>
+<p>El cociente es aproximadamente <strong>76,51</strong>: el acceso aleatorio tarda ese número de veces el contiguo <strong>bajo estas hipótesis</strong>. Se ignoran CPU, cachés previas, prefetch, paralelismo y cambios de pista. El caso contiguo sigue transfiriendo 1000 bloques; ahorrar posicionamientos no elimina bytes.</p>
+<p>Un SSD no tiene seek mecánico ni retraso rotacional. Sí tiene latencias de solicitud y costos de transferencia; su organización interna y las escrituras influyen en el rendimiento. El modelo HDD anterior no se aplica sumando esos tiempos a un SSD.</p>
+</section>
+<section id="contar-páginas-no-es-medir-todo-el-tiempo" class="level3">
+<h3 class="anchored" data-anchor-id="contar-páginas-no-es-medir-todo-el-tiempo">Contar páginas no es medir todo el tiempo</h3>
+<p>Podemos contar por separado lecturas y escrituras de páginas. Es una medida útil si los accesos al almacenamiento dominan y los tamaños y patrones son comparables. CPU, acceso a RAM, transferencia, concurrencia y compresión pueden cambiar el tiempo observado. Dos planes con igual número de páginas pueden tardar distinto si uno usa accesos aleatorios y el otro secuenciales.</p>
+<p>Un acceso <strong>lógico</strong> a una página residente no implica una lectura de disco. El <a href="../almacenamiento/buffer-manager.html">Buffer Manager</a> decide qué accesos requieren E/S; una expulsión de una página modificada puede añadir una escritura. Una caché del sistema operativo o del dispositivo puede además atender lo que aquí llamamos lectura de disco: el modelo cuenta transferencias en la frontera conceptual entre buffer y almacenamiento.</p>
+</section>
+</section>
+<section id="una-tupla-como-registro-de-bytes" class="level2">
+<h2 class="anchored" data-anchor-id="una-tupla-como-registro-de-bytes">Una tupla como registro de bytes</h2>
+<p>El registro representa atributos, sus límites y metadatos. Con campos fijos de longitudes <span class="math inline">\(L_1,\ldots,L_k\)</span>, el comienzo del campo <span class="math inline">\(i\)</span> se obtiene sumando las longitudes anteriores a la dirección base. El catálogo describe tipos y codificación; el registro puede añadir encabezado, longitudes y bitmap de nulos. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.7</a>)</span></p>
+<p>Con campos variables hay varias estrategias:</p>
+<ul>
+<li><strong>Separadores:</strong> almacenar <code>r1|Alex|Computación</code>. Si un valor contiene <code>|</code>, hace falta escape, quoting o una prohibición expresa. Para llegar al último campo hay que reconocer los anteriores.</li>
+<li><strong>Longitudes:</strong> anteponer a cada campo su cantidad de bytes; deben acordarse tamaño y codificación de esas longitudes.</li>
+<li><strong>Directorio de offsets:</strong> reservar posiciones que indican dónde comienza cada campo y dónde termina, o parejas offset/longitud. Se obtiene acceso directo pagando metadatos.</li>
+</ul>
+<p><code>NULL</code> es un marcador lógico, con la <a href="../nulos/null-tres-valores.html">semántica de tres valores</a> de SQL. Físicamente puede indicarse con un bit por atributo o con indicadores especiales. No basta con asignarle cero bytes si eso también representa una cadena vacía: hay que distinguir ambos casos. En registros variables un cambio de longitud puede exigir reorganización.</p>
+<p><code>CHAR</code> y <code>VARCHAR</code> distinguen propiedades de cadenas en SQL, pero no fijan un layout físico universal. El tamaño en caracteres tampoco tiene por qué ser el tamaño en bytes. Un BLOB contiene datos binarios grandes y un CLOB texto grande; pueden guardarse fuera de la página y referenciarse desde el registro. El modelo pequeño de esta página supone registros que caben completos en una sola página. <span class="citation" data-cites="silberschatz2020">(<a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020</a>, secs. 13.2.2–13.2.3)</span></p>
+</section>
+<section id="fijos" class="level2">
+<h2 class="anchored" data-anchor-id="fijos">Registros de longitud fija</h2>
+<p>Sea <span class="math inline">\(P\)</span> el tamaño de página, <span class="math inline">\(H\)</span> su encabezado y <span class="math inline">\(R&gt;0\)</span> el tamaño de registro, incluidos sus metadatos propios. Si no hay costos adicionales por slot:</p>
+<p><span class="math display">\[
+N_{\text{slots}}=\left\lfloor\frac{P-H}{R}\right\rfloor.
+\]</span></p>
+<p>Una inserción ocupa un slot libre; una eliminación lo libera. Un bitmap o una lista puede señalar los slots libres. Si ese control ocupa bytes no incluidos en <span class="math inline">\(H\)</span>, hay que descontarlos antes de usar la fórmula. Mover el último registro sobre uno eliminado ahorra huecos, pero cambia su posición y puede invalidar referencias externas.</p>
+<p><strong>Ejemplo.</strong> Con <span class="math inline">\(P=4096\)</span>, <span class="math inline">\(H=96\)</span> y <span class="math inline">\(R=100\)</span> bytes, caben <span class="math inline">\(\lfloor4000/100\rfloor=40\)</span> registros. Para <span class="math inline">\(n=1\,000\,000\)</span> tuplas, llenando las páginas:</p>
+<p><span class="math display">\[
+B=\left\lceil\frac{n}{40}\right\rceil=25000\text{ páginas}.
+\]</span></p>
+<p>Un recorrido completo sin páginas previamente cargadas lee <strong>25 000 páginas</strong>, sin contar un directorio adicional. Si hubiera una tupla más, harían falta 25 001 páginas: la última parcialmente ocupada sigue siendo una página completa. Si las páginas no se llenan, la cifra calculada es una capacidad ideal y pueden necesitarse más páginas.</p>
+<p>Con una página por bloque y el costo por bloque fijado en el ejemplo anterior:</p>
+<p><span class="math display">\[
+\begin{aligned}
+T_{\text{contiguo}}&amp;=6{,}46+4{,}17+25000(0{,}13)\\
+&amp;=3260{,}63\text{ ms},\\
+T_{\text{disperso}}&amp;=25000(10{,}76)=269000\text{ ms}.
+\end{aligned}
+\]</span></p>
+<p>Son aproximadamente 3,261 s y 269 s. La contigüidad ideal conserva las mismas hipótesis de un único posicionamiento.</p>
+</section>
+<section id="rid" class="level2">
+<h2 class="anchored" data-anchor-id="rid">Record ID: dirección e identidad</h2>
+<p>En nuestro modelo, un identificador físico de registro es</p>
+<p><span class="math display">\[
+RID=(PageID,slot).
+\]</span></p>
+<p>El slot 7 de la página 1001 tiene RID <code>(1001,7)</code>. El RID identifica una <strong>posición ocupada</strong>, no los valores de una entidad. Una llave candidata es un conjunto mínimo de atributos que determina una tupla; una llave primaria es una candidata elegida en el esquema. El <code>rut</code> de un estudiante puede ser una llave lógica aunque sus bytes cambien de página. <strong>Un RID no equivale a una llave primaria relacional.</strong> Dos registros en posiciones distintas pueden tener los mismos valores si no hay una restricción que lo impida.</p>
+<p>Para registros variables, <code>slot</code> identifica una entrada estable del directorio; la entrada guarda el offset y la longitud. Compactar mueve bytes y actualiza el offset, sin renumerar slots. Si un registro debe trasladarse a <strong>otra página</strong>, mantener el RID anterior requiere otra indirección, por ejemplo una dirección de forwarding en su posición original; leerla puede añadir accesos. Sin ese mecanismo o actualización de referencias, el RID cambia. Reutilizar un slot eliminado tampoco preserva la identidad del registro antiguo: las referencias obsoletas deben gestionarse. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.6</a>)</span></p>
+</section>
+<section id="slotted" class="level2">
+<h2 class="anchored" data-anchor-id="slotted">Slotted pages y compactación</h2>
+<p>Una slotted page combina encabezado, directorio de slots y registros de longitud variable. Aquí el directorio crece desde el comienzo y los registros desde el final. La eliminación es <strong>diferida</strong>: libera bytes, pero no compacta inmediatamente. Esta convención permite observar fragmentación; también es posible compactar al eliminar.</p>
+<figure class="db-storage-diagram figure" tabindex="0" role="group" aria-label="Diagrama de almacenamiento con desplazamiento horizontal">
+<svg viewbox="0 0 680 170" role="img" aria-label="Página: encabezado y directorio a la izquierda, espacio libre central y registros a la derecha">
+<title>Organización de una slotted page</title>
+<g stroke="#58677b" stroke-width="2"><rect x="10" y="40" width="100" height="70" fill="#edf2f9"></rect><rect x="110" y="40" width="140" height="70" fill="#eff6ff"></rect><rect x="250" y="40" width="180" height="70" fill="white"></rect><rect x="430" y="40" width="80" height="70" fill="#e7f4f2"></rect><rect x="510" y="40" width="70" height="70" fill="#e7f4f2"></rect><rect x="580" y="40" width="90" height="70" fill="#e7f4f2"></rect></g>
+<g fill="#243247" font-size="15" text-anchor="middle"><text x="60" y="80">Header</text><text x="180" y="70">Slots: offset</text><text x="180" y="92">y longitud</text><text x="340" y="80">Espacio libre</text><text x="470" y="80">t3</text><text x="545" y="80">t2</text><text x="625" y="80">t1</text><text x="180" y="140">Directorio →</text><text x="550" y="140">← Registros</text></g>
+</svg>
+<figcaption>Distribución conceptual sin escala. El RID apunta al slot, que localiza los bytes del registro.</figcaption>
+</figure>
+<section id="caso-resuelto-128-bytes" class="level3">
+<h3 class="anchored" data-anchor-id="caso-resuelto-128-bytes">Caso resuelto: 128 bytes</h3>
+<p>Fijamos PageID <code>P</code>, encabezado de <strong>12 bytes</strong> y <strong>4 bytes por entrada</strong> de directorio. Numeramos los slots desde 1 y los offsets desde 0, con intervalos de bytes semiabiertos. Cada tamaño de registro ya incluye sus propios metadatos. Los slots eliminados permanecen reservados y pueden reutilizarse. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.6.2</a>)</span></p>
+<div class="table-responsive" tabindex="0" role="region" aria-label="Slots y espacio libre después de cada operación">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 21%">
+<col style="width: 28%">
+<col style="width: 28%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operación</th>
+<th>Directorio y registros físicos</th>
+<th style="text-align: right;">Libre total</th>
+<th style="text-align: right;">Mayor región libre contigua</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Vacía</td>
+<td>Header <code>[0,12)</code>; sin slots</td>
+<td style="text-align: right;">116</td>
+<td style="text-align: right;">116</td>
+</tr>
+<tr class="even">
+<td>Insertar t1, 30 B</td>
+<td>slot 1 → <code>(98,30)</code>; directorio termina en 16</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">82</td>
+</tr>
+<tr class="odd">
+<td>Insertar t2, 20 B</td>
+<td>slot 2 → <code>(78,20)</code>; directorio termina en 20</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">58</td>
+</tr>
+<tr class="even">
+<td>Insertar t3, 40 B</td>
+<td>slot 3 → <code>(38,40)</code>; directorio termina en 24</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="odd">
+<td>Eliminar t2</td>
+<td>slot 2 libre; hueco <code>[78,98)</code> de 20 B</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="even">
+<td>Compactar para t4</td>
+<td>t3 pasa de offset 38 a 58; t1 sigue en 98</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">34</td>
+</tr>
+<tr class="odd">
+<td>Insertar t4, 30 B</td>
+<td>reutiliza slot 2 → <code>(28,30)</code></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td>Intentar t5, 10 B</td>
+<td>Rechazo: necesita 10 B y un slot nuevo de 4 B</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Tras las primeras tres inserciones: <span class="math inline">\(128-12-3(4)-30-20-40=14\)</span> bytes. La eliminación libera 20 más, pero separa el libre en <code>[24,38)</code> y <code>[78,98)</code>: ninguna región alcanza 30 bytes. Compactar empaqueta t1 y t3 contra el final y reúne <code>[24,58)</code>. Se actualiza <strong>slot 3 → <code>(58,40)</code></strong>: <code>RID(t3)=(P,3)</code> sigue igual porque se consulta la misma entrada del directorio. t4 ocupa <code>[28,58)</code> y el slot 2; el libre queda <code>[24,28)</code>.</p>
+<p>El libre <strong>total</strong> incluye los huecos; el libre <strong>contiguo central</strong> tras eliminar t2 es solo 14 B, aunque el mayor hueco mide 20 B. La compactación consume CPU y mueve bytes dentro de RAM; si modifica una página cargada, la deja dirty. No requiere por sí misma una lectura adicional de otra página.</p>
+<div class="db-viz" data-db-viz="paginas">
+<div class="db-viz-fallback">
+<p><strong>Recorrido estático de la página.</strong> Vacía → t1: 82 B libres → t2: 58 B → t3: 14 B → eliminar t2: 34 B fragmentados → compactar: 34 B contiguos, t3 en offset 58 → insertar t4: 4 B → rechazar t5: requiere 14 B. Los RIDs de t1 y t3 permanecen <code>(P,1)</code> y <code>(P,3)</code>; t4 reutiliza <code>(P,2)</code>. El diagrama y la tabla anteriores muestran los componentes y todos los offsets también sin JavaScript.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="organizacion" class="level2">
+<h2 class="anchored" data-anchor-id="organizacion">Una relación en varias páginas</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Organización</th>
+<th>Recorrido y ventajas</th>
+<th>Inserciones, fragmentación y costos</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Páginas contiguas</td>
+<td>Buen acceso secuencial y direccionamiento sencillo</td>
+<td>Crecer requiere espacio cercano o nuevos tramos; encontrar huecos sin metadatos exige inspeccionar datos.</td>
+</tr>
+<tr class="even">
+<td>Lista de páginas</td>
+<td>Crece sin reservar una región contigua</td>
+<td>Punteros y mantenimiento; saltos físicos; buscar espacio puede recorrer toda la lista.</td>
+</tr>
+<tr class="odd">
+<td>Listas separadas de llenas y con espacio</td>
+<td>Evita examinar páginas completamente llenas al insertar</td>
+<td>Tener algún espacio no asegura que quepa la tupla; mover páginas entre listas tiene costo.</td>
+</tr>
+<tr class="even">
+<td>Directorio de páginas</td>
+<td>Entradas pequeñas con PageID y espacio disponible; varias caben por página</td>
+<td>Hay que mantener metadatos coherentes tras cambios; la precisión del resumen determina si basta para decidir.</td>
+</tr>
+</tbody>
+</table>
+<p>La fragmentación entre páginas y los huecos dentro de cada página son problemas distintos. Un directorio no compacta registros ni vuelve contiguas las páginas. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 9.5.1</a>)</span></p>
+<section id="ejemplo-localizar-espacio" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-localizar-espacio">Ejemplo: localizar espacio</h3>
+<p>Hay <strong>1000 páginas de datos</strong>; 300 tienen algún espacio libre. Una tupla solo cabe en la última candidata examinada. Contamos lecturas con buffer frío, sin escrituras de inserción ni actualización de metadatos:</p>
+<ul>
+<li>Sin metadatos, un recorrido puede leer <strong>1000 páginas de datos</strong>. Aquí se conoce el comienzo; una página de encabezado separada no residente añadiría una lectura.</li>
+<li>Una lista de las 300 páginas con espacio lee <strong>1 encabezado + 300 datos = 301 páginas</strong>. Las primeras 299 pueden tener menos espacio del requerido. Con encabezado ya residente, son 300.</li>
+<li>Un directorio con una entrada de 8 B <strong>por cada una de las 1000 páginas</strong> almacena <span class="math inline">\(\lfloor4096/8\rfloor=512\)</span> entradas por página y necesita <span class="math inline">\(\lceil1000/512\rceil=2\)</span> páginas. Ignoramos cabeceras internas; si las hubiera, habría que recalcular la capacidad. El directorio completo permite decidir con <strong>2 lecturas de directorio + 1 de datos = 3</strong>. Un encabezado separado añadiría una cuarta; si el directorio está en memoria, basta una lectura de datos.</li>
+</ul>
+<p>Aunque solo 300 páginas tengan espacio, el directorio del ejemplo describe las 1000. Un directorio que solo enumerara las 300 necesitaría una página, pero sería otra organización. Suponemos que el resumen registra <strong>espacio utilizable suficiente</strong>, considerando slots y compactación posible; un simple bit «hay espacio» no permite la misma cota para localizar una tupla de tamaño concreto. Si ninguna página es apta, se detecta el fracaso sin leer una página de datos adicional.</p>
+</section>
+</section>
+<section id="autoevaluación-con-solución" class="level2">
+<h2 class="anchored" data-anchor-id="autoevaluación-con-solución">Autoevaluación con solución</h2>
+<ol type="1">
+<li>¿Por qué no se redondea hacia abajo el número de páginas de una relación?</li>
+<li>¿Pueden 34 bytes libres resultar insuficientes para insertar un registro de 30 bytes?</li>
+<li>¿Qué cambia al compactar t3? ¿Y al moverla a otra página?</li>
+<li>¿Un índice evita siempre una lectura de disco por cada nivel?</li>
+</ol>
+<details class="db-solution">
+<summary>
+Ver solución
+</summary>
+<ol type="1">
+<li>Los registros sobrantes requieren otra página, aunque no la llenen. Se usa techo para páginas y piso para capacidad.</li>
+<li>Sí, si el espacio está fragmentado y no se compacta, o si faltan bytes para una nueva entrada. En el caso estudiado, compactar y reutilizar slot permiten t4.</li>
+<li>Cambia el offset en el slot, no el RID. Cambiar PageID exige modificar referencias o conservar una indirección mediante forwarding.</li>
+<li>El índice reduce páginas visitadas, pero las visitas que ya encuentran páginas en el buffer son hits sin lectura. La altura por sí sola no es el número de lecturas efectivas.</li>
+</ol>
+</details>
+<section id="resumen" class="level3 summary-box">
+<h3 class="anchored" data-anchor-id="resumen">Resumen</h3>
+<p>El modelo lógico no fija una representación física. El DBMS organiza registros en páginas y gestiona sus accesos mediante el buffer. Capacidad y costo requieren contar metadatos, redondeos y condiciones del dispositivo. Los RIDs identifican posiciones; los slots estables permiten compactar sin renumerar registros. Un directorio de espacio libre evita inspeccionar innecesariamente muchas páginas, si su información permite decidir cuánto cabe.</p>
+</section>
+</section>
+<section id="conceptos-relacionados" class="level2 related-links">
+<h2 class="anchored" data-anchor-id="conceptos-relacionados">Conceptos relacionados</h2>
+<ul>
+<li><a href="../almacenamiento/buffer-manager.html">Buffer Manager: pins, dirty bits y reemplazo</a></li>
+<li><a href="../indices/bplus.html">Árboles B+</a></li>
+<li><a href="../indices/hashing.html">Hashing</a></li>
+<li><a href="../procesamiento/planes-logicos.html">Planes lógicos y procesamiento</a></li>
+<li><a href="../fundamentos/modelo-relacional.html">Modelo relacional</a></li>
+</ul>
+</section>
+<section id="lecturas-de-apoyo" class="level2">
+<h2 class="anchored" data-anchor-id="lecturas-de-apoyo">Lecturas de apoyo</h2>
+<p><span class="citation" data-cites="ramakrishnan2003">Ramakrishnan y Gehrke (<a href="#ref-ramakrishnan2003" role="doc-biblioref">2003</a>, secs. 9.1, 9.5–9.7)</span> desarrolla jerarquía, archivos, páginas y registros. <span class="citation" data-cites="silberschatz2020">Silberschatz et&nbsp;al. (<a href="#ref-silberschatz2020" role="doc-biblioref">2020</a>, secs. 13.2.2–13.2.3)</span> trata registros variables, bitmap de nulos y objetos grandes. <span class="citation" data-cites="garciamolina2009">Garcia-Molina et&nbsp;al. (<a href="#ref-garciamolina2009" role="doc-biblioref">2009, sec. 13.2.3</a>)</span> explica los componentes del tiempo de acceso HDD. Los tamaños y las decisiones de compactación de nuestros ejercicios son convenciones explícitas del sitio.</p>
+
+
+
+</section>
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Volver arriba</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Referencias</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-garciamolina2009" class="csl-entry" role="listitem">
+Garcia-Molina, Hector, Jeffrey D. Ullman, y Jennifer Widom. 2009. <em>Database Systems: The Complete Book</em>. 2.ª ed. Pearson Prentice Hall.
+</div>
+<div id="ref-ramakrishnan2003" class="csl-entry" role="listitem">
+Ramakrishnan, Raghu, y Johannes Gehrke. 2003. <em>Database Management Systems</em>. 3.ª ed. McGraw-Hill.
+</div>
+<div id="ref-silberschatz2020" class="csl-entry" role="listitem">
+Silberschatz, Abraham, Henry F. Korth, y S. Sudarshan. 2020. <em>Database System Concepts</em>. 7.ª ed. McGraw-Hill Education.
+</div>
+</div></section></div></main> <!-- /main -->
+<script type="module" src="../assets/js/visualizaciones/index.js"></script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../procesamiento/reescritura.html" class="pagination-link" aria-label="Reescritura y equivalencia">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Reescritura y equivalencia</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../almacenamiento/buffer-manager.html" class="pagination-link" aria-label="Buffer Manager">
+        <span class="nav-page-text">Buffer Manager</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>OpenStudy · Bases de Datos · Estudio por conceptos</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Sitio de estudio construido con Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

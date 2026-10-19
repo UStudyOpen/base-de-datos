@@ -95,3 +95,39 @@
 .db-plan-results { margin-top: 1.5rem; }
 .db-plan-results td:first-child { overflow-wrap: anywhere; }
 @media (max-width: 767.98px) { .db-plan-comparison { grid-template-columns: minmax(0,1fr); } }
+
+/* P6: buffer frames reflow without scaling their text; page bytes scroll locally. */
+.db-buffer, .db-pages { min-width: 0; overflow-wrap: anywhere; }
+.db-buffer-operation { font-size: 1.1rem; font-weight: 700; }
+.db-buffer-counts { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
+.db-buffer-counts p { margin: 0; }
+.db-buffer-frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .75rem; margin: 1rem 0; }
+.db-buffer-frame { min-width: 0; padding: .8rem; border: 1px solid #58677b; border-radius: .4rem; background: white; }
+.db-buffer-frame p { margin: .2rem 0; font-size: .9rem; }
+.db-buffer-frame .db-buffer-frame-title { font-weight: 600; }
+.db-buffer-frame .db-buffer-page { font-size: 1.25rem; font-weight: 700; color: #243247; }
+.db-buffer-frame.is-active { outline: 3px solid #2563eb; outline-offset: -3px; }
+.db-buffer-frame.is-pinned { border-left: 5px solid #147d78; }
+.db-buffer-frame.is-dirty { background: #fff8e8; }
+.db-buffer-pending, .db-buffer-io { font-weight: 600; }
+.db-buffer-order, .db-buffer-candidates { font-size: .9rem; }
+.db-buffer-disk { padding: .75rem; border: 1px dashed #58677b; border-radius: .4rem; }
+.db-buffer-disk ul { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; padding-left: 1rem; margin-bottom: 0; }
+.db-buffer details summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
+.db-buffer .db-buffer-history .db-viz-scroll table { min-width: 660px; }
+.db-buffer .db-viz-scroll table, .db-pages .db-viz-scroll table { min-width: 420px; overflow-wrap: normal; }
+.db-buffer-manual { border-top: 1px solid #dce3ed; margin-top: 1rem; }
+.db-page-scroll { border: 1px solid #dce3ed; border-radius: .4rem; background: white; }
+.db-pages .db-page-svg { display: block; max-width: none; font-family: inherit; }
+.db-page-svg text { font-size: 15px; fill: #243247; }
+.db-page-svg rect { stroke: #58677b; stroke-width: 1.5; }
+.db-page-header rect { fill: #edf2f9; }
+.db-page-slot rect { fill: #eff6ff; }
+.db-page-free rect { fill: white; }
+.db-page-hole rect { fill: #fff0c2; stroke-dasharray: 5 3; }
+.db-page-record rect { fill: #e7f4f2; }
+.db-storage-diagram { max-width: 100%; overflow-x: auto; margin: 1.25rem 0; }
+.db-storage-diagram svg { display: block; width: 680px; max-width: none; height: auto; }
+.db-storage-diagram figcaption { font-size: .9rem; margin-top: .6rem; }
+.db-storage-diagram:focus-visible { outline: 2px solid #2563eb; }
+@media print { .db-storage-diagram { overflow: visible; } .db-storage-diagram svg { width: 100%; } }

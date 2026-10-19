@@ -17,6 +17,8 @@ test('Rendered pages provide an intact static example and a relative module load
     ['indices/hashing.html', 'hashing'],
     ['procesamiento/planes-logicos.html', 'query-plan'],
     ['procesamiento/reescritura.html', 'query-plan'],
+    ['almacenamiento/paginas-registros.html', 'paginas'],
+    ['almacenamiento/buffer-manager.html', 'buffer'],
   ]) {
     const html = load(`docs/${name}`);
     assert.match(html, new RegExp(`data-db-viz="${component}"`), name);
@@ -38,6 +40,9 @@ test('Sources and deployable visualization resources are identical', () => {
     'assets/js/visualizaciones/hashing-model.js',
     'assets/js/visualizaciones/query-plan-model.js',
     'assets/js/visualizaciones/query-plan.js',
+    'assets/js/visualizaciones/buffer-model.js',
+    'assets/js/visualizaciones/buffer.js',
+    'assets/js/visualizaciones/paginas.js',
   ]) {
     assert.ok(existsSync(join(root, `docs/${path}`)), path);
     assert.equal(load(path), load(`docs/${path}`), path);
@@ -88,4 +93,18 @@ test('P5 is linked, searchable, cited and independent of private teaching resour
     assert.ok(JSON.parse(load('docs/search.json')).some(x=>x.href.split('#')[0]===path));
     assert.doesNotMatch(html,/clases_referencia|libros_referencia|guia_repaso_i2|Clase 16/);
   }
+});
+
+test('P6 has navigation, complete static traces, citations and three component roots',()=>{
+  for(const name of ['paginas-registros','buffer-manager']) {
+    const path=`almacenamiento/${name}.html`,html=load(`docs/${path}`);
+    assert.match(load('docs/index.html'),new RegExp(path));
+    assert.match(html,/ref-ramakrishnan2003/);assert.match(html,/ref-silberschatz2020/);assert.match(html,/ref-garciamolina2009/);
+    assert.match(html,/Almacenamiento y organización física/);assert.match(html,/mathjax/i);
+    assert.ok(JSON.parse(load('docs/search.json')).some(x=>x.href.split('#')[0]===path));
+    assert.doesNotMatch(html,/clases_referencia|libros_referencia|guia_repaso_i2|Clase 12|Clase 13/);
+  }
+  const buffer=load('docs/almacenamiento/buffer-manager.html');assert.equal((buffer.match(/data-db-viz="buffer"/g)||[]).length,2);
+  assert.match(buffer,/10760|7 lecturas/);assert.match(buffer,/pinCount/);assert.match(buffer,/bplus-buffer/);
+  assert.match(load('docs/indices/bplus.html'),/almacenamiento\/buffer-manager.html#bplus-buffer/);
 });

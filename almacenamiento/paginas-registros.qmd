@@ -1,0 +1,252 @@
+---
+title: "Almacenamiento: páginas y registros"
+description: "Jerarquía de memoria, costos de E/S, RIDs, registros y compactación de slotted pages."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags"><span class="concept-tag">Persistencia</span><span class="concept-tag">Página</span><span class="concept-tag">E/S</span><span class="concept-tag">RID</span><span class="concept-tag">Slots</span><span class="concept-tag">Compactación</span></div>
+</div>
+
+## Del modelo lógico a los bytes
+
+Una relación matemática es un conjunto de tuplas; no prescribe un orden de bytes ni una región contigua de disco. Una tabla SQL admite además multiplicidades. El DBMS debe representar esas filas mediante **registros**, distribuirlos en **páginas** y localizar las páginas mediante archivos y métodos de acceso. Dos representaciones físicas distintas pueden corresponder a los mismos valores lógicos.
+
+Por ejemplo, `Estudiante(rut,nombre,carrera)` puede ocupar miles de páginas dispersas. Una consulta por `rut` puede recorrerlas todas o usar un índice para llegar a unas pocas. La organización física cambia los accesos necesarios, sin cambiar el significado de la consulta. La localidad espacial permite traer varios datos próximos mediante una misma transferencia. [@ramakrishnan2003, secs. 9.1, 9.5–9.7]
+
+## Jerarquía de almacenamiento
+
+La capacidad y el costo por byte suelen favorecer a los niveles más alejados del procesador; la latencia suele favorecer a los más próximos. **Latencia** es el tiempo hasta atender una petición; **ancho de banda** es la cantidad transferida por unidad de tiempo. Un gran ancho de banda no implica baja latencia para una petición pequeña.
+
+| Nivel | Capacidad y costo relativos | Acceso y persistencia |
+|---|---|---|
+| Registros y cachés del procesador | Muy poca capacidad; alto costo por byte | Muy baja latencia; normalmente volátiles. |
+| Memoria principal (RAM) | Mayor capacidad que las cachés | Acceso directo y rápido; la RAM convencional pierde contenido sin alimentación. |
+| SSD | Gran capacidad; menor costo por byte que RAM | Persistente; sin partes mecánicas, con latencia de controlador y transferencia. |
+| Disco duro (HDD) | Gran capacidad; generalmente económico por byte | Persistente; el acceso aleatorio agrega movimiento y espera rotacional. |
+| Almacenamiento terciario, por ejemplo cintas | Capacidad destinada a archivo y respaldo | Persistente; acceso inicial costoso, apropiado para grandes transferencias secuenciales. |
+
+Son tendencias de una jerarquía, no especificaciones universales de productos. Capacidad, paralelismo y costo dependen de la configuración. Persistente significa que los datos se conservan sin alimentación; no significa que un dispositivo no pueda fallar. La base puede superar ampliamente la RAM disponible: el DBMS trabaja con una parte cargada en memoria. [@ramakrishnan2003, sec. 9.1]
+
+## Un disco duro por dentro
+
+Un **plato** tiene una o dos superficies grabables. Cada superficie contiene **pistas** concéntricas; cada pista se divide en **sectores**. Las pistas del mismo radio en las distintas superficies forman un **cilindro**. Un cabezal lee o escribe una superficie y el brazo desplaza los cabezales hacia la pista buscada. Tras posicionarse, debe esperar a que el sector pase bajo el cabezal. [@ramakrishnan2003, sec. 9.1.1]
+
+```{=html}
+<figure class="db-storage-diagram" tabindex="0" role="group" aria-label="Diagrama de almacenamiento con desplazamiento horizontal">
+<svg viewBox="0 0 680 260" role="img" aria-label="Disco duro: pistas concéntricas, sector, cabezal y superficies de un cilindro">
+<title>Geometría simplificada de un HDD</title>
+<g fill="none" stroke="#58677b" stroke-width="2"><ellipse cx="150" cy="127" rx="115" ry="94" fill="#f7f9fc"/><ellipse cx="150" cy="127" rx="85" ry="68"/><ellipse cx="150" cy="127" rx="57" ry="44"/><ellipse cx="150" cy="127" rx="18" ry="14"/><path d="M150 127 L254 87 M150 127 L265 127" stroke="#147d78" stroke-width="3"/><path d="M315 217 L214 106 L200 110" stroke="#2563eb" stroke-width="8"/><ellipse cx="485" cy="84" rx="95" ry="23" fill="#f7f9fc"/><ellipse cx="485" cy="133" rx="95" ry="23" fill="#f7f9fc"/><ellipse cx="485" cy="182" rx="95" ry="23" fill="#f7f9fc"/><ellipse cx="485" cy="84" rx="56" ry="14" stroke="#147d78"/><ellipse cx="485" cy="133" rx="56" ry="14" stroke="#147d78"/><ellipse cx="485" cy="182" rx="56" ry="14" stroke="#147d78"/><path d="M429 84 V182 M541 84 V182" stroke="#147d78" stroke-dasharray="5 4"/></g>
+<g fill="#243247" font-size="15"><text x="45" y="22">Superficie de un plato</text><text x="44" y="245">Pistas concéntricas</text><text x="265" y="87">Sector</text><text x="236" y="158">Cabezal</text><text x="272" y="244">Brazo</text><text x="400" y="30">Platos apilados</text><text x="397" y="237">Cilindro: mismo radio</text></g>
+</svg>
+<figcaption>Esquema original, sin escala. El brazo cambia de pista; la rotación acerca el sector al cabezal. Las líneas discontinuas reúnen pistas del mismo cilindro.</figcaption>
+</figure>
+```
+
+### Sector, bloque y página
+
+| Término | Nivel y significado en este sitio |
+|---|---|
+| Sector | Unidad de organización física del dispositivo en el modelo de disco. |
+| Bloque | Unidad de transferencia o direccionamiento lógico del almacenamiento. |
+| Página | Unidad lógica que gestiona el DBMS y que carga en un frame de memoria. |
+
+Sus tamaños no tienen por qué coincidir: una página puede abarcar varios sectores o bloques. En los cálculos siguientes **suponemos una página por bloque**, transferida de una vez. Es una simplificación explícita; el direccionamiento lógico tampoco expone necesariamente la geometría real del HDD.
+
+## Modelo de costos de E/S {#costos}
+
+Para un acceso HDD sin solapamiento:
+
+$$
+T_{\text{acceso}}=T_{\text{seek}}+T_{\text{rotación}}+T_{\text{transferencia}}.
+$$
+
+El seek posiciona el cabezal, la rotación aporta la espera hasta el dato y la transferencia mueve sus bytes. Todos los sumandos son tiempos. Si se conoce un volumen $S$ y una tasa $v$ en unidades compatibles:
+
+$$
+T_{\text{transferencia}}=\frac{S}{v}.
+$$
+
+Una lectura **aleatoria** puede pagar el posicionamiento completo cada vez; una **secuencial** aprovecha la proximidad. En un tramo de bloques contiguos idealizado se paga un solo posicionamiento. Un dispositivo real puede requerir cambios de pista, colas y otras esperas. [@garciamolina2009, sec. 13.2.3]
+
+### Ejemplo resuelto: 1000 bloques
+
+Fijamos parámetros históricos de ejercicio: seek promedio de **6,46 ms**, retraso rotacional de **4,17 ms** y transferencia de **0,13 ms por bloque**. No son medidas actuales universales. Adoptamos la última cifra como parámetro independiente del tamaño de bloque; no la deducimos del tamaño de página del próximo ejemplo.
+
+$$
+\begin{aligned}
+T_{\text{aleatorio}}&=1000(6{,}46+4{,}17+0{,}13)\\
+&=10760\text{ ms},\\
+T_{\text{contiguo}}&=6{,}46+4{,}17+1000(0{,}13)\\
+&=140{,}63\text{ ms}.
+\end{aligned}
+$$
+
+El cociente es aproximadamente **76,51**: el acceso aleatorio tarda ese número de veces el contiguo **bajo estas hipótesis**. Se ignoran CPU, cachés previas, prefetch, paralelismo y cambios de pista. El caso contiguo sigue transfiriendo 1000 bloques; ahorrar posicionamientos no elimina bytes.
+
+Un SSD no tiene seek mecánico ni retraso rotacional. Sí tiene latencias de solicitud y costos de transferencia; su organización interna y las escrituras influyen en el rendimiento. El modelo HDD anterior no se aplica sumando esos tiempos a un SSD.
+
+### Contar páginas no es medir todo el tiempo
+
+Podemos contar por separado lecturas y escrituras de páginas. Es una medida útil si los accesos al almacenamiento dominan y los tamaños y patrones son comparables. CPU, acceso a RAM, transferencia, concurrencia y compresión pueden cambiar el tiempo observado. Dos planes con igual número de páginas pueden tardar distinto si uno usa accesos aleatorios y el otro secuenciales.
+
+Un acceso **lógico** a una página residente no implica una lectura de disco. El [Buffer Manager](buffer-manager.qmd) decide qué accesos requieren E/S; una expulsión de una página modificada puede añadir una escritura. Una caché del sistema operativo o del dispositivo puede además atender lo que aquí llamamos lectura de disco: el modelo cuenta transferencias en la frontera conceptual entre buffer y almacenamiento.
+
+## Una tupla como registro de bytes
+
+El registro representa atributos, sus límites y metadatos. Con campos fijos de longitudes $L_1,\ldots,L_k$, el comienzo del campo $i$ se obtiene sumando las longitudes anteriores a la dirección base. El catálogo describe tipos y codificación; el registro puede añadir encabezado, longitudes y bitmap de nulos. [@ramakrishnan2003, sec. 9.7]
+
+Con campos variables hay varias estrategias:
+
+- **Separadores:** almacenar `r1|Alex|Computación`. Si un valor contiene `|`, hace falta escape, quoting o una prohibición expresa. Para llegar al último campo hay que reconocer los anteriores.
+- **Longitudes:** anteponer a cada campo su cantidad de bytes; deben acordarse tamaño y codificación de esas longitudes.
+- **Directorio de offsets:** reservar posiciones que indican dónde comienza cada campo y dónde termina, o parejas offset/longitud. Se obtiene acceso directo pagando metadatos.
+
+`NULL` es un marcador lógico, con la [semántica de tres valores](../nulos/null-tres-valores.qmd) de SQL. Físicamente puede indicarse con un bit por atributo o con indicadores especiales. No basta con asignarle cero bytes si eso también representa una cadena vacía: hay que distinguir ambos casos. En registros variables un cambio de longitud puede exigir reorganización.
+
+`CHAR` y `VARCHAR` distinguen propiedades de cadenas en SQL, pero no fijan un layout físico universal. El tamaño en caracteres tampoco tiene por qué ser el tamaño en bytes. Un BLOB contiene datos binarios grandes y un CLOB texto grande; pueden guardarse fuera de la página y referenciarse desde el registro. El modelo pequeño de esta página supone registros que caben completos en una sola página. [@silberschatz2020, secs. 13.2.2–13.2.3]
+
+## Registros de longitud fija {#fijos}
+
+Sea $P$ el tamaño de página, $H$ su encabezado y $R>0$ el tamaño de registro, incluidos sus metadatos propios. Si no hay costos adicionales por slot:
+
+$$
+N_{\text{slots}}=\left\lfloor\frac{P-H}{R}\right\rfloor.
+$$
+
+Una inserción ocupa un slot libre; una eliminación lo libera. Un bitmap o una lista puede señalar los slots libres. Si ese control ocupa bytes no incluidos en $H$, hay que descontarlos antes de usar la fórmula. Mover el último registro sobre uno eliminado ahorra huecos, pero cambia su posición y puede invalidar referencias externas.
+
+**Ejemplo.** Con $P=4096$, $H=96$ y $R=100$ bytes, caben $\lfloor4000/100\rfloor=40$ registros. Para $n=1\,000\,000$ tuplas, llenando las páginas:
+
+$$
+B=\left\lceil\frac{n}{40}\right\rceil=25000\text{ páginas}.
+$$
+
+Un recorrido completo sin páginas previamente cargadas lee **25 000 páginas**, sin contar un directorio adicional. Si hubiera una tupla más, harían falta 25 001 páginas: la última parcialmente ocupada sigue siendo una página completa. Si las páginas no se llenan, la cifra calculada es una capacidad ideal y pueden necesitarse más páginas.
+
+Con una página por bloque y el costo por bloque fijado en el ejemplo anterior:
+
+$$
+\begin{aligned}
+T_{\text{contiguo}}&=6{,}46+4{,}17+25000(0{,}13)\\
+&=3260{,}63\text{ ms},\\
+T_{\text{disperso}}&=25000(10{,}76)=269000\text{ ms}.
+\end{aligned}
+$$
+
+Son aproximadamente 3,261 s y 269 s. La contigüidad ideal conserva las mismas hipótesis de un único posicionamiento.
+
+## Record ID: dirección e identidad {#rid}
+
+En nuestro modelo, un identificador físico de registro es
+
+$$
+RID=(PageID,slot).
+$$
+
+El slot 7 de la página 1001 tiene RID `(1001,7)`. El RID identifica una **posición ocupada**, no los valores de una entidad. Una llave candidata es un conjunto mínimo de atributos que determina una tupla; una llave primaria es una candidata elegida en el esquema. El `rut` de un estudiante puede ser una llave lógica aunque sus bytes cambien de página. **Un RID no equivale a una llave primaria relacional.** Dos registros en posiciones distintas pueden tener los mismos valores si no hay una restricción que lo impida.
+
+Para registros variables, `slot` identifica una entrada estable del directorio; la entrada guarda el offset y la longitud. Compactar mueve bytes y actualiza el offset, sin renumerar slots. Si un registro debe trasladarse a **otra página**, mantener el RID anterior requiere otra indirección, por ejemplo una dirección de forwarding en su posición original; leerla puede añadir accesos. Sin ese mecanismo o actualización de referencias, el RID cambia. Reutilizar un slot eliminado tampoco preserva la identidad del registro antiguo: las referencias obsoletas deben gestionarse. [@ramakrishnan2003, sec. 9.6]
+
+## Slotted pages y compactación {#slotted}
+
+Una slotted page combina encabezado, directorio de slots y registros de longitud variable. Aquí el directorio crece desde el comienzo y los registros desde el final. La eliminación es **diferida**: libera bytes, pero no compacta inmediatamente. Esta convención permite observar fragmentación; también es posible compactar al eliminar.
+
+```{=html}
+<figure class="db-storage-diagram" tabindex="0" role="group" aria-label="Diagrama de almacenamiento con desplazamiento horizontal">
+<svg viewBox="0 0 680 170" role="img" aria-label="Página: encabezado y directorio a la izquierda, espacio libre central y registros a la derecha">
+<title>Organización de una slotted page</title>
+<g stroke="#58677b" stroke-width="2"><rect x="10" y="40" width="100" height="70" fill="#edf2f9"/><rect x="110" y="40" width="140" height="70" fill="#eff6ff"/><rect x="250" y="40" width="180" height="70" fill="white"/><rect x="430" y="40" width="80" height="70" fill="#e7f4f2"/><rect x="510" y="40" width="70" height="70" fill="#e7f4f2"/><rect x="580" y="40" width="90" height="70" fill="#e7f4f2"/></g>
+<g fill="#243247" font-size="15" text-anchor="middle"><text x="60" y="80">Header</text><text x="180" y="70">Slots: offset</text><text x="180" y="92">y longitud</text><text x="340" y="80">Espacio libre</text><text x="470" y="80">t3</text><text x="545" y="80">t2</text><text x="625" y="80">t1</text><text x="180" y="140">Directorio →</text><text x="550" y="140">← Registros</text></g>
+</svg>
+<figcaption>Distribución conceptual sin escala. El RID apunta al slot, que localiza los bytes del registro.</figcaption>
+</figure>
+```
+
+### Caso resuelto: 128 bytes
+
+Fijamos PageID `P`, encabezado de **12 bytes** y **4 bytes por entrada** de directorio. Numeramos los slots desde 1 y los offsets desde 0, con intervalos de bytes semiabiertos. Cada tamaño de registro ya incluye sus propios metadatos. Los slots eliminados permanecen reservados y pueden reutilizarse. [@ramakrishnan2003, sec. 9.6.2]
+
+::: {.table-responsive tabindex="0" role="region" aria-label="Slots y espacio libre después de cada operación"}
+
+| Operación | Directorio y registros físicos | Libre total | Mayor región libre contigua |
+|---|---|---:|---:|
+| Vacía | Header `[0,12)`; sin slots | 116 | 116 |
+| Insertar t1, 30 B | slot 1 → `(98,30)`; directorio termina en 16 | 82 | 82 |
+| Insertar t2, 20 B | slot 2 → `(78,20)`; directorio termina en 20 | 58 | 58 |
+| Insertar t3, 40 B | slot 3 → `(38,40)`; directorio termina en 24 | 14 | 14 |
+| Eliminar t2 | slot 2 libre; hueco `[78,98)` de 20 B | 34 | 20 |
+| Compactar para t4 | t3 pasa de offset 38 a 58; t1 sigue en 98 | 34 | 34 |
+| Insertar t4, 30 B | reutiliza slot 2 → `(28,30)` | 4 | 4 |
+| Intentar t5, 10 B | Rechazo: necesita 10 B y un slot nuevo de 4 B | 4 | 4 |
+
+:::
+
+Tras las primeras tres inserciones: $128-12-3(4)-30-20-40=14$ bytes. La eliminación libera 20 más, pero separa el libre en `[24,38)` y `[78,98)`: ninguna región alcanza 30 bytes. Compactar empaqueta t1 y t3 contra el final y reúne `[24,58)`. Se actualiza **slot 3 → `(58,40)`**: `RID(t3)=(P,3)` sigue igual porque se consulta la misma entrada del directorio. t4 ocupa `[28,58)` y el slot 2; el libre queda `[24,28)`.
+
+El libre **total** incluye los huecos; el libre **contiguo central** tras eliminar t2 es solo 14 B, aunque el mayor hueco mide 20 B. La compactación consume CPU y mueve bytes dentro de RAM; si modifica una página cargada, la deja dirty. No requiere por sí misma una lectura adicional de otra página.
+
+<div class="db-viz" data-db-viz="paginas">
+<div class="db-viz-fallback">
+
+**Recorrido estático de la página.** Vacía → t1: 82 B libres → t2: 58 B → t3: 14 B → eliminar t2: 34 B fragmentados → compactar: 34 B contiguos, t3 en offset 58 → insertar t4: 4 B → rechazar t5: requiere 14 B. Los RIDs de t1 y t3 permanecen `(P,1)` y `(P,3)`; t4 reutiliza `(P,2)`. El diagrama y la tabla anteriores muestran los componentes y todos los offsets también sin JavaScript.
+
+</div>
+</div>
+
+## Una relación en varias páginas {#organizacion}
+
+| Organización | Recorrido y ventajas | Inserciones, fragmentación y costos |
+|---|---|---|
+| Páginas contiguas | Buen acceso secuencial y direccionamiento sencillo | Crecer requiere espacio cercano o nuevos tramos; encontrar huecos sin metadatos exige inspeccionar datos. |
+| Lista de páginas | Crece sin reservar una región contigua | Punteros y mantenimiento; saltos físicos; buscar espacio puede recorrer toda la lista. |
+| Listas separadas de llenas y con espacio | Evita examinar páginas completamente llenas al insertar | Tener algún espacio no asegura que quepa la tupla; mover páginas entre listas tiene costo. |
+| Directorio de páginas | Entradas pequeñas con PageID y espacio disponible; varias caben por página | Hay que mantener metadatos coherentes tras cambios; la precisión del resumen determina si basta para decidir. |
+
+La fragmentación entre páginas y los huecos dentro de cada página son problemas distintos. Un directorio no compacta registros ni vuelve contiguas las páginas. [@ramakrishnan2003, sec. 9.5.1]
+
+### Ejemplo: localizar espacio
+
+Hay **1000 páginas de datos**; 300 tienen algún espacio libre. Una tupla solo cabe en la última candidata examinada. Contamos lecturas con buffer frío, sin escrituras de inserción ni actualización de metadatos:
+
+- Sin metadatos, un recorrido puede leer **1000 páginas de datos**. Aquí se conoce el comienzo; una página de encabezado separada no residente añadiría una lectura.
+- Una lista de las 300 páginas con espacio lee **1 encabezado + 300 datos = 301 páginas**. Las primeras 299 pueden tener menos espacio del requerido. Con encabezado ya residente, son 300.
+- Un directorio con una entrada de 8 B **por cada una de las 1000 páginas** almacena $\lfloor4096/8\rfloor=512$ entradas por página y necesita $\lceil1000/512\rceil=2$ páginas. Ignoramos cabeceras internas; si las hubiera, habría que recalcular la capacidad. El directorio completo permite decidir con **2 lecturas de directorio + 1 de datos = 3**. Un encabezado separado añadiría una cuarta; si el directorio está en memoria, basta una lectura de datos.
+
+Aunque solo 300 páginas tengan espacio, el directorio del ejemplo describe las 1000. Un directorio que solo enumerara las 300 necesitaría una página, pero sería otra organización. Suponemos que el resumen registra **espacio utilizable suficiente**, considerando slots y compactación posible; un simple bit «hay espacio» no permite la misma cota para localizar una tupla de tamaño concreto. Si ninguna página es apta, se detecta el fracaso sin leer una página de datos adicional.
+
+## Autoevaluación con solución
+
+1. ¿Por qué no se redondea hacia abajo el número de páginas de una relación?
+2. ¿Pueden 34 bytes libres resultar insuficientes para insertar un registro de 30 bytes?
+3. ¿Qué cambia al compactar t3? ¿Y al moverla a otra página?
+4. ¿Un índice evita siempre una lectura de disco por cada nivel?
+
+<details class="db-solution"><summary>Ver solución</summary>
+
+1. Los registros sobrantes requieren otra página, aunque no la llenen. Se usa techo para páginas y piso para capacidad.
+2. Sí, si el espacio está fragmentado y no se compacta, o si faltan bytes para una nueva entrada. En el caso estudiado, compactar y reutilizar slot permiten t4.
+3. Cambia el offset en el slot, no el RID. Cambiar PageID exige modificar referencias o conservar una indirección mediante forwarding.
+4. El índice reduce páginas visitadas, pero las visitas que ya encuentran páginas en el buffer son hits sin lectura. La altura por sí sola no es el número de lecturas efectivas.
+
+</details>
+
+::: {.summary-box}
+### Resumen
+
+El modelo lógico no fija una representación física. El DBMS organiza registros en páginas y gestiona sus accesos mediante el buffer. Capacidad y costo requieren contar metadatos, redondeos y condiciones del dispositivo. Los RIDs identifican posiciones; los slots estables permiten compactar sin renumerar registros. Un directorio de espacio libre evita inspeccionar innecesariamente muchas páginas, si su información permite decidir cuánto cabe.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Buffer Manager: pins, dirty bits y reemplazo](buffer-manager.qmd)
+- [Árboles B+](../indices/bplus.qmd)
+- [Hashing](../indices/hashing.qmd)
+- [Planes lógicos y procesamiento](../procesamiento/planes-logicos.qmd)
+- [Modelo relacional](../fundamentos/modelo-relacional.qmd)
+:::
+
+## Lecturas de apoyo
+
+@ramakrishnan2003 [secs. 9.1, 9.5–9.7] desarrolla jerarquía, archivos, páginas y registros. @silberschatz2020 [secs. 13.2.2–13.2.3] trata registros variables, bitmap de nulos y objetos grandes. @garciamolina2009 [sec. 13.2.3] explica los componentes del tiempo de acceso HDD. Los tamaños y las decisiones de compactación de nuestros ejercicios son convenciones explícitas del sitio.

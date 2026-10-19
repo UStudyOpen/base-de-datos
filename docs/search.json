@@ -959,7 +959,7 @@
     "href": "index.html#mapa-de-contenidos",
     "title": "Bases de Datos",
     "section": "Mapa de contenidos",
-    "text": "Mapa de contenidos\n\n\nFundamentos\nDel concepto de RDBMS a tuplas, relaciones, esquemas, atributos y relaciones nombradas.\nComenzar por el modelo relacional\n\n\nTeoría de consultas\nLógica de primer orden, álgebra relacional, joins, composición y equivalencia expresiva.\nIr a teoría de consultas\n\n\nSQL\nDDL, DML, SELECT-FROM-WHERE, joins, conjuntos, subconsultas, agregación y dialectos.\nIr a SQL\n\n\nNulos e información incompleta\nNULL, lógica de tres valores, mundos posibles, tablas de Codd y outer joins.\nIr a nulos\n\n\nDiseño relacional\nRedundancia, dependencias funcionales, llaves, clausura, descomposiciones sin pérdida y preservación. Incluye pruebas, ejercicios y exploradores de BCNF y síntesis 3NF.\nIr a diseño · BCNF · 3NF\n\n\nÍndices\nÁrboles B+ por páginas y hashing: búsquedas, inserción, eliminación, cadenas de overflow y directorios dinámicos con exploradores paso a paso.\nExplorar B+trees · Hashing\n\n\nProcesamiento de consultas\nDel parser al plan lógico: álgebra extendida, multiplicidades y reescrituras con hipótesis, árboles interactivos y contraejemplos.\nPlanes lógicos · Reescritura y equivalencia",
+    "text": "Mapa de contenidos\n\n\nFundamentos\nDel concepto de RDBMS a tuplas, relaciones, esquemas, atributos y relaciones nombradas.\nComenzar por el modelo relacional\n\n\nTeoría de consultas\nLógica de primer orden, álgebra relacional, joins, composición y equivalencia expresiva.\nIr a teoría de consultas\n\n\nSQL\nDDL, DML, SELECT-FROM-WHERE, joins, conjuntos, subconsultas, agregación y dialectos.\nIr a SQL\n\n\nNulos e información incompleta\nNULL, lógica de tres valores, mundos posibles, tablas de Codd y outer joins.\nIr a nulos\n\n\nDiseño relacional\nRedundancia, dependencias funcionales, llaves, clausura, descomposiciones sin pérdida y preservación. Incluye pruebas, ejercicios y exploradores de BCNF y síntesis 3NF.\nIr a diseño · BCNF · 3NF\n\n\nÍndices\nÁrboles B+ por páginas y hashing: búsquedas, inserción, eliminación, cadenas de overflow y directorios dinámicos con exploradores paso a paso.\nExplorar B+trees · Hashing\n\n\nProcesamiento de consultas\nDel parser al plan lógico: álgebra extendida, multiplicidades y reescrituras con hipótesis, árboles interactivos y contraejemplos.\nPlanes lógicos · Reescritura y equivalencia\n\n\nAlmacenamiento y organización física\nPáginas, registros, RIDs y compactación. Simula pins, dirty bits y reemplazo FIFO/LRU, y compara sus lecturas y escrituras.\nPáginas y registros · Buffer Manager",
     "crumbs": [
       "Inicio"
     ]
@@ -1400,6 +1400,292 @@
     "crumbs": [
       "Diseño relacional y dependencias",
       "Forma normal de Boyce–Codd"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html",
+    "href": "almacenamiento/buffer-manager.html",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "",
+    "text": "Conceptos clave\n\n\nBuffer poolPin countDirty bitFIFOLRUBelady",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#intuición-una-mesa-de-trabajo-limitada",
+    "href": "almacenamiento/buffer-manager.html#intuición-una-mesa-de-trabajo-limitada",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Intuición: una mesa de trabajo limitada",
+    "text": "Intuición: una mesa de trabajo limitada\nImagina un archivo cuyos documentos solo pueden consultarse sobre una mesa con pocas posiciones. Puedes conservar los que usarás otra vez, pero debes devolver alguno para traer otro. Si lo modificaste, antes debes guardar sus cambios. En el DBMS, la mesa es el buffer pool, cada posición es un frame y cada documento es una página.\nUna base grande puede superar la RAM asignada al DBMS; incluso si cupiera, otras tareas comparten esa memoria. El Buffer Manager carga páginas bajo demanda, conserva las que pueden reutilizarse y decide qué reemplazar al llenarse el buffer. La ejecución de consultas solicita páginas sin tener que decidir directamente dónde ponerlas en RAM. (Ramakrishnan y Gehrke 2003, sec. 9.4)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#modelo",
+    "href": "almacenamiento/buffer-manager.html#modelo",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Modelo formal e invariantes",
+    "text": "Modelo formal e invariantes\nUna página de almacenamiento tiene un PageID. Un frame es una región de RAM capaz de alojar una página; \\(N\\geq1\\) frames forman el buffer pool. La page table asocia cada PageID residente con su frame. No es el directorio de slots ni el directorio de espacio libre de organización física.\n\n\n\n\n\n\n\nCampo conceptual por frame ocupado\nSignificado\n\n\n\n\npageId\nPágina cargada.\n\n\npinCount\nCantidad de fijaciones exitosas aún no liberadas.\n\n\ndirty\nHay modificaciones pendientes de escritura a almacenamiento.\n\n\nordenDeCarga\nInstante lógico de la última carga de esa página: prioridad FIFO.\n\n\nultimoAcceso\nInstante del último pin exitoso: prioridad LRU en este sitio.\n\n\n\nLos dos últimos campos expresan información de política, no un formato físico obligatorio. Un hit encuentra la página en un frame; un miss no la encuentra. Un frame libre no contiene página válida. Una víctima es una página elegida para expulsión por la política de reemplazo. Solo es elegible si su pinCount es cero. Una lectura transfiere una página al buffer; una escritura lleva los cambios de una página a almacenamiento.\n\n\n\n\n\n\nImportanteUna sola fijación ya protege la página\n\n\n\npinCount = 1 impide expulsar la página, igual que cualquier valor mayor. Dirty y pinned son propiedades distintas: una página puede estar dirty y completamente liberada. Los pins protegen la residencia; no sustituyen los mecanismos de concurrencia ni la recuperación de transacciones.\n\n\nLos invariantes del modelo son: PageIDs únicos entre frames, contadores enteros no negativos y page table exactamente igual a las asociaciones de los frames ocupados. Un frame libre tiene pin cero y dirty falso. Las llamadas pin y unpin son operaciones internas conceptuales del DBMS, no comandos SQL estándar. (Silberschatz et al. 2020, sec. 13.5.1)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#operaciones",
+    "href": "almacenamiento/buffer-manager.html#operaciones",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Operaciones y escrituras",
+    "text": "Operaciones y escrituras\n\npin(p)\n\nEntrada: PageID válido. Salida: frame protegido o rechazo sin cambios en el buffer.\nsi p está en la page table:                    // hit\n  incrementar su pinCount\n  actualizar ultimoAcceso\n  devolver su frame, sin lectura\nsi hay frame libre: elegir el primero\nsi no:\n  candidatos ← frames ocupados con pinCount = 0\n  si candidatos está vacío: rechazar la petición\n  víctima ← mínimo ordenDeCarga (FIFO)\n             o mínimo ultimoAcceso (LRU), entre candidatos\n  si víctima.dirty: escribirla antes de reutilizar el frame\n  retirar la asociación anterior de la page table\nleer p desde almacenamiento                    // miss atendido\nasignar pageId=p, pinCount=1, dirty=false\ninicializar ordenDeCarga y ultimoAcceso\nregistrar p → frame en la page table y devolver frame\n\nSe usa un frame libre antes de expulsar páginas. Si todos están fijados, este simulador rechaza la solicitud inmediatamente, sin encolarla ni reintentar automáticamente; registra el diagnóstico, pero conserva frames, tiempos de política y contadores de E/S. El miss rechazado no genera lectura. Un sistema real puede esperar o coordinar la liberación de recursos. Suponemos E/S exitosa y secuencial; no se simulan fallas de dispositivo.\n\n\nunpin(p, modificado)\nLa página debe estar cargada y tener pinCount &gt; 0. Si no, se rechaza sin cambiar el estado operativo. Si es legal, decrementa el contador y acumula las modificaciones:\n\\[\ndirty_{\\text{nuevo}}=dirty_{\\text{anterior}}\\lor dirty_{\\text{argumento}}.\n\\]\nPor ejemplo, pin(A), pin(A), unpin(A,true), unpin(A,false) deja A con pin cero y dirty verdadero. El segundo false no borra el cambio anterior. Tampoco unpin genera una escritura: liberar una referencia y persistir cambios son acciones distintas. La política no actualiza recencia al liberar.\nAl expulsar una víctima dirty, se escribe una vez antes de cargar la nueva página; expulsar una clean no escribe. No se realiza flush automático al finalizar una secuencia. Las páginas dirty aún residentes siguen pendientes. Un DBMS real puede escribir por otros motivos y debe respetar su protocolo de recuperación; aquí aislamos las escrituras por reemplazo. (Ramakrishnan y Gehrke 2003, sec. 9.4; Silberschatz et al. 2020, sec. 13.5.1)\nEl contador valida el balance por página. No identifica qué proceso posee cada fijación; por tanto, no demuestra que cada proceso haya liberado únicamente sus propios pins.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#politicas",
+    "href": "almacenamiento/buffer-manager.html#politicas",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Políticas FIFO y LRU",
+    "text": "Políticas FIFO y LRU\n\n\n\n\n\n\n\n\nAspecto\nFIFO\nLRU del simulador\n\n\n\n\nInformación\nOrden de carga actual\nOrden de último pin exitoso\n\n\nVíctima\nElegible cargada más antiguamente\nElegible usada menos recientemente\n\n\nHit\nNo cambia la prioridad\nRenueva la recencia\n\n\nunpin\nNo cambia la prioridad\nNo cambia la recencia\n\n\nPágina fijada\nSe omite aunque sea la más antigua\nSe omite aunque sea la menos reciente\n\n\n\nEjemplo. Tras usar(A), usar(B), usar(C), usar(A), FIFO mantiene el orden A,B,C; LRU tiene B,C,A. Con todos liberados, pin(D) expulsa A en FIFO y B en LRU. Aquí usar(p) abrevia pin(p) seguido inmediatamente de unpin(p,false).\nSeleccionar el mínimo puede hacerse recorriendo \\(N\\) frames, como en el motor pedagógico. Una implementación real puede mantener colas, listas o aproximaciones para reducir mantenimiento y búsqueda. La recencia exacta tiene costo: FIFO no actualiza su orden en cada hit. Ninguna de las dos políticas minimiza las lecturas en toda secuencia; LRU puede sufrir al recorrer repetidamente más páginas que frames. Las escrituras dependen además de qué víctimas estén dirty. (Garcia-Molina et al. 2009, sec. 15.7.2; Ramakrishnan y Gehrke 2003, sec. 9.4.1)\nLa elección de contar cada pin como uso y no cada unpin es una convención del sitio, mantenida durante toda la ejecución. No trasladamos resultados de otra convención sin volver a analizarlos.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#dieciocho",
+    "href": "almacenamiento/buffer-manager.html#dieciocho",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Ejemplo completo: 18 operaciones",
+    "text": "Ejemplo completo: 18 operaciones\nPartimos con tres frames vacíos, sin flush final. En las tablas, cada frame se escribe página/pins/dirty, con 1 para dirty verdadero, 0 para falso y — para frame libre. Los totales son lecturas L y escrituras E acumuladas. La misma secuencia permite comparar las políticas sin cambiar las solicitudes.\n\nFIFO\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPaso\nOperación\nFrame 0\nFrame 1\nFrame 2\nResultado\nVíctima\nL\nE\n\n\n\n\n1\npin(A)\nA/1/0\n—\n—\nmiss\n—\n1\n0\n\n\n2\nunpin(A, false)\nA/0/0\n—\n—\nliberar\n—\n1\n0\n\n\n3\npin(B)\nA/0/0\nB/1/0\n—\nmiss\n—\n2\n0\n\n\n4\nunpin(B, true)\nA/0/0\nB/0/1\n—\nliberar\n—\n2\n0\n\n\n5\npin(C)\nA/0/0\nB/0/1\nC/1/0\nmiss\n—\n3\n0\n\n\n6\nunpin(C, false)\nA/0/0\nB/0/1\nC/0/0\nliberar\n—\n3\n0\n\n\n7\npin(A)\nA/1/0\nB/0/1\nC/0/0\nhit\n—\n3\n0\n\n\n8\nunpin(A, false)\nA/0/0\nB/0/1\nC/0/0\nliberar\n—\n3\n0\n\n\n9\npin(D)\nD/1/0\nB/0/1\nC/0/0\nmiss\nA\n4\n0\n\n\n10\npin(A)\nD/1/0\nA/1/0\nC/0/0\nmiss\nB\n5\n1\n\n\n11\nunpin(A, true)\nD/1/0\nA/0/1\nC/0/0\nliberar\n—\n5\n1\n\n\n12\npin(B)\nD/1/0\nA/0/1\nB/1/0\nmiss\nC\n6\n1\n\n\n13\nunpin(B, false)\nD/1/0\nA/0/1\nB/0/0\nliberar\n—\n6\n1\n\n\n14\nunpin(D, false)\nD/0/0\nA/0/1\nB/0/0\nliberar\n—\n6\n1\n\n\n15\npin(E)\nE/1/0\nA/0/1\nB/0/0\nmiss\nD\n7\n1\n\n\n16\nunpin(E, false)\nE/0/0\nA/0/1\nB/0/0\nliberar\n—\n7\n1\n\n\n17\npin(A)\nE/0/0\nA/1/1\nB/0/0\nhit\n—\n7\n1\n\n\n18\nunpin(A, false)\nE/0/0\nA/0/1\nB/0/0\nliberar\n—\n7\n1\n\n\n\n\n\n\nLRU\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPaso\nOperación\nFrame 0\nFrame 1\nFrame 2\nResultado\nVíctima\nL\nE\n\n\n\n\n1\npin(A)\nA/1/0\n—\n—\nmiss\n—\n1\n0\n\n\n2\nunpin(A, false)\nA/0/0\n—\n—\nliberar\n—\n1\n0\n\n\n3\npin(B)\nA/0/0\nB/1/0\n—\nmiss\n—\n2\n0\n\n\n4\nunpin(B, true)\nA/0/0\nB/0/1\n—\nliberar\n—\n2\n0\n\n\n5\npin(C)\nA/0/0\nB/0/1\nC/1/0\nmiss\n—\n3\n0\n\n\n6\nunpin(C, false)\nA/0/0\nB/0/1\nC/0/0\nliberar\n—\n3\n0\n\n\n7\npin(A)\nA/1/0\nB/0/1\nC/0/0\nhit\n—\n3\n0\n\n\n8\nunpin(A, false)\nA/0/0\nB/0/1\nC/0/0\nliberar\n—\n3\n0\n\n\n9\npin(D)\nA/0/0\nD/1/0\nC/0/0\nmiss\nB\n4\n1\n\n\n10\npin(A)\nA/1/0\nD/1/0\nC/0/0\nhit\n—\n4\n1\n\n\n11\nunpin(A, true)\nA/0/1\nD/1/0\nC/0/0\nliberar\n—\n4\n1\n\n\n12\npin(B)\nA/0/1\nD/1/0\nB/1/0\nmiss\nC\n5\n1\n\n\n13\nunpin(B, false)\nA/0/1\nD/1/0\nB/0/0\nliberar\n—\n5\n1\n\n\n14\nunpin(D, false)\nA/0/1\nD/0/0\nB/0/0\nliberar\n—\n5\n1\n\n\n15\npin(E)\nA/0/1\nE/1/0\nB/0/0\nmiss\nD\n6\n1\n\n\n16\nunpin(E, false)\nA/0/1\nE/0/0\nB/0/0\nliberar\n—\n6\n1\n\n\n17\npin(A)\nA/1/1\nE/0/0\nB/0/0\nhit\n—\n6\n1\n\n\n18\nunpin(A, false)\nA/0/1\nE/0/0\nB/0/0\nliberar\n—\n6\n1\n\n\n\n\nEn el paso 9, FIFO expulsa A clean y LRU expulsa B dirty. En el 10, FIFO debe volver a leer A y escribir B; LRU hace hit de A. En el paso 12, D no es elegible: conserva pinCount = 1 desde pin(D) en el paso 9 hasta unpin(D,false) en el 14. Ambas políticas expulsan C.\n\n\n\nPolítica\nLecturas finales\nEscrituras finales\nDirty pendiente\n\n\n\n\nFIFO\n7\n1\nA\n\n\nLRU\n6\n1\nA\n\n\n\n\n\nVariante: dos pins antes de liberar\nInsertamos pin(C), pin(E) entre los pasos 12 y 13. Después del 12, D y B están fijadas; A está libre y dirty. El primer pin expulsa A, la escribe y carga C. Los tres frames quedan fijados, por lo que el pin de E se rechaza sin E/S. FIFO llega a 7 lecturas/2 escrituras y LRU a 6/2 en ese momento. No se desplaza D ni se continúa silenciosamente como si E hubiese entrado. Al seguir con las liberaciones originales puede haber nuevos progresos; el pin intercalado de C queda sin liberar hasta que se solicite explícitamente.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#simulador",
+    "href": "almacenamiento/buffer-manager.html#simulador",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Simulador de Buffer Manager",
+    "text": "Simulador de Buffer Manager\nElige política, cantidad de frames y recorrido. El resumen compara FIFO y LRU para el mismo prefijo. La segunda instancia de esta página comienza en Belady y tiene estado independiente. La línea de prioridad muestra todas las páginas residentes; la lista de candidatos corresponde al estado anterior a la operación actual, que es donde se decide la víctima. Las marcas textuales complementan los colores.\n\n\nResultado estático del recorrido principal. Los estados completos están en las tablas FIFO y LRU anteriores. Inicio vacío; al finalizar: FIFO [E/0/0, A/0/1, B/0/0], LRU [A/0/1, E/0/0, B/0/0]. FIFO hace 7 lecturas y 1 escritura; LRU hace 6 y 1. A queda dirty en ambos. El paso 12 preserva D fijada. En la variante intercalada C sustituye A dirty y E se rechaza porque no hay víctima elegible.\n\n\nLa entrada manual admite PageIDs de 1 a 16 letras ASCII, dígitos o guiones bajos y hasta 120 operaciones. Agrega una operación desde el paso visible, conservando ese prefijo y reemplazando el futuro del recorrido. No hay parser SQL, flush ni ejecución concurrente. Anterior/siguiente restaura snapshots completos; no intenta invertir escrituras ni deshacer parcialmente pins.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#belady",
+    "href": "almacenamiento/buffer-manager.html#belady",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Belady y propiedad de inclusión",
+    "text": "Belady y propiedad de inclusión\nUsamos solo solicitudes usar(p), con buffer inicialmente vacío, páginas clean y sin restricciones de reemplazo adicionales:\n1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5\n\n\n\n\n\n\n\n\n\n\n\nPetición\nFIFO 3: páginas; L\nFIFO 4: páginas; L\nLRU 3: páginas; L\nLRU 4: páginas; L\n\n\n\n\n1: usar(1)\n{1}; 1\n{1}; 1\n{1}; 1\n{1}; 1\n\n\n2: usar(2)\n{1,2}; 2\n{1,2}; 2\n{1,2}; 2\n{1,2}; 2\n\n\n3: usar(3)\n{1,2,3}; 3\n{1,2,3}; 3\n{1,2,3}; 3\n{1,2,3}; 3\n\n\n4: usar(4)\n{2,3,4}; 4\n{1,2,3,4}; 4\n{2,3,4}; 4\n{1,2,3,4}; 4\n\n\n5: usar(1)\n{1,3,4}; 5\n{1,2,3,4}; 4\n{1,3,4}; 5\n{1,2,3,4}; 4\n\n\n6: usar(2)\n{1,2,4}; 6\n{1,2,3,4}; 4\n{1,2,4}; 6\n{1,2,3,4}; 4\n\n\n7: usar(5)\n{1,2,5}; 7\n{2,3,4,5}; 5\n{1,2,5}; 7\n{1,2,4,5}; 5\n\n\n8: usar(1)\n{1,2,5}; 7\n{1,3,4,5}; 6\n{1,2,5}; 7\n{1,2,4,5}; 5\n\n\n9: usar(2)\n{1,2,5}; 7\n{1,2,4,5}; 7\n{1,2,5}; 7\n{1,2,4,5}; 5\n\n\n10: usar(3)\n{2,3,5}; 8\n{1,2,3,5}; 8\n{1,2,3}; 8\n{1,2,3,5}; 6\n\n\n11: usar(4)\n{3,4,5}; 9\n{1,2,3,4}; 9\n{2,3,4}; 9\n{1,2,3,4}; 7\n\n\n12: usar(5)\n{3,4,5}; 9\n{2,3,4,5}; 10\n{3,4,5}; 10\n{2,3,4,5}; 8\n\n\n\n\nLos conjuntos se muestran sin orden; los totales cuentan lecturas, que coinciden con misses atendidos. FIFO hace 9 lecturas con 3 frames y 10 con 4: aumentar memoria puede aumentar misses. Es la anomalía de Belady, no una afirmación sobre todas las secuencias. LRU hace 10 y 8, respectivamente.\nDespués de la séptima solicitud, FIFO tiene \\(\\{1,2,5\\}\\) con tres frames y \\(\\{2,3,4,5\\}\\) con cuatro. La página 1 del buffer menor falta en el mayor: no hay inclusión.\n\n\nComparación estática de Belady. FIFO 3: 9 lecturas; FIFO 4: 10; LRU 3: 10; LRU 4: 8. Tras siete solicitudes FIFO rompe inclusión con {1,2,5} y {2,3,4,5}. La tabla anterior compara los cuatro buffers después de cada usar. No hay páginas dirty ni escrituras en este recorrido.\n\n\n\nPor qué LRU sí tiene inclusión\nSea \\(S_N(t)\\) el conjunto de páginas residentes en LRU con \\(N\\) frames después de las primeras \\(t\\) solicitudes de tipo usar. Ordenemos todas las páginas ya solicitadas de más a menos reciente, conservando solo la aparición más reciente de cada una. Un acceso mueve su página al principio. Por inducción, LRU de \\(N\\) frames contiene exactamente las primeras \\(N\\) páginas de esa lista, o todas si todavía hay menos de \\(N\\) distintas.\nAsí, para todo \\(t\\geq0\\) y \\(N\\geq1\\):\n\\[\nS_N(t)\\subseteq S_{N+1}(t).\n\\]\nAntes de cada petición, un hit en el buffer menor es también hit en el mayor. Por contraposición, un miss en el mayor también lo es en el menor; sumar por posiciones demuestra que agregar frames no aumenta misses. Esta es la propiedad de pila (stack property).\nLa demostración usa la misma secuencia, buffers vacíos y ninguna página retenida por pins entre solicitudes. Con fijaciones prolongadas se omiten candidatos y el contenido deja de ser necesariamente el prefijo de una lista global de recencia. No extrapolamos la prueba a esas cargas. FIFO ordena cargas en vez de últimos usos: los hits no lo reorganizan y el argumento del prefijo compartido falla.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#adversarias",
+    "href": "almacenamiento/buffer-manager.html#adversarias",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Profundización: secuencias adversarias",
+    "text": "Profundización: secuencias adversarias\nUna política determinista elige siempre la misma víctima para el mismo estado e historia. Fijemos \\(N\\) frames llenos de páginas clean liberadas, y supongamos que hay al menos una página externa, sin prefetch ni bypass. Para cada política determinista \\(P\\) podemos construir una secuencia \\(S\\) de \\(N\\) solicitudes usar que produzca \\(N\\) lecturas:\n\nPedir una página externa \\(x_1\\) obliga a un miss; sea \\(v_1\\) la víctima.\nPedir \\(x_2=v_1\\) vuelve a producir miss; sea \\(v_2\\) su víctima.\nContinuar pidiendo la última víctima hasta completar \\(N\\) solicitudes.\n\nComo la política está fijada y es determinista, toda la secuencia puede calcularse de antemano a partir del estado inicial. El universo utilizado tiene solo las \\(N+1\\) páginas iniciales y externa. La secuencia de longitud \\(N\\) contiene a lo sumo \\(N\\) páginas distintas; existe una página inicial \\(q\\) que nunca se pide. Una política alternativa \\(P'_S\\) que conoce esta secuencia puede expulsar q al cargar \\(x_1\\) y conservar todas las páginas que se pedirán: hace una sola lectura.\nLos cuantificadores son \\(\\forall P\\;\\exists S\\;\\exists P'_S\\). No se ha construido un único algoritmo online que haga una lectura frente a cualquier secuencia. Una política online decide sin conocer peticiones futuras; la alternativa del argumento usa información offline.\nCon \\(N=3\\), buffer inicial A,B,C, cargado y usado en ese orden, y D externa:\n\n\n\n\n\n\n\n\n\nPolítica atacada\nSecuencia construida\nVíctimas\nAlternativa que solo lee D\n\n\n\n\nFIFO\nD,A,B\nA,B,C\nExpulsar C al llegar D y conservar A,B,D.\n\n\nLRU\nD,A,B\nA,B,C\nLa misma elección offline.\n\n\nMRU (expulsa la más reciente)\nD,C,D\nC,D,C\nExpulsar A al llegar D y conservar B,C,D.\n\n\n\nAnte aleatoriedad, el siguiente pedido construido depende de la víctima aleatoria observada. Eso describe un adversario adaptativo, no una única secuencia fija que fuerce todos los resultados aleatorios. La prueba determinista no establece por sí sola una cota esperada frente a un adversario que fija la secuencia antes de los sorteos, ni prueba que aleatorizar siempre mejore el peor caso.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#bplus-buffer",
+    "href": "almacenamiento/buffer-manager.html#bplus-buffer",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "B+trees y lecturas efectivas",
+    "text": "B+trees y lecturas efectivas\nConsideremos este árbol conceptual de ocho páginas distintas:\n          R\n       /     \\\n      D1      D2\n    / | \\    /  \\\n   L1 L2 L3 L4  L5\nBuscar una clave que termina en Lj ejecuta usar(R), usar(Di), usar(Lj) en ese orden; D1 es padre de L1–L3 y D2 de L4–L5. Las búsquedas son las únicas operaciones, no dejan pins pendientes, no modifican páginas y parten de buffer vacío. Contamos solo páginas del índice, no la posible lectura posterior de un registro de datos. Árboles B+ explica el descenso lógico; aquí calculamos cuándo se convierte en lectura.\n\nLRU con tres frames\nLa primera búsqueda lee tres páginas. Al terminar cualquier búsqueda, las tres páginas de su ruta son las tres más recientes: en orden antiguo→nuevo, R,Di,Lj. La próxima petición es R, que hace hit y la vuelve la más reciente; los otros dos accesos pueden fallar, pero no expulsan R antes de volver a usarla. Desde la segunda búsqueda hay como máximo dos lecturas:\n\\[\nL_{\\mathrm{LRU},3}(m)\\leq3+2(m-1)=2m+1\\qquad(m\\geq1).\n\\]\nAlternar búsquedas a L1 y L4 alcanza la cota: cada cambio necesita el otro directorio y la otra hoja. La altura fija dos aristas y tres visitas, pero los hits reducen las lecturas.\n\n\nFIFO con tres frames\nSi una búsqueda lee tres páginas, termina con cola de carga R,Di,Lj. En la siguiente R hace hit; a lo sumo se leen directorio y hoja. Por tanto, no hay dos búsquedas consecutivas de costo tres. Agrupando pares, cada par cuesta a lo sumo cinco; una búsqueda restante cuesta a lo sumo tres:\n\\[\nL_{\\mathrm{FIFO},3}(m)\\leq\\left\\lceil\\frac{5m}{2}\\right\\rceil\\qquad(m\\geq1).\n\\]\nAlternar L1,L4 alcanza 3,2,3,2,… lecturas por búsqueda: al cambiar de rama, el primer miss expulsa R si es la más antigua, pero ya se usó en esa búsqueda. Para seis búsquedas L1,L4,L1,L4,L1,L4, FIFO acumula 15 y LRU 13. El preset B+ del simulador reproduce exactamente esos accesos, con un paso por pin o unpin.\n\n\nOcho frames y el umbral de LRU\nCon ocho frames caben todas las páginas: se leen a lo sumo 8, independientemente de \\(m\\); una página ya cargada no vuelve a salir. No significa que deban leerse las ocho si solo se visita una rama.\nCon LRU y siete frames, una vez cargada, R permanece: entre sus usos solo hay un directorio y una hoja. D1 tampoco se expulsa: entre dos accesos suyos pueden hacerse recientes la hoja inmediatamente posterior al primer acceso, R,D2,L4,L5; son a lo sumo cinco páginas distintas. Para D2, son su hoja inmediatamente posterior, R,D1,L1,L2,L3: a lo sumo seis. Ambas distancias son menores que siete. Así, raíz y directorios se leen como máximo una vez cada uno, y cada búsqueda lee a lo sumo una hoja:\n\\[\nL_{\\mathrm{LRU},7}(m)\\leq m+3\\qquad(m\\geq2).\n\\]\nLa primera búsqueda cuesta tres; con dos búsquedas opuestas se cargan ambos directorios y se alcanza cinco. Para todo \\(m\\geq2\\), el prefijo de la repetición L1,L4,L2,L5,L3 alcanza \\(m+3\\): las primeras cuatro hojas llenan las cuatro posiciones disponibles para hojas y cada hoja siguiente es la menos reciente que acaba de salir. Los tres nodos superiores permanecen.\nLa misma repetición produce al menos una lectura por búsqueda con siete frames. Por inclusión de LRU, cualquier \\(N\\leq7\\) tiene al menos los misses del buffer de siete sobre la misma secuencia de usar, y por tanto al menos \\(m\\) lecturas. No hay cota independiente de \\(m\\) para esos tamaños. Ocho es el menor N con cota constante para toda secuencia de búsquedas de este árbol, bajo las hipótesis declaradas; no es una regla sobre cualquier B+tree. El preset «B+: cinco hojas» permite comprobar prefijos con siete y ocho frames.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#autoevaluación-con-solución",
+    "href": "almacenamiento/buffer-manager.html#autoevaluación-con-solución",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Autoevaluación con solución",
+    "text": "Autoevaluación con solución\n\nA tiene pins 2 y dirty verdadero. Se ejecuta unpin(A,false). ¿Se puede expulsar?\nSi todos los frames están fijados, ¿puede atenderse un hit? ¿Y un miss?\n¿Agregar frames siempre ayuda a FIFO? ¿LRU domina siempre a FIFO con igual capacidad?\n¿Terminar con A dirty significa que falta contar una escritura en los totales anteriores?\n\n\n\nVer solución\n\n\nQueda pin 1, dirty verdadero: sigue protegida. Otro unpin legal la hace elegible sin limpiarla.\nEl hit sí: incrementa el pin del frame existente, sin lectura. El miss se rechaza mientras no haya frame libre ni víctima elegible.\nNo: Belady refuta lo primero. La inclusión compara LRU consigo misma a distinta capacidad; no prueba dominación frente a FIFO. En Belady con tres frames FIFO hace 9 lecturas y LRU 10.\nNo: la escritura no ocurrió. Se informa como dirty pendiente. Añadir un flush sería otra secuencia y otro modelo de costos.\n\n\n\nResumen\nEl Buffer Manager traduce solicitudes de páginas en hits, lecturas y escrituras. Pin protege la residencia; dirty conserva modificaciones pendientes. FIFO ordena cargas y LRU últimos usos, siempre restringidos a páginas sin pins. La inclusión de LRU exige hipótesis precisas y FIFO puede presentar Belady. En índices, reutilizar páginas superiores separa las visitas lógicas de las lecturas efectivas.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#conceptos-relacionados",
+    "href": "almacenamiento/buffer-manager.html#conceptos-relacionados",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Conceptos relacionados",
+    "text": "Conceptos relacionados\n\nPáginas, registros y RIDs\nÁrboles B+: búsqueda y páginas\nHashing: buckets y overflow\nPlanes lógicos y ejecución",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/buffer-manager.html#lecturas-de-apoyo",
+    "href": "almacenamiento/buffer-manager.html#lecturas-de-apoyo",
+    "title": "Buffer Manager: FIFO y LRU",
+    "section": "Lecturas de apoyo",
+    "text": "Lecturas de apoyo\nRamakrishnan y Gehrke (2003, secs. 9.4–9.4.1) fundamenta buffer pool, pins, dirty y reemplazo. Silberschatz et al. (2020, sec. 13.5.1) distingue fijación y escritura; Garcia-Molina et al. (2009, sec. 15.7.2) compara FIFO y LRU. Las convenciones operativas, trazas y demostraciones de los ejemplos se desarrollan aquí de forma autocontenida.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Buffer Manager"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html",
+    "href": "almacenamiento/paginas-registros.html",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "",
+    "text": "Conceptos clave\n\n\nPersistenciaPáginaE/SRIDSlotsCompactación",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#del-modelo-lógico-a-los-bytes",
+    "href": "almacenamiento/paginas-registros.html#del-modelo-lógico-a-los-bytes",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Del modelo lógico a los bytes",
+    "text": "Del modelo lógico a los bytes\nUna relación matemática es un conjunto de tuplas; no prescribe un orden de bytes ni una región contigua de disco. Una tabla SQL admite además multiplicidades. El DBMS debe representar esas filas mediante registros, distribuirlos en páginas y localizar las páginas mediante archivos y métodos de acceso. Dos representaciones físicas distintas pueden corresponder a los mismos valores lógicos.\nPor ejemplo, Estudiante(rut,nombre,carrera) puede ocupar miles de páginas dispersas. Una consulta por rut puede recorrerlas todas o usar un índice para llegar a unas pocas. La organización física cambia los accesos necesarios, sin cambiar el significado de la consulta. La localidad espacial permite traer varios datos próximos mediante una misma transferencia. (Ramakrishnan y Gehrke 2003, secs. 9.1, 9.5–9.7)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#jerarquía-de-almacenamiento",
+    "href": "almacenamiento/paginas-registros.html#jerarquía-de-almacenamiento",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Jerarquía de almacenamiento",
+    "text": "Jerarquía de almacenamiento\nLa capacidad y el costo por byte suelen favorecer a los niveles más alejados del procesador; la latencia suele favorecer a los más próximos. Latencia es el tiempo hasta atender una petición; ancho de banda es la cantidad transferida por unidad de tiempo. Un gran ancho de banda no implica baja latencia para una petición pequeña.\n\n\n\n\n\n\n\n\nNivel\nCapacidad y costo relativos\nAcceso y persistencia\n\n\n\n\nRegistros y cachés del procesador\nMuy poca capacidad; alto costo por byte\nMuy baja latencia; normalmente volátiles.\n\n\nMemoria principal (RAM)\nMayor capacidad que las cachés\nAcceso directo y rápido; la RAM convencional pierde contenido sin alimentación.\n\n\nSSD\nGran capacidad; menor costo por byte que RAM\nPersistente; sin partes mecánicas, con latencia de controlador y transferencia.\n\n\nDisco duro (HDD)\nGran capacidad; generalmente económico por byte\nPersistente; el acceso aleatorio agrega movimiento y espera rotacional.\n\n\nAlmacenamiento terciario, por ejemplo cintas\nCapacidad destinada a archivo y respaldo\nPersistente; acceso inicial costoso, apropiado para grandes transferencias secuenciales.\n\n\n\nSon tendencias de una jerarquía, no especificaciones universales de productos. Capacidad, paralelismo y costo dependen de la configuración. Persistente significa que los datos se conservan sin alimentación; no significa que un dispositivo no pueda fallar. La base puede superar ampliamente la RAM disponible: el DBMS trabaja con una parte cargada en memoria. (Ramakrishnan y Gehrke 2003, sec. 9.1)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#un-disco-duro-por-dentro",
+    "href": "almacenamiento/paginas-registros.html#un-disco-duro-por-dentro",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Un disco duro por dentro",
+    "text": "Un disco duro por dentro\nUn plato tiene una o dos superficies grabables. Cada superficie contiene pistas concéntricas; cada pista se divide en sectores. Las pistas del mismo radio en las distintas superficies forman un cilindro. Un cabezal lee o escribe una superficie y el brazo desplaza los cabezales hacia la pista buscada. Tras posicionarse, debe esperar a que el sector pase bajo el cabezal. (Ramakrishnan y Gehrke 2003, sec. 9.1.1)\n\n\nGeometría simplificada de un HDD\n\nSuperficie de un platoPistas concéntricasSectorCabezalBrazoPlatos apiladosCilindro: mismo radio\n\nEsquema original, sin escala. El brazo cambia de pista; la rotación acerca el sector al cabezal. Las líneas discontinuas reúnen pistas del mismo cilindro.\n\n\nSector, bloque y página\n\n\n\n\n\n\n\nTérmino\nNivel y significado en este sitio\n\n\n\n\nSector\nUnidad de organización física del dispositivo en el modelo de disco.\n\n\nBloque\nUnidad de transferencia o direccionamiento lógico del almacenamiento.\n\n\nPágina\nUnidad lógica que gestiona el DBMS y que carga en un frame de memoria.\n\n\n\nSus tamaños no tienen por qué coincidir: una página puede abarcar varios sectores o bloques. En los cálculos siguientes suponemos una página por bloque, transferida de una vez. Es una simplificación explícita; el direccionamiento lógico tampoco expone necesariamente la geometría real del HDD.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#costos",
+    "href": "almacenamiento/paginas-registros.html#costos",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Modelo de costos de E/S",
+    "text": "Modelo de costos de E/S\nPara un acceso HDD sin solapamiento:\n\\[\nT_{\\text{acceso}}=T_{\\text{seek}}+T_{\\text{rotación}}+T_{\\text{transferencia}}.\n\\]\nEl seek posiciona el cabezal, la rotación aporta la espera hasta el dato y la transferencia mueve sus bytes. Todos los sumandos son tiempos. Si se conoce un volumen \\(S\\) y una tasa \\(v\\) en unidades compatibles:\n\\[\nT_{\\text{transferencia}}=\\frac{S}{v}.\n\\]\nUna lectura aleatoria puede pagar el posicionamiento completo cada vez; una secuencial aprovecha la proximidad. En un tramo de bloques contiguos idealizado se paga un solo posicionamiento. Un dispositivo real puede requerir cambios de pista, colas y otras esperas. (Garcia-Molina et al. 2009, sec. 13.2.3)\n\nEjemplo resuelto: 1000 bloques\nFijamos parámetros históricos de ejercicio: seek promedio de 6,46 ms, retraso rotacional de 4,17 ms y transferencia de 0,13 ms por bloque. No son medidas actuales universales. Adoptamos la última cifra como parámetro independiente del tamaño de bloque; no la deducimos del tamaño de página del próximo ejemplo.\n\\[\n\\begin{aligned}\nT_{\\text{aleatorio}}&=1000(6{,}46+4{,}17+0{,}13)\\\\\n&=10760\\text{ ms},\\\\\nT_{\\text{contiguo}}&=6{,}46+4{,}17+1000(0{,}13)\\\\\n&=140{,}63\\text{ ms}.\n\\end{aligned}\n\\]\nEl cociente es aproximadamente 76,51: el acceso aleatorio tarda ese número de veces el contiguo bajo estas hipótesis. Se ignoran CPU, cachés previas, prefetch, paralelismo y cambios de pista. El caso contiguo sigue transfiriendo 1000 bloques; ahorrar posicionamientos no elimina bytes.\nUn SSD no tiene seek mecánico ni retraso rotacional. Sí tiene latencias de solicitud y costos de transferencia; su organización interna y las escrituras influyen en el rendimiento. El modelo HDD anterior no se aplica sumando esos tiempos a un SSD.\n\n\nContar páginas no es medir todo el tiempo\nPodemos contar por separado lecturas y escrituras de páginas. Es una medida útil si los accesos al almacenamiento dominan y los tamaños y patrones son comparables. CPU, acceso a RAM, transferencia, concurrencia y compresión pueden cambiar el tiempo observado. Dos planes con igual número de páginas pueden tardar distinto si uno usa accesos aleatorios y el otro secuenciales.\nUn acceso lógico a una página residente no implica una lectura de disco. El Buffer Manager decide qué accesos requieren E/S; una expulsión de una página modificada puede añadir una escritura. Una caché del sistema operativo o del dispositivo puede además atender lo que aquí llamamos lectura de disco: el modelo cuenta transferencias en la frontera conceptual entre buffer y almacenamiento.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#una-tupla-como-registro-de-bytes",
+    "href": "almacenamiento/paginas-registros.html#una-tupla-como-registro-de-bytes",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Una tupla como registro de bytes",
+    "text": "Una tupla como registro de bytes\nEl registro representa atributos, sus límites y metadatos. Con campos fijos de longitudes \\(L_1,\\ldots,L_k\\), el comienzo del campo \\(i\\) se obtiene sumando las longitudes anteriores a la dirección base. El catálogo describe tipos y codificación; el registro puede añadir encabezado, longitudes y bitmap de nulos. (Ramakrishnan y Gehrke 2003, sec. 9.7)\nCon campos variables hay varias estrategias:\n\nSeparadores: almacenar r1|Alex|Computación. Si un valor contiene |, hace falta escape, quoting o una prohibición expresa. Para llegar al último campo hay que reconocer los anteriores.\nLongitudes: anteponer a cada campo su cantidad de bytes; deben acordarse tamaño y codificación de esas longitudes.\nDirectorio de offsets: reservar posiciones que indican dónde comienza cada campo y dónde termina, o parejas offset/longitud. Se obtiene acceso directo pagando metadatos.\n\nNULL es un marcador lógico, con la semántica de tres valores de SQL. Físicamente puede indicarse con un bit por atributo o con indicadores especiales. No basta con asignarle cero bytes si eso también representa una cadena vacía: hay que distinguir ambos casos. En registros variables un cambio de longitud puede exigir reorganización.\nCHAR y VARCHAR distinguen propiedades de cadenas en SQL, pero no fijan un layout físico universal. El tamaño en caracteres tampoco tiene por qué ser el tamaño en bytes. Un BLOB contiene datos binarios grandes y un CLOB texto grande; pueden guardarse fuera de la página y referenciarse desde el registro. El modelo pequeño de esta página supone registros que caben completos en una sola página. (Silberschatz et al. 2020, secs. 13.2.2–13.2.3)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#fijos",
+    "href": "almacenamiento/paginas-registros.html#fijos",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Registros de longitud fija",
+    "text": "Registros de longitud fija\nSea \\(P\\) el tamaño de página, \\(H\\) su encabezado y \\(R&gt;0\\) el tamaño de registro, incluidos sus metadatos propios. Si no hay costos adicionales por slot:\n\\[\nN_{\\text{slots}}=\\left\\lfloor\\frac{P-H}{R}\\right\\rfloor.\n\\]\nUna inserción ocupa un slot libre; una eliminación lo libera. Un bitmap o una lista puede señalar los slots libres. Si ese control ocupa bytes no incluidos en \\(H\\), hay que descontarlos antes de usar la fórmula. Mover el último registro sobre uno eliminado ahorra huecos, pero cambia su posición y puede invalidar referencias externas.\nEjemplo. Con \\(P=4096\\), \\(H=96\\) y \\(R=100\\) bytes, caben \\(\\lfloor4000/100\\rfloor=40\\) registros. Para \\(n=1\\,000\\,000\\) tuplas, llenando las páginas:\n\\[\nB=\\left\\lceil\\frac{n}{40}\\right\\rceil=25000\\text{ páginas}.\n\\]\nUn recorrido completo sin páginas previamente cargadas lee 25 000 páginas, sin contar un directorio adicional. Si hubiera una tupla más, harían falta 25 001 páginas: la última parcialmente ocupada sigue siendo una página completa. Si las páginas no se llenan, la cifra calculada es una capacidad ideal y pueden necesitarse más páginas.\nCon una página por bloque y el costo por bloque fijado en el ejemplo anterior:\n\\[\n\\begin{aligned}\nT_{\\text{contiguo}}&=6{,}46+4{,}17+25000(0{,}13)\\\\\n&=3260{,}63\\text{ ms},\\\\\nT_{\\text{disperso}}&=25000(10{,}76)=269000\\text{ ms}.\n\\end{aligned}\n\\]\nSon aproximadamente 3,261 s y 269 s. La contigüidad ideal conserva las mismas hipótesis de un único posicionamiento.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#rid",
+    "href": "almacenamiento/paginas-registros.html#rid",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Record ID: dirección e identidad",
+    "text": "Record ID: dirección e identidad\nEn nuestro modelo, un identificador físico de registro es\n\\[\nRID=(PageID,slot).\n\\]\nEl slot 7 de la página 1001 tiene RID (1001,7). El RID identifica una posición ocupada, no los valores de una entidad. Una llave candidata es un conjunto mínimo de atributos que determina una tupla; una llave primaria es una candidata elegida en el esquema. El rut de un estudiante puede ser una llave lógica aunque sus bytes cambien de página. Un RID no equivale a una llave primaria relacional. Dos registros en posiciones distintas pueden tener los mismos valores si no hay una restricción que lo impida.\nPara registros variables, slot identifica una entrada estable del directorio; la entrada guarda el offset y la longitud. Compactar mueve bytes y actualiza el offset, sin renumerar slots. Si un registro debe trasladarse a otra página, mantener el RID anterior requiere otra indirección, por ejemplo una dirección de forwarding en su posición original; leerla puede añadir accesos. Sin ese mecanismo o actualización de referencias, el RID cambia. Reutilizar un slot eliminado tampoco preserva la identidad del registro antiguo: las referencias obsoletas deben gestionarse. (Ramakrishnan y Gehrke 2003, sec. 9.6)",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#slotted",
+    "href": "almacenamiento/paginas-registros.html#slotted",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Slotted pages y compactación",
+    "text": "Slotted pages y compactación\nUna slotted page combina encabezado, directorio de slots y registros de longitud variable. Aquí el directorio crece desde el comienzo y los registros desde el final. La eliminación es diferida: libera bytes, pero no compacta inmediatamente. Esta convención permite observar fragmentación; también es posible compactar al eliminar.\n\n\nOrganización de una slotted page\n\nHeaderSlots: offsety longitudEspacio libret3t2t1Directorio →← Registros\n\nDistribución conceptual sin escala. El RID apunta al slot, que localiza los bytes del registro.\n\n\nCaso resuelto: 128 bytes\nFijamos PageID P, encabezado de 12 bytes y 4 bytes por entrada de directorio. Numeramos los slots desde 1 y los offsets desde 0, con intervalos de bytes semiabiertos. Cada tamaño de registro ya incluye sus propios metadatos. Los slots eliminados permanecen reservados y pueden reutilizarse. (Ramakrishnan y Gehrke 2003, sec. 9.6.2)\n\n\n\n\n\n\n\n\n\n\nOperación\nDirectorio y registros físicos\nLibre total\nMayor región libre contigua\n\n\n\n\nVacía\nHeader [0,12); sin slots\n116\n116\n\n\nInsertar t1, 30 B\nslot 1 → (98,30); directorio termina en 16\n82\n82\n\n\nInsertar t2, 20 B\nslot 2 → (78,20); directorio termina en 20\n58\n58\n\n\nInsertar t3, 40 B\nslot 3 → (38,40); directorio termina en 24\n14\n14\n\n\nEliminar t2\nslot 2 libre; hueco [78,98) de 20 B\n34\n20\n\n\nCompactar para t4\nt3 pasa de offset 38 a 58; t1 sigue en 98\n34\n34\n\n\nInsertar t4, 30 B\nreutiliza slot 2 → (28,30)\n4\n4\n\n\nIntentar t5, 10 B\nRechazo: necesita 10 B y un slot nuevo de 4 B\n4\n4\n\n\n\n\nTras las primeras tres inserciones: \\(128-12-3(4)-30-20-40=14\\) bytes. La eliminación libera 20 más, pero separa el libre en [24,38) y [78,98): ninguna región alcanza 30 bytes. Compactar empaqueta t1 y t3 contra el final y reúne [24,58). Se actualiza slot 3 → (58,40): RID(t3)=(P,3) sigue igual porque se consulta la misma entrada del directorio. t4 ocupa [28,58) y el slot 2; el libre queda [24,28).\nEl libre total incluye los huecos; el libre contiguo central tras eliminar t2 es solo 14 B, aunque el mayor hueco mide 20 B. La compactación consume CPU y mueve bytes dentro de RAM; si modifica una página cargada, la deja dirty. No requiere por sí misma una lectura adicional de otra página.\n\n\nRecorrido estático de la página. Vacía → t1: 82 B libres → t2: 58 B → t3: 14 B → eliminar t2: 34 B fragmentados → compactar: 34 B contiguos, t3 en offset 58 → insertar t4: 4 B → rechazar t5: requiere 14 B. Los RIDs de t1 y t3 permanecen (P,1) y (P,3); t4 reutiliza (P,2). El diagrama y la tabla anteriores muestran los componentes y todos los offsets también sin JavaScript.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#organizacion",
+    "href": "almacenamiento/paginas-registros.html#organizacion",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Una relación en varias páginas",
+    "text": "Una relación en varias páginas\n\n\n\n\n\n\n\n\nOrganización\nRecorrido y ventajas\nInserciones, fragmentación y costos\n\n\n\n\nPáginas contiguas\nBuen acceso secuencial y direccionamiento sencillo\nCrecer requiere espacio cercano o nuevos tramos; encontrar huecos sin metadatos exige inspeccionar datos.\n\n\nLista de páginas\nCrece sin reservar una región contigua\nPunteros y mantenimiento; saltos físicos; buscar espacio puede recorrer toda la lista.\n\n\nListas separadas de llenas y con espacio\nEvita examinar páginas completamente llenas al insertar\nTener algún espacio no asegura que quepa la tupla; mover páginas entre listas tiene costo.\n\n\nDirectorio de páginas\nEntradas pequeñas con PageID y espacio disponible; varias caben por página\nHay que mantener metadatos coherentes tras cambios; la precisión del resumen determina si basta para decidir.\n\n\n\nLa fragmentación entre páginas y los huecos dentro de cada página son problemas distintos. Un directorio no compacta registros ni vuelve contiguas las páginas. (Ramakrishnan y Gehrke 2003, sec. 9.5.1)\n\nEjemplo: localizar espacio\nHay 1000 páginas de datos; 300 tienen algún espacio libre. Una tupla solo cabe en la última candidata examinada. Contamos lecturas con buffer frío, sin escrituras de inserción ni actualización de metadatos:\n\nSin metadatos, un recorrido puede leer 1000 páginas de datos. Aquí se conoce el comienzo; una página de encabezado separada no residente añadiría una lectura.\nUna lista de las 300 páginas con espacio lee 1 encabezado + 300 datos = 301 páginas. Las primeras 299 pueden tener menos espacio del requerido. Con encabezado ya residente, son 300.\nUn directorio con una entrada de 8 B por cada una de las 1000 páginas almacena \\(\\lfloor4096/8\\rfloor=512\\) entradas por página y necesita \\(\\lceil1000/512\\rceil=2\\) páginas. Ignoramos cabeceras internas; si las hubiera, habría que recalcular la capacidad. El directorio completo permite decidir con 2 lecturas de directorio + 1 de datos = 3. Un encabezado separado añadiría una cuarta; si el directorio está en memoria, basta una lectura de datos.\n\nAunque solo 300 páginas tengan espacio, el directorio del ejemplo describe las 1000. Un directorio que solo enumerara las 300 necesitaría una página, pero sería otra organización. Suponemos que el resumen registra espacio utilizable suficiente, considerando slots y compactación posible; un simple bit «hay espacio» no permite la misma cota para localizar una tupla de tamaño concreto. Si ninguna página es apta, se detecta el fracaso sin leer una página de datos adicional.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#autoevaluación-con-solución",
+    "href": "almacenamiento/paginas-registros.html#autoevaluación-con-solución",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Autoevaluación con solución",
+    "text": "Autoevaluación con solución\n\n¿Por qué no se redondea hacia abajo el número de páginas de una relación?\n¿Pueden 34 bytes libres resultar insuficientes para insertar un registro de 30 bytes?\n¿Qué cambia al compactar t3? ¿Y al moverla a otra página?\n¿Un índice evita siempre una lectura de disco por cada nivel?\n\n\n\nVer solución\n\n\nLos registros sobrantes requieren otra página, aunque no la llenen. Se usa techo para páginas y piso para capacidad.\nSí, si el espacio está fragmentado y no se compacta, o si faltan bytes para una nueva entrada. En el caso estudiado, compactar y reutilizar slot permiten t4.\nCambia el offset en el slot, no el RID. Cambiar PageID exige modificar referencias o conservar una indirección mediante forwarding.\nEl índice reduce páginas visitadas, pero las visitas que ya encuentran páginas en el buffer son hits sin lectura. La altura por sí sola no es el número de lecturas efectivas.\n\n\n\nResumen\nEl modelo lógico no fija una representación física. El DBMS organiza registros en páginas y gestiona sus accesos mediante el buffer. Capacidad y costo requieren contar metadatos, redondeos y condiciones del dispositivo. Los RIDs identifican posiciones; los slots estables permiten compactar sin renumerar registros. Un directorio de espacio libre evita inspeccionar innecesariamente muchas páginas, si su información permite decidir cuánto cabe.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#conceptos-relacionados",
+    "href": "almacenamiento/paginas-registros.html#conceptos-relacionados",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Conceptos relacionados",
+    "text": "Conceptos relacionados\n\nBuffer Manager: pins, dirty bits y reemplazo\nÁrboles B+\nHashing\nPlanes lógicos y procesamiento\nModelo relacional",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
+    ]
+  },
+  {
+    "objectID": "almacenamiento/paginas-registros.html#lecturas-de-apoyo",
+    "href": "almacenamiento/paginas-registros.html#lecturas-de-apoyo",
+    "title": "Almacenamiento: páginas y registros",
+    "section": "Lecturas de apoyo",
+    "text": "Lecturas de apoyo\nRamakrishnan y Gehrke (2003, secs. 9.1, 9.5–9.7) desarrolla jerarquía, archivos, páginas y registros. Silberschatz et al. (2020, secs. 13.2.2–13.2.3) trata registros variables, bitmap de nulos y objetos grandes. Garcia-Molina et al. (2009, sec. 13.2.3) explica los componentes del tiempo de acceso HDD. Los tamaños y las decisiones de compactación de nuestros ejercicios son convenciones explícitas del sitio.",
+    "crumbs": [
+      "Almacenamiento y organización física",
+      "Páginas y registros"
     ]
   },
   {
@@ -2067,7 +2353,7 @@
     "href": "indices/bplus.html#conceptos-relacionados",
     "title": "Árboles B+: estructura, búsqueda y actualización",
     "section": "Conceptos relacionados",
-    "text": "Conceptos relacionados\n\nSistemas de bases de datos y métodos de acceso\nModelo relacional\nLlaves candidatas y restricciones lógicas\nFiltros y orden en SQL\nHashing estático y extensible: acceso por igualdad, colisiones y directorios dinámicos.",
+    "text": "Conceptos relacionados\n\nBuffer Manager: de visitas a páginas a lecturas efectivas\nSistemas de bases de datos y métodos de acceso\nModelo relacional\nLlaves candidatas y restricciones lógicas\nFiltros y orden en SQL\nHashing estático y extensible: acceso por igualdad, colisiones y directorios dinámicos.",
     "crumbs": [
       "Índices",
       "Árboles B+"

@@ -414,6 +414,7 @@ Los B+trees mantienen directorios de intervalos y hojas ordenadas, balanceadas y
 ::: {.related-links}
 ## Conceptos relacionados
 
+- [Buffer Manager: de visitas a páginas a lecturas efectivas](../almacenamiento/buffer-manager.qmd#bplus-buffer)
 - [Sistemas de bases de datos y métodos de acceso](../fundamentos/sistemas-rdbms.qmd)
 - [Modelo relacional](../fundamentos/modelo-relacional.qmd)
 - [Llaves candidatas y restricciones lógicas](../diseno/dependencias-llaves.qmd)
