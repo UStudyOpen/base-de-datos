@@ -1,0 +1,279 @@
+---
+title: "Redundancia, dependencias funcionales y llaves"
+description: "Motivación del diseño relacional, anomalías, dependencias funcionales, superllaves y llaves."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">Dependencias funcionales</span>
+<span class="concept-tag">Llaves candidatas</span>
+<span class="concept-tag">Minimalidad</span>
+<span class="concept-tag">Atributos primarios</span>
+</div>
+</div>
+
+## Intuición: por qué diseñar relaciones
+
+Una base de datos puede almacenar información correcta y aun así tener un **mal esquema**. Esto plantea una pregunta de diseño: ¿conviene almacenar todo en una sola relación o fragmentarlo en muchas relaciones pequeñas? Ninguno de los extremos es correcto por sí mismo.
+
+El objetivo es diseñar un esquema que favorezca:
+
+- integridad y consistencia de los datos;
+- representación precisa del dominio;
+- eficiencia en tiempo y espacio;
+- flexibilidad frente a cambios.
+
+## Redundancia y anomalías
+
+Consideremos una relación deliberadamente redundante:
+
+::: {.table-responsive}
+| rut | estudiante | carrera | codigo | curso | creditos | semestre |
+|---|---|---|---|---|---:|---|
+| r2 | Ben | Computación | PROG201 | Programación Avanzada | 10 | 2025-1 |
+| r2 | Ben | Computación | BD101 | Bases de Datos | 10 | 2025-2 |
+| r3 | Zoe | Computación | PROG201 | Programación Avanzada | 10 | 2024-2 |
+| r3 | Zoe | Computación | BD101 | Bases de Datos | 10 | 2025-2 |
+:::
+
+La carrera de Ben se repite; también el nombre y créditos de cada curso.
+
+La redundancia puede producir tres anomalías clásicas. [@silberschatz2020]
+
+### Anomalía de actualización
+
+Si `BD101` cambia su nombre, hay que modificar varias filas. Si una queda sin actualizar, la relación pasa a afirmar dos nombres distintos para el mismo código.
+
+### Anomalía de eliminación
+
+Si eliminamos la última inscripción de cierto curso y sus datos solo existen dentro de esta relación, podemos perder accidentalmente el nombre y sus créditos.
+
+### Anomalía de inserción
+
+Si queremos registrar un curso nuevo antes de que tenga estudiantes inscritos, el esquema combinado puede obligarnos a inventar datos de inscripción o usar nulos innecesarios.
+
+Estas anomalías también pueden aparecer en otros dominios, como un catálogo de películas que repite datos de cada estudio productor. Su causa común es almacenar repetidamente información determinada por **dependencias entre atributos**.
+
+## Dependencias funcionales
+
+Sea $R$ una relación nombrada y sean $\bar A$ y $\bar B$ listas de atributos distintos de $R$. En el razonamiento con dependencias importa su conjunto de atributos, no el orden. Escribiremos $\{\bar A\}$ para ese conjunto; el complemento se toma dentro de $att(R)$.
+
+::: {#def-dependencia name="Satisfacción de una dependencia funcional"}
+Una dependencia funcional tiene la forma
+
+$$
+\bar A\to\bar B.
+$$
+
+La relación $R$ **satisface** esa dependencia, escrito
+
+$$
+R\models\bar A\to\bar B,
+$$
+
+si para todas $\bar\tau_1,\bar\tau_2\in R$:
+
+$$
+\pi_{\bar A}(\bar\tau_1)=\pi_{\bar A}(\bar\tau_2)
+\quad\Longrightarrow\quad
+\pi_{\bar B}(\bar\tau_1)=\pi_{\bar B}(\bar\tau_2).
+$$
+
+[@arenas2022]
+:::
+
+Intuitivamente: **si dos tuplas coinciden en $\bar A$, entonces deben coincidir en $\bar B$**.
+
+## Dependencias del dominio universitario
+
+En el esquema acordado, son naturales restricciones como:
+
+$$
+rut\to nombre\ carrera
+$$
+
+para `Estudiante`,
+
+$$
+codigo\to nombre\ creditos
+$$
+
+para `Curso`, y
+
+$$
+pid\to nombre\ departamento
+$$
+
+para `Profesor`.
+
+Estas dependencias no se justifican porque «casualmente» la instancia actual tenga valores distintos. Representan reglas del **dominio**: un RUT identifica los datos de un estudiante; un código identifica la información de un curso; un PID identifica un profesor.
+
+::: {.callout-warning title="Instancia versus restricción del dominio"}
+Una dependencia funcional no debe inferirse solo observando una instancia. Una tabla pequeña puede satisfacer accidentalmente muchas dependencias que dejarían de cumplirse al insertar nuevos datos. Las dependencias relevantes para diseño son restricciones que el dominio pretende mantener.
+:::
+
+## Dependencias triviales
+
+Una dependencia
+
+$$
+\bar A\to\bar B
+$$
+
+es **trivial** cuando los atributos de $\bar B$ ya están contenidos en $\bar A$. En ese caso siempre se satisface, porque dos tuplas que coinciden en $\bar A$ necesariamente coinciden en cualquier subconjunto de esos atributos.
+
+## Superllaves
+
+::: {.callout-note title="Superllave de una instancia"}
+Sea $\bar A^c$ el complemento de los atributos $\bar A$ dentro de $R$. $\bar A$ es una **superllave** de $R$ si y solo si
+
+$$
+R\models\bar A\to\bar A^c.
+$$
+
+Es decir, $\bar A$ determina todos los demás atributos.
+:::
+
+Equivalentemente:
+
+$$
+\bar A\text{ es superllave}
+\iff
+\forall\bar\tau_1,\bar\tau_2\in R,
+\;
+\pi_{\bar A}(\bar\tau_1)=\pi_{\bar A}(\bar\tau_2)
+\Rightarrow
+\bar\tau_1=\bar\tau_2.
+$$
+
+Por tanto, una superllave identifica unívocamente cada tupla de la instancia. En diseño, $\bar A$ es una **superllave bajo $F$** si lo hace en toda relación que satisface las dependencias $F$, es decir, si $F\models\bar A\to att(R)$. La [clausura](implicacion-clausura.qmd) permite comprobar esta propiedad del esquema.
+
+## Llaves
+
+Una **llave** es una superllave **minimal**:
+
+1. $\bar A$ es superllave;
+2. ningún subconjunto propio de sus atributos sigue siendo superllave.
+
+Para `Estudiante(rut,nombre,carrera)`, supongamos que `rut` identifica unívocamente a cada estudiante y que ni `nombre` ni `carrera`, solos o combinados, garantizan esa identificación. Entonces:
+
+- `rut` es llave;
+- `rut nombre` es superllave, pero no llave, porque contiene una superllave más pequeña.
+
+Para `Inscribe(rut,codigo,semestre)`, **si el dominio garantiza** a lo sumo una inscripción por estudiante, curso y semestre, el conjunto de los tres atributos identifica una inscripción. Para que sea una llave candidata, además ningún subconjunto propio debe garantizar esa identificación. Esta es una decisión de modelamiento que debe confirmarse con los requisitos del dominio.
+
+::: {.callout-note title="Terminología"}
+El término inglés para superllave es **superkey**. Una llave minimal también se llama **llave candidata** (*candidate key*). [@silberschatz2020; @ramakrishnan2003]
+:::
+
+## Llaves en SQL
+
+En SQL, una llave primaria se declara así:
+
+```sql
+CREATE TABLE Estudiante (
+  rut     VARCHAR(12),
+  nombre  VARCHAR(100),
+  carrera VARCHAR(100),
+  PRIMARY KEY (rut)
+);
+```
+
+Para una llave compuesta:
+
+```sql
+CREATE TABLE Inscribe (
+  rut      VARCHAR(12),
+  codigo   VARCHAR(20),
+  semestre VARCHAR(10),
+  PRIMARY KEY (rut, codigo, semestre)
+);
+```
+
+`PRIMARY KEY` declara una llave primaria elegida para la tabla. La teoría puede admitir más de una llave candidata; SQL distingue cuál se declara como primaria. [@silberschatz2020]
+
+## Qué problema resolvimos y cuál falta
+
+Las dependencias funcionales formalizan regularidades que explican redundancia y permiten reconocer llaves. Aún falta responder preguntas como:
+
+- ¿qué dependencias se deducen de otras?
+- ¿cómo decidir algorítmicamente si un conjunto de atributos es superllave?
+- ¿cómo descomponer una relación sin introducir información falsa?
+
+Estas preguntas conducen a [implicación y clausura](implicacion-clausura.qmd) y luego a [descomposiciones](descomposiciones.qmd).
+
+## Minimal no significa mínimo {#minimalidad}
+
+Una llave candidata no admite quitar atributos conservando la propiedad de superllave. Eso es **minimalidad por inclusión**, no tener el menor tamaño entre todas las llaves. Un atributo es **primario** si pertenece a alguna llave candidata; no tiene que pertenecer a la elegida como `PRIMARY KEY`. [@garciamolina2009, secs. 3.2.7 y 3.5; @ramakrishnan2003, sec. 19.4.2]
+
+::: {#prp-minimalidad name="Basta eliminar un atributo por vez"}
+Sea $U$ el esquema y $K\subseteq U$ una superllave bajo $F$. Entonces $K$ es candidata si y solo si para todo $a\in K$ se cumple $(K\setminus\{a\})^+\ne U$.
+:::
+
+::: {.proof}
+Si al quitar un atributo se conserva una superllave, $K$ no es minimal. En sentido inverso, si un subconjunto propio $L\subsetneq K$ fuese superllave, elijamos $a\in K\setminus L$. Como $L\subseteq K\setminus\{a\}$ y la clausura es monótona, este último conjunto también determinaría $U$, contradiciendo la condición. Esta prueba incluye $K=\varnothing$: no tiene subconjuntos propios.
+:::
+
+La @prp-minimalidad convierte una condición sobre todos los subconjuntos propios en $|K|$ cálculos de clausura, después de comprobar $K^+=U$. Una llave declarada en SQL puede incluir columnas innecesarias: la declaración impone unicidad, pero no demuestra la minimalidad respecto de las reglas del dominio.
+
+## Ejemplo completo: llaves de distintos tamaños {#ejemplo-abcde}
+
+Trabajemos sin nulos y con conjuntos de tuplas, sobre
+
+$$
+\begin{aligned}
+U&=\{A,B,C,D,E\},\\
+F&=\{A\to B,\ A\to C,\ B\to E,\ CE\to A,\ CE\to D\}.
+\end{aligned}
+$$
+
+Escribimos $BC$ como abreviatura del conjunto $\{B,C\}$, no como atributo único. Las clausuras y las pruebas de minimalidad son:
+
+| Candidato | Clausura | Al quitar un atributo |
+|---|---|---|
+| $A$ | $ABCDE$ | $\varnothing^+=\varnothing$ |
+| $BC$ | $ABCDE$ | $B^+=BE$; $C^+=C$ |
+| $CE$ | $ABCDE$ | $C^+=C$; $E^+=E$ |
+
+Por ejemplo, $BC$ agrega $E$ mediante $B\to E$, luego $A$ y $D$ mediante las reglas con antecedente $CE$. Ninguno de sus subconjuntos unitarios determina todo $U$. Las tres son llaves; solo $A$ tiene cardinalidad mínima.
+
+**No falta ninguna llave.** Una llave que contiene $A$ debe ser exactamente $A$. Si no lo contiene, necesita $C$: sin $A$ ni $C$ ninguna regla permite obtenerlos. Además necesita $B$ o $E$ para activar $CE\to A$; sin ambos tampoco puede obtener $E$. Por tanto contiene $BC$ o $CE$ y, por minimalidad, es uno de esos dos conjuntos.
+
+**Conteo de superllaves.** Hay $2^4=16$ conjuntos que contienen $A$. Sin $A$, deben contener $C$ y al menos uno de $B,E$: hay tres elecciones no vacías de $\{B,E\}$, y dos elecciones para $D$. Total: $16+3\cdot2=22$. Los atributos primarios son $A,B,C,E$; $D$ no es primario.
+
+## Casos límite y autoevaluación
+
+Una dependencia $\varnothing\to a$ exige que todas las tuplas coincidan en $a$; no fija cuál es ese valor ni obliga a que la relación tenga tuplas. Una relación vacía o con una sola tupla satisface cualquier DF. Las definiciones de diseño cuantifican sobre todas las instancias válidas, por lo que no dependen de esos accidentes.
+
+::: {#exr-llaves-constantes}
+Para $U=ABC$ y $F=\{\varnothing\to A,\ B\to C\}$, encuentra las llaves y los atributos primarios. Repite con $F=\varnothing$.
+:::
+
+<details class="db-solution">
+<summary>Solución razonada</summary>
+
+$\varnothing^+=A$ y $B^+=ABC$. Como no hay regla que produzca $B$, toda superllave debe contenerlo. La única llave es $B$ y el único atributo primario es $B$: ser constante no convierte a $A$ en primario. Con $F=\varnothing$, cada conjunto es su propia clausura y la única llave es $ABC$; los tres atributos son primarios. Si todos los atributos fueran constantes, la llave sería $\varnothing$.
+
+</details>
+
+El [simulador de clausuras](implicacion-clausura.qmd#laboratorio-clausura) permite reproducir estos cálculos. Las [formas normales](tercera-forma-normal.qmd) usan los atributos primarios para distinguir 3NF de BCNF.
+
+::: {.summary-box}
+### Resumen
+
+- La redundancia puede producir anomalías de actualización, eliminación e inserción.
+- Una dependencia funcional $\bar A\to\bar B$ exige que coincidencia en $\bar A$ implique coincidencia en $\bar B$.
+- Las dependencias relevantes son restricciones del dominio, no coincidencias accidentales de una instancia.
+- Una superllave determina todos los atributos; una llave es una superllave minimal.
+- `PRIMARY KEY` materializa en SQL una llave elegida para la tabla.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Implicación y clausura](implicacion-clausura.qmd)
+- [Descomposiciones y pérdida de información](descomposiciones.qmd)
+- [DDL y DML](../sql/ddl-dml.qmd)
+- [Álgebra relacional](../teoria-consultas/algebra-relacional.qmd)
+:::

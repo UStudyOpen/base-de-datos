@@ -1,0 +1,124 @@
+---
+title: "Forma normal de Boyce–Codd (BCNF)"
+description: "Descomposición recursiva por clausuras, prueba de pérdida y límites de preservación."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">BCNF</span><span class="concept-tag">Clausura</span><span class="concept-tag">Descomposición sin pérdida</span><span class="concept-tag">Dependencias proyectadas</span>
+</div>
+</div>
+
+## Intuición: cada determinante debe identificar una tupla
+
+Si un atributo no llave determina datos de otra entidad, esos datos pueden repetirse cada vez que aparece el determinante. BCNF exige que toda determinación no trivial parta de una superllave. La garantía se refiere a redundancia explicada por DF dentro de un esquema; no resuelve por sí sola todas las restricciones del dominio ni la redundancia entre varias tablas. [@garciamolina2009, sec. 3.3.3; @ramakrishnan2003, sec. 19.6.1]
+
+::: {#def-bcnf name="Forma normal de Boyce–Codd"}
+Un esquema $U$ con DF $F$ está en **BCNF** si, para toda DF $X\to Y$ implicada por $F$, se cumple
+
+$$
+Y\setminus X\ne\varnothing\quad\Longrightarrow\quad X_F^+=U.
+$$
+:::
+
+Se cuantifica sobre las consecuencias de $F$, no solo sobre reglas escritas. Para decidirlo se pueden enumerar $X\subseteq U$: hay violación exactamente cuando $X\subsetneq X_F^+\subsetneq U$. Las [proyecciones de DF](descomposiciones.qmd#contrato-proyeccion) son esenciales al aplicar la definición a un componente.
+
+## Algoritmo por clausura {#algoritmo-bcnf}
+
+El procedimiento separa todos los atributos que determina una violación. Esta variante incorpora la clausura completa, como la estrategia de @garciamolina2009 [sec. 3.3.4]. Otra variante corta por $XY$ y $U\setminus(Y\setminus X)$; puede producir un árbol diferente. Aquí siempre se utiliza el corte siguiente.
+
+::: {.db-algorithm #procedimiento-bcnf}
+**Entrada:** esquema finito $U$ y una base $F$ de sus DF. **Salida:** esquemas que cubren $U$, con sus DF proyectadas, todos en BCNF y sin pérdida bajo $F$. **Precondiciones:** relaciones de conjuntos sin nulos; las reglas usan atributos de $U$.
+
+```text
+1  toBCNF(U, F):
+2    si U está en BCNF bajo F: devolver [(U, F)]
+3    elegir X → Y no trivial implicada por F con X no superllave
+4    C ← clausura(F, X)
+5    U+ ← C
+6    U− ← (U − C) ∪ X
+7    F+ ← proyectar(F, U+); F− ← proyectar(F, U−)
+8    devolver toBCNF(U+, F+) concatenado con toBCNF(U−, F−)
+```
+
+**Invariante:** cada nodo conserva las consecuencias de las dependencias de su padre que corresponden a su esquema; las hojas actuales reconstruyen sin pérdida la relación del nodo inicial.
+:::
+
+La elección de violación no es única. El explorador permite elegir el primer determinante; los cortes posteriores siguen el orden de subconjuntos por tamaño y orden alfabético. Esta política de elección es una convención del sitio, no un teorema de unicidad.
+
+## Por qué termina y qué garantiza
+
+::: {#thm-bcnf-correcto name="Corrección de la descomposición por clausura"}
+El algoritmo anterior termina en una descomposición sin pérdida, con todas sus componentes en BCNF.
+:::
+
+::: {.proof}
+Una violación cumple $X\subsetneq C\subsetneq U$. Por ello $U^+=C$ es propio. Como $C\setminus X$ no es vacío, también $U^-=(U\setminus C)\cup X$ es propio. Su unión es $U$ y su intersección es exactamente $X$. Dado que $F\models X\to C$, el [criterio binario](descomposiciones.qmd#criterio-binario) demuestra que el corte es sin pérdida.
+
+En cada rama disminuye estrictamente el número de atributos; así, la recursión termina. Una hoja se devuelve únicamente después de comprobar BCNF. Las proyecciones de una instancia válida satisfacen las DF proyectadas, de modo que cada corte posterior vuelve a ser aplicable. Reemplazar una componente por sus proyecciones sin pérdida conserva la reconstrucción de todo el árbol; por inducción, el join de todas las hojas recupera la instancia original.
+:::
+
+### Complejidad y límites
+
+La profundidad del árbol es a lo sumo $n=|U|$, pero eso no hace polinomial el algoritmo completo. En un nodo de $s$ atributos se enumeran hasta $2^s$ determinantes y, para cada proyección, otros tantos subconjuntos del componente. Si $C_v$ es el costo de clausura con la base del nodo, una cota conservadora por nodo es $O(2^s(C_v+s))$, multiplicada por una constante para sus dos proyecciones. El costo total suma esas cotas sobre los nodos; las bases proyectadas pueden tener tamaño exponencial. La visualización limita el esquema a seis atributos y cuarenta reglas iniciales.
+
+BCNF **no garantiza preservación de dependencias ni un resultado único**. Una descomposición concreta puede preservar las DF, pero debe comprobarse por implicación.
+
+## Ejemplo completo: perder preservación sin perder información {#ejemplo-corte}
+
+Para el [esquema $ABCDE$](dependencias-llaves.qmd#ejemplo-abcde), elegimos $B\to E$. Tenemos $B^+=BE\ne ABCDE$, por lo que es violatoria:
+
+$$
+U^+=BE,\qquad U^-=(ABCDE\setminus BE)\cup B=ABCD.
+$$
+
+El árbol queda:
+
+```text
+ABCDE — B → E, B+ = BE
+├── BE    : B → E
+└── ABCD  : A → BCD, BC → A   (base equivalente)
+```
+
+En $BE$, todo determinante no trivial contiene $B$, que es llave. En $ABCD$, cualquier consecuencia no trivial necesita $A$ o $BC$ en el antecedente; ambos son llaves. Las dos hojas están en BCNF. El corte es sin pérdida porque $B$ determina $BE$.
+
+Sin embargo, con la unión de las bases locales, $(CE)^+=CE$. Se pierden las implicaciones $CE\to A$ y $CE\to D$. El [contraejemplo con dos relaciones locales](descomposiciones.qmd#preservacion) muestra que no se trata de una mera ausencia textual de reglas.
+
+::: {.db-viz data-db-viz="normalizacion"}
+::: {.db-viz-fallback}
+**Traza estática para estudiar sin JavaScript.** Estado 0: nodo $ABCDE$ y las cinco DF originales. Estado 1: violación $B\to E$; clausura $BE$; corte propio $BE/ABCD$, con intersección $B$. Estado 2: $BE$ se certifica BCNF bajo $B\to E$. Estado 3: $ABCD$ se certifica BCNF bajo $A\to BCD,BC\to A$. Estado 4: la unión de proyecciones no implica $CE\to A,D$ porque su clausura de $CE$ es $CE$. Los esquemas y el testigo se desarrollan arriba y en la página de descomposiciones.
+:::
+:::
+
+## El caso binario con constantes
+
+No se debe usar «dos atributos» como base automática de la recursión. Para $U=AB$, $F=\{\varnothing\to A\}$, el determinante vacío no determina $B$ y viola BCNF. El algoritmo obtiene $A$ y $B$: en $A$, el vacío es superllave; en $B$ solo hay DF triviales. El join es producto cartesiano y reconstruye la instancia porque $A$ es constante en ella.
+
+Si $\varnothing^+=\varnothing$, todo esquema binario sí está en BCNF: una DF no trivial debe tener antecedente unitario y determinar el otro atributo, por lo que ese antecedente es superllave. La hipótesis excluye constantes no triviales. Un esquema vacío o unitario satisface BCNF incluso admitiendo constantes.
+
+::: {#exr-bcnf-cadena}
+Descompón $ABC$ con $F=\{A\to B,B\to C\}$ empezando por $B\to C$. ¿Se preservan las DF? ¿Qué sucede si $F$ es vacío?
+:::
+
+<details class="db-solution">
+<summary>Solución razonada</summary>
+
+$B^+=BC$ y el complemento con $B$ es $AB$. Ambas relaciones son BCNF bajo $B\to C$ y $A\to B$, respectivamente. Se preservan las dos DF y el corte es sin pérdida. Con $F=\varnothing$ no hay DF no triviales implicadas; el esquema completo ya es BCNF y se devuelve sin cortar.
+
+</details>
+
+::: {.summary-box}
+## Resumen
+
+BCNF exige superllaves en todo determinante no trivial. El corte por clausura produce componentes propias y es sin pérdida. Proyectar consecuencias y comprobar las hojas es obligatorio; ni la preservación ni la unicidad vienen garantizadas.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Dependencias y llaves](dependencias-llaves.qmd)
+- [Clausura e implicación](implicacion-clausura.qmd)
+- [Pérdida y preservación](descomposiciones.qmd)
+- [Tercera forma normal y síntesis](tercera-forma-normal.qmd)
+:::

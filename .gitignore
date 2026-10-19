@@ -1,0 +1,13 @@
+/.quarto/
+/_site/
+.DS_Store
+
+**/*.quarto_ipynb
+
+AGENTS.md
+
+/libros_referencia
+
+
+/clases_referencia/
+/.venv/

@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Índices B+ por páginas: intervalos, altura, splits, redistribución y fusión con un explorador paso a paso.">
+
+<title>Árboles B+: estructura, búsqueda y actualización – Bases de Datos</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../diseno/tercera-forma-normal.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-9f43a20c679eb76b4703ca291990b4b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-fd39a65834ac5c5cea4c59ebc26eb91d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles/base.css">
+<link rel="stylesheet" href="../styles/layout.css">
+<link rel="stylesheet" href="../styles/components.css">
+<link rel="stylesheet" href="../styles/concepts.css">
+<link rel="stylesheet" href="../styles/responsive.css">
+<link rel="stylesheet" href="../assets/css/visualizaciones.css">
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../indices/bplus.html">Índices</a></li><li class="breadcrumb-item"><a href="../indices/bplus.html">Árboles B+</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Bases de Datos</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inicio</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false">
+ <span class="menu-text">Fundamentos del modelo relacional</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/sistemas-rdbms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sistemas de bases de datos y RDBMS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/modelo-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modelo relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fundamentos/relaciones-nombradas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Atributos y relaciones nombradas</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Teoría de consultas</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/logica-primer-orden.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lógica de primer orden y consultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/algebra-relacional.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Álgebra relacional</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/joins-operadores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joins y operadores derivados</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../teoria-consultas/equivalencia-patrones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Equivalencia y patrones de consulta</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">SQL</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/ddl-dml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DDL y DML</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/consultas-basicas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SELECT-FROM-WHERE, joins y conjuntos</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/subconsultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Subconsultas</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/agregacion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Agregación, GROUP BY y HAVING</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../sql/funciones-filtros.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Funciones, filtros, orden y dialectos</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Nulos e información incompleta</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/null-tres-valores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NULL y lógica de tres valores</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/informacion-incompleta.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Información incompleta y mundos posibles</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../nulos/outer-joins.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outer joins</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
+ <span class="menu-text">Diseño relacional y dependencias</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/dependencias-llaves.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Redundancia, dependencias funcionales y llaves</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/implicacion-clausura.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Implicación y clausura</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/descomposiciones.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Descomposiciones y pérdida de información</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/bcnf.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Forma normal de Boyce–Codd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../diseno/tercera-forma-normal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tercera forma normal y síntesis</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Índices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../indices/bplus.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Árboles B+</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul>
+  <li><a href="#intuición-encontrar-una-página-sin-recorrerlas-todas" id="toc-intuición-encontrar-una-página-sin-recorrerlas-todas" class="nav-link active" data-scroll-target="#intuición-encontrar-una-página-sin-recorrerlas-todas">Intuición: encontrar una página sin recorrerlas todas</a></li>
+  <li><a href="#estructura" id="toc-estructura" class="nav-link" data-scroll-target="#estructura">Estructura e intervalos</a>
+  <ul class="collapse">
+  <li><a href="#un-separador-es-una-frontera" id="toc-un-separador-es-una-frontera" class="nav-link" data-scroll-target="#un-separador-es-una-frontera">Un separador es una frontera</a></li>
+  <li><a href="#orden-capacidad-y-fanout" id="toc-orden-capacidad-y-fanout" class="nav-link" data-scroll-target="#orden-capacidad-y-fanout">Orden, capacidad y fanout</a></li>
+  </ul></li>
+  <li><a href="#busqueda" id="toc-busqueda" class="nav-link" data-scroll-target="#busqueda">Búsqueda por valor y por rango</a>
+  <ul class="collapse">
+  <li><a href="#descenso-por-intervalos" id="toc-descenso-por-intervalos" class="nav-link" data-scroll-target="#descenso-por-intervalos">Descenso por intervalos</a></li>
+  <li><a href="#ejemplo-buscar-22-y-buscar-23" id="toc-ejemplo-buscar-22-y-buscar-23" class="nav-link" data-scroll-target="#ejemplo-buscar-22-y-buscar-23">Ejemplo: buscar 22 y buscar 23</a></li>
+  <li><a href="#recorrer-un-rango" id="toc-recorrer-un-rango" class="nav-link" data-scroll-target="#recorrer-un-rango">Recorrer un rango</a></li>
+  </ul></li>
+  <li><a href="#altura" id="toc-altura" class="nav-link" data-scroll-target="#altura">Ocupación, altura y costo</a>
+  <ul class="collapse">
+  <li><a href="#ejemplo-de-costo" id="toc-ejemplo-de-costo" class="nav-link" data-scroll-target="#ejemplo-de-costo">Ejemplo de costo</a></li>
+  </ul></li>
+  <li><a href="#insercion" id="toc-insercion" class="nav-link" data-scroll-target="#insercion">Inserción ordinaria: dividir cuando una página se llena</a>
+  <ul class="collapse">
+  <li><a href="#ejemplo-completo-split-de-raíz-hoja" id="toc-ejemplo-completo-split-de-raíz-hoja" class="nav-link" data-scroll-target="#ejemplo-completo-split-de-raíz-hoja">Ejemplo completo: split de raíz hoja</a></li>
+  <li><a href="#secuencia-insercion" id="toc-secuencia-insercion" class="nav-link" data-scroll-target="#secuencia-insercion">Secuencia completa de referencia</a></li>
+  </ul></li>
+  <li><a href="#redistribucion" id="toc-redistribucion" class="nav-link" data-scroll-target="#redistribucion">Variante: redistribuir antes de dividir</a>
+  <ul class="collapse">
+  <li><a href="#rotaciones" id="toc-rotaciones" class="nav-link" data-scroll-target="#rotaciones">Rotaciones de directorios</a></li>
+  </ul></li>
+  <li><a href="#eliminacion" id="toc-eliminacion" class="nav-link" data-scroll-target="#eliminacion">Eliminación: prestar, fusionar y contraer</a>
+  <ul class="collapse">
+  <li><a href="#unsplit-la-frontera-se-trata-de-manera-diferente" id="toc-unsplit-la-frontera-se-trata-de-manera-diferente" class="nav-link" data-scroll-target="#unsplit-la-frontera-se-trata-de-manera-diferente">Unsplit: la frontera se trata de manera diferente</a></li>
+  <li><a href="#secuencia-eliminacion" id="toc-secuencia-eliminacion" class="nav-link" data-scroll-target="#secuencia-eliminacion">Ejemplo completo de préstamo y fusión</a></li>
+  <li><a href="#ejemplo-de-préstamo-entre-directorios" id="toc-ejemplo-de-préstamo-entre-directorios" class="nav-link" data-scroll-target="#ejemplo-de-préstamo-entre-directorios">Ejemplo de préstamo entre directorios</a></li>
+  </ul></li>
+  <li><a href="#explorador" id="toc-explorador" class="nav-link" data-scroll-target="#explorador">Explorador paso a paso</a></li>
+  <li><a href="#garantias" id="toc-garantias" class="nav-link" data-scroll-target="#garantias">Correctitud y casos límite</a></li>
+  <li><a href="#autoevaluación" id="toc-autoevaluación" class="nav-link" data-scroll-target="#autoevaluación">Autoevaluación</a></li>
+  <li><a href="#resumen" id="toc-resumen" class="nav-link" data-scroll-target="#resumen">Resumen</a></li>
+  <li><a href="#conceptos-relacionados" id="toc-conceptos-relacionados" class="nav-link" data-scroll-target="#conceptos-relacionados">Conceptos relacionados</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../indices/bplus.html">Índices</a></li><li class="breadcrumb-item"><a href="../indices/bplus.html">Árboles B+</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Árboles B+: estructura, búsqueda y actualización</h1>
+</div>
+
+<div>
+  <div class="description">
+    Índices B+ por páginas: intervalos, altura, splits, redistribución y fusión con un explorador paso a paso.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="concept-section">
+<div class="concept-label">
+Conceptos clave
+</div>
+<div class="concept-tags">
+<p><span class="concept-tag">Índices</span><span class="concept-tag">Páginas</span><span class="concept-tag">Separadores</span><span class="concept-tag">Balance</span><span class="concept-tag">Split</span><span class="concept-tag">Redistribución</span></p>
+</div>
+</div>
+<section id="intuición-encontrar-una-página-sin-recorrerlas-todas" class="level2">
+<h2 class="anchored" data-anchor-id="intuición-encontrar-una-página-sin-recorrerlas-todas">Intuición: encontrar una página sin recorrerlas todas</h2>
+<p>Una relación puede ocupar miles de páginas. Para encontrar un estudiante por su identificador, una búsqueda secuencial sin otra información podría tener que leerlas todas, incluso para concluir que el dato no existe. Un <strong>índice</strong> mantiene una estructura auxiliar que permite localizar las entradas pertinentes. La clave de búsqueda es el atributo o conjunto de atributos que organiza ese acceso; no tiene por qué ser una llave candidata del esquema.</p>
+<p>Un <strong>árbol B+</strong>, también llamado <strong>B+tree</strong>, reúne muchos separadores y punteros en cada página. Sus directorios permiten descartar intervalos enteros con cada descenso. Las entradas de datos se encuentran únicamente en las hojas, ordenadas y enlazadas: después de llegar al inicio de un rango se puede continuar hacia la hoja siguiente sin volver a la raíz. La estructura mantiene todas las hojas a la misma profundidad y una ocupación mínima para que la altura siga siendo pequeña. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003</a>, secs. 10.3–10.4)</span></p>
+<p>Aquí una <strong>página</strong> es la unidad lógica que leeríamos o escribiríamos conjuntamente en almacenamiento. El simulador representa páginas y claves; no simula bytes, caché, concurrencia ni recuperación ante fallos. El acceso a una página ya residente en memoria puede evitar una lectura física. Separar estos niveles permite comprender primero el método de acceso.</p>
+</section>
+<section id="estructura" class="level2">
+<h2 class="anchored" data-anchor-id="estructura">Estructura e intervalos</h2>
+<div id="def-bplus" class="theorem definition">
+<p><span class="theorem-title"><strong>Definición 1 (Árbol B+ de orden d)</strong></span> Fijamos un entero <span class="math inline">\(d\geq 1\)</span>, llamado <strong>orden</strong>. Cada nodo representa una página:</p>
+<ul>
+<li>Una <strong>hoja no raíz</strong> contiene entre <span class="math inline">\(d\)</span> y <span class="math inline">\(2d\)</span> entradas de datos.</li>
+<li>Un <strong>directorio no raíz</strong> contiene entre <span class="math inline">\(d\)</span> y <span class="math inline">\(2d\)</span> separadores y, si tiene <span class="math inline">\(k\)</span> separadores, exactamente <span class="math inline">\(k+1\)</span> punteros a hijos.</li>
+<li>La <strong>raíz interna</strong> contiene entre <span class="math inline">\(1\)</span> y <span class="math inline">\(2d\)</span> separadores, por tanto entre <span class="math inline">\(2\)</span> y <span class="math inline">\(2d+1\)</span> hijos.</li>
+<li>Una raíz que también sea hoja contiene entre <span class="math inline">\(0\)</span> y <span class="math inline">\(2d\)</span> entradas. Permitimos el árbol vacío y lo representamos mediante esa hoja sin entradas.</li>
+<li>Todas las hojas tienen la misma profundidad y están <strong>doblemente enlazadas</strong> en orden de claves. Sus extremos no tienen predecesora o sucesora, respectivamente.</li>
+</ul>
+<p>La <strong>altura</strong> <span class="math inline">\(H\)</span> es el número de aristas desde la raíz hasta una hoja. Una sola hoja, vacía o no, tiene altura <span class="math inline">\(0\)</span>.</p>
+</div>
+<p>En este sitio usamos entradas con <strong>claves enteras distintas</strong>. En un índice real una entrada puede contener el registro completo, un par clave–identificador de registro o una clave con una lista de referencias. Los directorios almacenan valores que guían el recorrido, no copias completas de registros. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003</a>, secs. 10.3–10.3.1)</span></p>
+<section id="un-separador-es-una-frontera" class="level3">
+<h3 class="anchored" data-anchor-id="un-separador-es-una-frontera">Un separador es una frontera</h3>
+<p>Un directorio tiene la forma</p>
+<p><span class="math display">\[
+p_0,\ k_1,\ p_1,\ \ldots,\ k_m,\ p_m,
+\qquad k_1&lt;\cdots&lt;k_m.
+\]</span></p>
+<p>Los valores almacenados en los subárboles satisfacen:</p>
+<p><span class="math display">\[
+\begin{aligned}
+p_0 &amp;: x&lt;k_1,\\
+p_i &amp;: k_i\leq x&lt;k_{i+1} &amp;&amp;(1\leq i&lt;m),\\
+p_m &amp;: k_m\leq x.
+\end{aligned}
+\]</span></p>
+<p>Cada intervalo se intersecta con los límites heredados de los ancestros. La igualdad conduce siempre al hijo de la <strong>derecha</strong> del separador correspondiente. Un puntero identifica una página hija, no una posición contigua del archivo.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Importante</span>Frontera válida no significa mínimo exacto
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Un separador no tiene que coincidir permanentemente con la menor clave del hijo derecho. Por ejemplo, la raíz <code>[10]</code> y las hojas <code>[2, 4]</code>, <code>[10, 12, 14]</code> son válidas para <span class="math inline">\(d=2\)</span>. Al eliminar <code>10</code>, quedan <code>[2, 4]</code>, <code>[12, 14]</code> y la raíz <strong>sigue siendo <code>[10]</code></strong>: todas las claves izquierdas son menores que <span class="math inline">\(10\)</span> y todas las derechas mayores o iguales. Buscar <code>10</code> llega correctamente a la derecha y falla allí. No se modifica esa frontera solo porque desapareció el dato.</p>
+</div>
+</div>
+<p>El split de hoja elige inicialmente un mínimo exacto, pero esa coincidencia no es un invariante de este modelo. Las operaciones de redistribución sí deben ajustar la frontera que atraviesan.</p>
+</section>
+<section id="orden-capacidad-y-fanout" class="level3">
+<h3 class="anchored" data-anchor-id="orden-capacidad-y-fanout">Orden, capacidad y fanout</h3>
+<p>El orden <span class="math inline">\(d\)</span> cuenta entradas o separadores; no mide bytes. El <strong>fanout</strong> de un directorio con <span class="math inline">\(k\)</span> separadores es <span class="math inline">\(k+1\)</span>. La capacidad física depende de cabeceras, tamaño de clave, punteros y formato. Si una página tiene <span class="math inline">\(B\)</span> bytes, cabecera de <span class="math inline">\(h\)</span> bytes, claves de <span class="math inline">\(s\)</span> bytes y punteros de <span class="math inline">\(p\)</span> bytes, una condición idealizada para un directorio lleno es</p>
+<p><span class="math display">\[
+h+2ds+(2d+1)p\leq B.
+\]</span></p>
+<p>Las hojas pueden tener otro formato y otra capacidad física. Adoptar aquí el mismo máximo <span class="math inline">\(2d\)</span> simplifica el modelo; no identifica el orden con el tamaño de página. Los formatos variables y las decisiones prácticas se discuten en <span class="citation" data-cites="ramakrishnan2003">Ramakrishnan y Gehrke (<a href="#ref-ramakrishnan2003" role="doc-biblioref">2003, sec. 10.8.3</a>)</span>.</p>
+</section>
+</section>
+<section id="busqueda" class="level2">
+<h2 class="anchored" data-anchor-id="busqueda">Búsqueda por valor y por rango</h2>
+<section id="descenso-por-intervalos" class="level3">
+<h3 class="anchored" data-anchor-id="descenso-por-intervalos">Descenso por intervalos</h3>
+<div id="algoritmo-busqueda" class="db-algorithm">
+<p><strong>Entrada:</strong> un B+tree válido <span class="math inline">\(T\)</span> y una clave <span class="math inline">\(x\)</span>. <strong>Salida:</strong> la hoja destino y si contiene <span class="math inline">\(x\)</span>.</p>
+<pre class="text"><code>BUSCAR(T, x)
+  P ← raíz de T
+  mientras P sea directorio:
+    i ← cantidad de separadores de P menores o iguales a x
+    P ← hijo i de P                         // hijos numerados desde 0
+  devolver (P, x pertenece a las entradas de P)</code></pre>
+<p><strong>Invariante:</strong> si <span class="math inline">\(x\)</span> está almacenada, se encuentra en el subárbol actual. Los intervalos son disjuntos y cubren el intervalo del padre: exactamente un hijo puede contenerla. Cada descenso reduce los niveles restantes; al llegar a la hoja basta comparar sus entradas. Encontrar <span class="math inline">\(x\)</span> en un directorio no demuestra que el dato exista.</p>
+</div>
+<p>La selección dentro de una página puede realizarse mediante búsqueda binaria. Para <span class="math inline">\(H\)</span> aristas se visitan <strong><span class="math inline">\(H+1\)</span> páginas del índice</strong>, incluida la hoja. Si la entrada remite a datos externos, recuperar esos registros tiene un costo adicional. No se cuentan esos accesos como si fueran niveles del árbol. <span class="citation" data-cites="silberschatz2020">(<a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 14.3.2</a>)</span></p>
+</section>
+<section id="ejemplo-buscar-22-y-buscar-23" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-buscar-22-y-buscar-23">Ejemplo: buscar 22 y buscar 23</h3>
+<p>En el árbol de referencia de <a href="#secuencia-insercion">inserción</a>, la raíz es <code>[21]</code>. Para <span class="math inline">\(22\geq21\)</span> se elige su hijo derecho <code>[27, 33]</code>. Como <span class="math inline">\(22&lt;27\)</span>, se toma el primer hijo <code>[21, 22, 25]</code>: la búsqueda es exitosa. Se visitan tres páginas, pues <span class="math inline">\(H=2\)</span>. Buscar <code>23</code> recorre las mismas páginas y falla al comparar las entradas de la hoja. Ni el éxito ni el fracaso necesitan explorar el resto del árbol.</p>
+</section>
+<section id="recorrer-un-rango" class="level3">
+<h3 class="anchored" data-anchor-id="recorrer-un-rango">Recorrer un rango</h3>
+<div class="db-algorithm">
+<p><strong>Entrada:</strong> <span class="math inline">\(T\)</span> válido y extremos <span class="math inline">\(a\leq b\)</span>. <strong>Salida:</strong> entradas cuyas claves pertenecen a <span class="math inline">\([a,b]\)</span>, en orden.</p>
+<pre class="text"><code>RANGO(T, a, b)
+  P ← hoja destino de BUSCAR(T, a)
+  resultado ← lista vacía
+  mientras P exista:
+    para x en las entradas ordenadas de P:
+      si x &gt; b: devolver resultado
+      si x ≥ a: añadir x a resultado
+    P ← siguiente hoja de P
+  devolver resultado</code></pre>
+</div>
+<p>Para <span class="math inline">\(10\leq x\leq25\)</span>, se desciende a <code>[7, 9, 10]</code> y se continúa por <code>[12, 14]</code>, <code>[15, 18, 19]</code>, <code>[21, 22, 25]</code>. Al leer <code>[27, 28, 30]</code>, su primera clave supera <span class="math inline">\(25\)</span> y se termina. El resultado es <code>10, 12, 14, 15, 18, 19, 21, 22, 25</code>. Con esta política de parada se visitan dos directorios y cinco hojas: <strong>siete páginas distintas</strong>. No se presupone información extra que permita detenerse antes de leer la última hoja.</p>
+<p>Si se visitan <span class="math inline">\(L\)</span> hojas, el recorrido requiere <span class="math inline">\(H+L\)</span> accesos lógicos a páginas del índice: el descenso ya incluye la primera hoja. En CPU, una búsqueda binaria por directorio cuesta <span class="math inline">\(O(\log(d+1))\)</span> comparaciones; un rango añade el examen de entradas de sus hojas y la producción de resultados. Los registros externos pueden añadir muchas lecturas, según su disposición física.</p>
+</section>
+</section>
+<section id="altura" class="level2">
+<h2 class="anchored" data-anchor-id="altura">Ocupación, altura y costo</h2>
+<div id="thm-altura-bplus" class="theorem">
+<p><span class="theorem-title"><strong>Teorema 1 (Cotas de ocupación por altura)</strong></span> Sea <span class="math inline">\(n\)</span> el número de entradas de datos de un árbol válido de orden <span class="math inline">\(d\geq1\)</span> y altura <span class="math inline">\(H\geq1\)</span>. Entonces</p>
+<p><span class="math display">\[
+2d(d+1)^{H-1}\leq n\leq2d(2d+1)^H.
+\]</span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Demostración</em>. </span>La raíz tiene al menos dos hijos. Cada directorio no raíz tiene al menos <span class="math inline">\(d+1\)</span> hijos: hay al menos <span class="math inline">\(2(d+1)^{H-1}\)</span> hojas y cada una contiene al menos <span class="math inline">\(d\)</span> entradas. Para el máximo, cada directorio, incluida la raíz, tiene a lo sumo <span class="math inline">\(2d+1\)</span> hijos: hay a lo sumo <span class="math inline">\((2d+1)^H\)</span> hojas, cada una con a lo sumo <span class="math inline">\(2d\)</span> entradas. Multiplicar da las cotas.</p>
+</div>
+<p>Como <span class="math inline">\(H\geq1\)</span> implica <span class="math inline">\(n\geq2d&gt;0\)</span>, podemos tomar logaritmos de <span class="math inline">\(n/(2d)\geq1\)</span>. Las bases <span class="math inline">\(d+1\)</span> y <span class="math inline">\(2d+1\)</span> son mayores que uno, incluso para <span class="math inline">\(d=1\)</span>:</p>
+<p><span class="math display">\[
+\max\left\{1,\left\lceil\log_{2d+1}\frac{n}{2d}\right\rceil\right\}
+\leq H\leq
+1+\left\lfloor\log_{d+1}\frac{n}{2d}\right\rfloor.
+\]</span></p>
+<p>Son condiciones necesarias para un árbol con raíz interna, no una afirmación de que cada altura del intervalo sea alcanzable mediante cualquier secuencia. Una raíz hoja tiene <span class="math inline">\(H=0\)</span> y <span class="math inline">\(0\leq n\leq2d\)</span>; el árbol vacío queda incluido y no se calcula <span class="math inline">\(\log 0\)</span>. Para <span class="math inline">\(n=2d\)</span> pueden existir una sola hoja llena o una raíz interna con dos hojas mínimas.</p>
+<section id="ejemplo-de-costo" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-de-costo">Ejemplo de costo</h3>
+<p>Con <span class="math inline">\(d=2\)</span> y <span class="math inline">\(H=2\)</span>, el mínimo es <span class="math inline">\(4\cdot3=12\)</span> entradas: dos directorios no raíz con tres hojas cada uno, y dos entradas por hoja. El máximo es <span class="math inline">\(4\cdot5^2=100\)</span>: cinco directorios con cinco hojas cada uno, y cuatro entradas por hoja. Buscar por valor visita tres páginas en ambos extremos.</p>
+<p>En un modelo con <span class="math inline">\(d=100\)</span> y <span class="math inline">\(n=1\,000\,000\)</span>, las cotas dan <span class="math inline">\(2\leq H\leq2\)</span>: se visitan tres páginas de índice. Esto no afirma que una página concreta admita ese orden; primero habría que verificar sus bytes disponibles. Para <span class="math inline">\(d\)</span> fijo, la altura y los accesos por búsqueda son <span class="math inline">\(O(\log(n+1))\)</span>. Los splits y las fusiones recorren a lo sumo un camino ascendente, por lo que las actualizaciones también requieren <span class="math inline">\(O(H+1)\)</span> accesos a páginas, más un número constante de páginas vecinas por nivel. Mover entradas dentro de cada página añade trabajo de CPU de hasta <span class="math inline">\(O(d(H+1))\)</span> en una implementación con arreglos. <span class="citation" data-cites="silberschatz2020">(<a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 14.3.4</a>)</span></p>
+<p>El explorador añade copias completas y validaciones del árbol en cada paso para permitir el retroceso y detectar errores. Ese trabajo pedagógico consume tiempo y memoria adicionales; sus tiempos de ejecución no miden el costo de un índice real por páginas.</p>
+</section>
+</section>
+<section id="insercion" class="level2">
+<h2 class="anchored" data-anchor-id="insercion">Inserción ordinaria: dividir cuando una página se llena</h2>
+<div id="algoritmo-insercion" class="db-algorithm">
+<p><strong>Entrada:</strong> <span class="math inline">\(T\)</span> válido y un entero <span class="math inline">\(x\)</span> no almacenado. <strong>Salida:</strong> <span class="math inline">\(T\)</span> con <span class="math inline">\(x\)</span>, conservando los invariantes. Una clave repetida se rechaza sin cambiar el árbol.</p>
+<pre class="text"><code>INSERTAR(T, x)                         // política ordinaria: sin redistribución
+  L ← hoja destino de BUSCAR(T, x)
+  si x ya existe: rechazar
+  insertar x ordenadamente en L
+  P ← L
+  mientras P contiene 2d+1 entradas o separadores:
+    si P es hoja:
+      dejar las primeras d entradas en P
+      mover las últimas d+1 a una nueva hoja Q
+      reparar los enlaces anterior/siguiente de P, Q y su vecina
+      s ← primera clave de Q          // COPIAR: también permanece en Q
+    en otro caso:
+      s ← separador central de P
+      dividir en P y Q, cada uno con d separadores y d+1 hijos
+                                      // PROMOCIONAR: s sale de ambos
+    si P era raíz:
+      crear raíz con hijos P, Q y separador s; terminar
+    insertar s y el puntero a Q en el padre, después del puntero a P
+    P ← padre
+  devolver T</code></pre>
+</div>
+<p>Un <strong>overflow</strong> es el estado transitorio con <span class="math inline">\(2d+1\)</span> entradas o separadores. El split de hoja distribuye <span class="math inline">\(d\)</span> a la izquierda y <span class="math inline">\(d+1\)</span> a la derecha; el separador copiado sigue siendo dato. En un directorio, el centro se promociona: deja <span class="math inline">\(d\)</span> separadores a cada lado y pertenece solo al padre en ese nivel. Los límites originales siguen válidos porque las claves y los hijos se reparten en orden. <span class="citation" data-cites="ramakrishnan2003 silberschatz2020">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 10.5</a>; <a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 14.3.3.1</a>)</span></p>
+<section id="ejemplo-completo-split-de-raíz-hoja" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-completo-split-de-raíz-hoja">Ejemplo completo: split de raíz hoja</h3>
+<p>Con <span class="math inline">\(d=2\)</span>, insertar <code>12, 7, 30, 18</code> produce la raíz hoja <code>[7, 12, 18, 30]</code>. Insertar <code>3</code> da temporalmente <code>[3, 7, 12, 18, 30]</code>. El máximo es cuatro: se divide en <code>[3, 7]</code> y <code>[12, 18, 30]</code>, se conectan ambas hojas y se crea la raíz <code>[12]</code>. La clave <code>12</code> permanece en la hoja derecha. La altura pasa de cero a uno.</p>
+</section>
+<section id="secuencia-insercion" class="level3">
+<h3 class="anchored" data-anchor-id="secuencia-insercion">Secuencia completa de referencia</h3>
+<p>Partiendo de vacío, con <span class="math inline">\(d=2\)</span> y <strong>sin redistribución</strong>, insertar en este orden:</p>
+<pre class="text"><code>12, 7, 30, 18, 3, 25, 9, 21, 15, 40,
+1, 27, 33, 10, 5, 22, 36, 14, 28, 19</code></pre>
+<p>produce el árbol siguiente. Los renglones de hojas corresponden, en orden, a los hijos de los directorios:</p>
+<pre class="text"><code>Raíz:                         [21]
+Directorios:       [7, 12, 15]          [27, 33]
+Hojas:
+  [1, 3, 5] ↔ [7, 9, 10] ↔ [12, 14] ↔ [15, 18, 19]
+      ↔ [21, 22, 25] ↔ [27, 28, 30] ↔ [33, 36, 40]</code></pre>
+<p>Hay seis splits de hoja, uno de directorio y dos creaciones de raíz; la altura final es dos. Cada split de hoja añade una hoja, por lo que de una inicial se pasa a siete. El explorador calcula toda la secuencia mediante el algoritmo y permite detenerse en cada desbordamiento.</p>
+</section>
+</section>
+<section id="redistribucion" class="level2">
+<h2 class="anchored" data-anchor-id="redistribucion">Variante: redistribuir antes de dividir</h2>
+<p>Esta política se selecciona explícitamente y se mantiene durante toda la traza de inserción. Ante overflow, se examina primero el <strong>hermano derecho</strong> y después el <strong>izquierdo</strong>, exclusivamente entre hijos del mismo padre. Si alguno tiene menos de <span class="math inline">\(2d\)</span> entradas o separadores, se mueve <strong>una</strong> unidad hacia él; si ninguno tiene espacio, se hace el split ordinario. La raíz no tiene hermanos.</p>
+<div class="db-algorithm">
+<p><strong>Entrada:</strong> una página <span class="math inline">\(P\)</span> con overflow durante una inserción y su padre, si existe. <strong>Salida:</strong> overflow resuelto o indicación de que debe hacerse split.</p>
+<pre class="text"><code>INTENTAR_REDISTRIBUIR(P)
+  para lado en [derecho, izquierdo]:
+    S ← hermano de P en ese lado, con el mismo padre
+    si S existe y tiene menos de 2d unidades:
+      si son hojas: mover el extremo de P hacia S y ajustar la frontera
+      si son directorios: rotar un hijo atravesando la frontera del padre
+      devolver resuelto
+  devolver hacer split</code></pre>
+<p>Esta comprobación se inserta antes de dividir cada página en el algoritmo ordinario. La política ordinaria omite por completo estos intentos.</p>
+</div>
+<p>En hojas se mueve el mayor al derecho o el menor al izquierdo, y se reemplaza la frontera por el mínimo de la hoja derecha del par. Por ejemplo, desde raíz <code>[30]</code> y hojas <code>[10, 20]</code>, <code>[30, 40, 50, 60]</code>, insertar <code>45</code>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Política</th>
+<th>Raíz resultante</th>
+<th>Hojas resultantes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ordinaria</td>
+<td><code>[30, 45]</code></td>
+<td><code>[10, 20]</code> · <code>[30, 40]</code> · <code>[45, 50, 60]</code></td>
+</tr>
+<tr class="even">
+<td>Con redistribución</td>
+<td><code>[40]</code></td>
+<td><code>[10, 20, 30]</code> · <code>[40, 45, 50, 60]</code></td>
+</tr>
+</tbody>
+</table>
+<p>La derecha no existe; la izquierda tiene espacio. Redistribuir evita crear una hoja. Ambos resultados son válidos y almacenan las mismas claves.</p>
+<section id="rotaciones" class="level3">
+<h3 class="anchored" data-anchor-id="rotaciones">Rotaciones de directorios</h3>
+<p>En directorios se mueve también un <strong>puntero a subárbol</strong>. Sea <span class="math inline">\(s\)</span> la frontera del padre entre los directorios <span class="math inline">\(A\)</span> (izquierdo) y <span class="math inline">\(B\)</span> (derecho):</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Movimiento de un hijo</th>
+<th>Separador que baja</th>
+<th>Separador que sube</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Último hijo de <span class="math inline">\(A\)</span> pasa a ser primero de <span class="math inline">\(B\)</span></td>
+<td><span class="math inline">\(s\)</span> se antepone a los separadores de <span class="math inline">\(B\)</span></td>
+<td>Último separador de <span class="math inline">\(A\)</span> reemplaza <span class="math inline">\(s\)</span></td>
+</tr>
+<tr class="even">
+<td>Primer hijo de <span class="math inline">\(B\)</span> pasa a ser último de <span class="math inline">\(A\)</span></td>
+<td><span class="math inline">\(s\)</span> se agrega a los separadores de <span class="math inline">\(A\)</span></td>
+<td>Primer separador de <span class="math inline">\(B\)</span> reemplaza <span class="math inline">\(s\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>No se trata de copiar directamente una clave entre directorios: el separador del padre entra en la página receptora y el del donante pasa al padre. Esto conserva los intervalos del hijo transferido, incluso si las fronteras no son mínimos exactos.</p>
+<p><strong>Ejemplo interno.</strong> Con <span class="math inline">\(d=2\)</span>, supongamos raíz <code>[50]</code>, directorio izquierdo <code>[10, 20, 30, 40]</code> y derecho <code>[60, 70]</code>, con hojas mínimas válidas bajo esos intervalos. Un split de hoja puede añadir <code>35</code> al izquierdo, dejándolo transitoriamente <code>[10, 20, 30, 35, 40]</code>. El derecho tiene espacio: el último hijo izquierdo se mueve al principio del derecho, <code>50</code> baja y <code>40</code> sube. Quedan raíz <code>[40]</code>, izquierdo <code>[10, 20, 30, 35]</code> y derecho <code>[50, 60, 70]</code>. El preset «Redistribución interna» reproduce este mecanismo con un árbol construido mediante inserciones.</p>
+</section>
+</section>
+<section id="eliminacion" class="level2">
+<h2 class="anchored" data-anchor-id="eliminacion">Eliminación: prestar, fusionar y contraer</h2>
+<p>Una eliminación puede dejar una página con <span class="math inline">\(d-1\)</span> entradas o separadores: <strong>underflow</strong>. La excepción es la raíz. Adoptamos esta prioridad determinista, tanto para hojas como para directorios:</p>
+<ol type="1">
+<li>Pedir una unidad al hermano <strong>izquierdo</strong> si tiene más de <span class="math inline">\(d\)</span>.</li>
+<li>Si no puede, pedir al <strong>derecho</strong> si tiene más de <span class="math inline">\(d\)</span>.</li>
+<li>Si ninguno presta, fusionar con el izquierdo cuando exista; si no, con el derecho.</li>
+</ol>
+<p>Solo cuentan hermanos con el <strong>mismo padre</strong>. Una hoja adyacente en la lista puede pertenecer a otro padre y no ser candidata. El explorador muestra los intentos, incluso cuando un hermano no puede prestar.</p>
+<div id="algoritmo-eliminacion" class="db-algorithm">
+<p><strong>Entrada:</strong> <span class="math inline">\(T\)</span> válido y clave <span class="math inline">\(x\)</span>. <strong>Salida:</strong> <span class="math inline">\(T\)</span> sin <span class="math inline">\(x\)</span>, o aviso de clave ausente sin cambios.</p>
+<pre class="text"><code>ELIMINAR(T, x)
+  P ← hoja destino de BUSCAR(T, x)
+  si x no existe en P: informar y terminar
+  quitar x de P                         // no recalcular mínimos de ancestros
+  mientras P no sea raíz y tenga menos de d entradas/separadores:
+    buscar prestamista: primero izquierdo, después derecho, mismo padre
+    si existe:
+      transferir una entrada (hoja) o rotar un hijo por el padre (directorio)
+      ajustar la frontera atravesada; terminar
+    elegir par a fusionar, prefiriendo el izquierdo
+    si son hojas:
+      concatenar sus entradas y reparar enlaces
+    si son directorios:
+      concatenar separadores incluyendo entre ellos la frontera del padre
+      concatenar hijos
+    quitar del padre la frontera y el puntero al nodo derecho eliminado
+    P ← padre
+  si la raíz interna tiene un solo hijo:
+    reemplazar la raíz por ese hijo
+  devolver T</code></pre>
+</div>
+<p>En una hoja, pedir desde la izquierda mueve su máximo al inicio de la receptora; pedir desde la derecha mueve su mínimo al final. Se actualiza la frontera del par. En directorios se usan las <a href="#rotaciones">rotaciones</a>, con idéntica prioridad de hermanos. <span class="citation" data-cites="ramakrishnan2003">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 10.6</a>)</span></p>
+<section id="unsplit-la-frontera-se-trata-de-manera-diferente" class="level3">
+<h3 class="anchored" data-anchor-id="unsplit-la-frontera-se-trata-de-manera-diferente">Unsplit: la frontera se trata de manera diferente</h3>
+<p>La <strong>fusión</strong>, también llamada <strong>unsplit</strong>, conserva la página izquierda y retira la derecha. En hojas se concatenan datos y se <strong>descarta</strong> la frontera del padre: no se convierte en un dato nuevo. En directorios esa frontera <strong>baja</strong> entre ambas listas de separadores, pues hace falta para distinguir los hijos de las dos páginas originales.</p>
+<p>Si un nodo tiene <span class="math inline">\(d-1\)</span> unidades y su hermano no puede prestar, este tiene <span class="math inline">\(d\)</span>. La hoja fusionada tendrá <span class="math inline">\(2d-1\leq2d\)</span> entradas. El directorio fusionado tendrá <span class="math inline">\((d-1)+1+d=2d\)</span> separadores, contando el que baja. La fusión puede provocar underflow en el padre; se repite allí.</p>
+</section>
+<section id="secuencia-eliminacion" class="level3">
+<h3 class="anchored" data-anchor-id="secuencia-eliminacion">Ejemplo completo de préstamo y fusión</h3>
+<p>Partimos del <a href="#secuencia-insercion">árbol de referencia</a> y eliminamos <code>14, 19, 18, 15, 1, 3</code>. La tabla presenta <strong>estados finales de cada operación</strong>, calculados con la prioridad anterior:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Eliminar</th>
+<th>Comprobación y acción</th>
+<th>Raíz y directorios</th>
+<th><span class="math inline">\(H\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>14</code></td>
+<td><code>[12]</code> queda corta; <code>[7,9,10]</code> presta <code>10</code> desde la izquierda</td>
+<td><code>[21]</code>; <code>[7,10,15]</code> / <code>[27,33]</code></td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td><code>19</code></td>
+<td><code>[15,18]</code> tiene dos entradas; no rebalancear</td>
+<td>Sin cambios</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td><code>18</code></td>
+<td><code>[15]</code> queda corta; <code>[10,12]</code> no presta y no hay hermano derecho del mismo padre; fusionar</td>
+<td><code>[21]</code>; <code>[7,10]</code> / <code>[27,33]</code></td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td><code>15</code></td>
+<td><code>[10,12]</code> cumple el mínimo; no rebalancear</td>
+<td>Sin cambios</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td><code>1</code></td>
+<td><code>[3,5]</code> cumple el mínimo</td>
+<td>Sin cambios</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td><code>3</code></td>
+<td><code>[5]</code> queda corta; <code>[7,9]</code> no presta; fusionar; el padre <code>[10]</code> queda corto; fusionar directorios bajando <code>21</code>; contraer raíz</td>
+<td><code>[10,21,27,33]</code>, hijos hojas</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Después de eliminar <code>14</code>, las hojas son:</p>
+<pre class="text"><code>[1,3,5] ↔ [7,9] ↔ [10,12] ↔ [15,18,19]
+    ↔ [21,22,25] ↔ [27,28,30] ↔ [33,36,40]</code></pre>
+<p>Después de las seis eliminaciones:</p>
+<pre class="text"><code>Raíz: [10, 21, 27, 33]
+Hojas: [5,7,9] ↔ [10,12] ↔ [21,22,25] ↔ [27,28,30] ↔ [33,36,40]</code></pre>
+<p>La altura disminuye al eliminar <code>3</code>, porque la antigua raíz pierde su último separador y queda con un único hijo. Ese hijo se convierte en la nueva raíz. Hay cinco hojas y un directorio. El préstamo desde un directorio se rige por las mismas rotaciones del apartado anterior; el preset «Préstamo interno» permite estudiarlo separado de esta secuencia.</p>
+</section>
+<section id="ejemplo-de-préstamo-entre-directorios" class="level3">
+<h3 class="anchored" data-anchor-id="ejemplo-de-préstamo-entre-directorios">Ejemplo de préstamo entre directorios</h3>
+<p>Considera raíz <code>[31]</code>, directorio izquierdo <code>[27,29]</code> y derecho <code>[33,35,37]</code>, con hojas:</p>
+<pre class="text"><code>Izquierdo: [25,26] · [27,28] · [29,30]
+Derecho:   [31,32] · [33,34] · [35,36] · [37,38,39,40]</code></pre>
+<p>Eliminar <code>25</code> deja <code>[26]</code>. No hay hermano izquierdo de esa hoja y <code>[27,28]</code> no puede prestar: se fusionan en <code>[26,27,28]</code>. El directorio izquierdo queda <code>[29]</code>, con dos hijos y menos de dos separadores. No tiene hermano izquierdo; el derecho tiene tres separadores y puede prestar. Su primer hijo <code>[31,32]</code> pasa al final del directorio izquierdo. La frontera <code>31</code> baja, y <code>33</code> sube a la raíz. El resultado es:</p>
+<pre class="text"><code>Raíz: [33]
+Directorios: [29,31] / [35,37]
+Hojas: [26,27,28] ↔ [29,30] ↔ [31,32] ↔ [33,34] ↔ [35,36] ↔ [37,38,39,40]</code></pre>
+<p>La altura sigue siendo dos. El préstamo mueve un subárbol completo y no introduce <code>31</code> como dato adicional: esa clave ya estaba en la hoja transferida.</p>
+</section>
+</section>
+<section id="explorador" class="level2">
+<h2 class="anchored" data-anchor-id="explorador">Explorador paso a paso</h2>
+<p>Selecciona un ejemplo y avanza por sus snapshots. La política visible afecta solo a inserciones; las eliminaciones conservan siempre su prioridad izquierda–derecha. Cambiar ejemplo o política reconstruye la traza desde su punto de partida. <strong>Reiniciar</strong> vuelve al inicio de la traza actual; <strong>Anterior</strong> recupera el estado guardado, sin intentar deshacer con una operación inversa.</p>
+<p>Las celdas conservan su tamaño en pantallas estrechas. Usa el desplazamiento horizontal del diagrama, <strong>Centrar raíz</strong> o <strong>Centrar página activa</strong> para recorrer un árbol ancho; la estructura textual por niveles ofrece otra forma de inspeccionarlo.</p>
+<p>Puedes ejecutar búsquedas por valor o rango, insertar y eliminar enteros desde cualquier <strong>estado estable</strong> mostrado. Esto inicia una nueva traza a partir de ese estado. Durante un overflow o underflow transitorio, termina primero el rebalanceo. El explorador limita el árbol a 60 claves para mantener legible el dibujo; el motor no tiene ese límite pedagógico.</p>
+<div class="db-viz" data-db-viz="bplus">
+<div class="db-viz-fallback">
+<p><strong>Ejemplo completo sin JavaScript y para impresión (<span class="math inline">\(d=2\)</span>).</strong></p>
+<ol type="1">
+<li><strong>Inicio:</strong> raíz hoja <code>[7,12,18,30]</code>. Insertar <code>3</code> produce <code>[3,7,12,18,30]</code>: cinco entradas superan el máximo cuatro, estado transitorio.</li>
+<li><strong>Split:</strong> izquierda <code>[3,7]</code>, derecha <code>[12,18,30]</code>; reparar ambos enlaces. Copiar <code>12</code> a una nueva raíz <code>[12]</code>. Ambas hojas cumplen el mínimo y la altura pasa a uno.</li>
+<li><strong>Buscar <code>18</code>:</strong> en <code>[12]</code>, <span class="math inline">\(18\geq12\)</span>, bajar a la derecha; encontrar <code>18</code> en <code>[12,18,30]</code>. Dos páginas visitadas.</li>
+<li><strong>Eliminar <code>3</code>:</strong> la izquierda queda <code>[7]</code>, por debajo de dos. No hay hermano izquierdo; el derecho tiene tres entradas y puede prestar. Mover <code>12</code> a la izquierda y reemplazar la frontera por <code>18</code>: raíz <code>[18]</code>, hojas <code>[7,12]</code> y <code>[18,30]</code>.</li>
+<li><strong>Eliminar <code>7</code>:</strong> la izquierda queda <code>[12]</code>. El derecho <code>[18,30]</code> tiene el mínimo, no presta. Fusionar en <code>[12,18,30]</code>, retirar el separador <code>18</code> del padre y reparar enlaces. La raíz queda con un único hijo: contraer. La nueva raíz es esa hoja y la altura vuelve a cero.</li>
+</ol>
+<p>Los ejemplos de las secciones anteriores desarrollan también el árbol de veinte entradas, la eliminación encadenada y las rotaciones internas. La explicación completa permanece disponible aunque falle la visualización.</p>
+</div>
+</div>
+</section>
+<section id="garantias" class="level2">
+<h2 class="anchored" data-anchor-id="garantias">Correctitud y casos límite</h2>
+<div id="thm-operaciones-bplus" class="theorem">
+<p><span class="theorem-title"><strong>Teorema 2 (Conservación de invariantes)</strong></span> Partiendo de un árbol válido, las operaciones descritas terminan y producen otro árbol válido con el conjunto de claves esperado. Una búsqueda devuelve una entrada exactamente cuando su clave está almacenada.</p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Demostración</em>. </span>El descenso conserva el posible destino mediante los intervalos. Insertar ordenadamente añade exactamente una clave; eliminar retira exactamente la encontrada. Cada transformación local reparte o concatena listas contiguas, conserva el orden y mueve cada hijo con su intervalo. Las rotaciones ajustan la frontera atravesada; eliminar sin rebalancear solo reduce un conjunto dentro de un intervalo ya válido.</p>
+<p>Los splits restauran la ocupación del nodo dividido y trasladan un posible exceso al padre. Los préstamos restauran la ocupación sin cambiar el número de hijos del padre. Una fusión conserva la capacidad y traslada un posible déficit al padre. En ambos casos la propagación sube estrictamente un nivel, de modo que termina. Crear una raíz añade un nivel a todas las hojas; contraerla quita uno a todas. Las otras transformaciones conservan la profundidad de las hojas y reparan los enlaces cuando cambia su lista.</p>
+</div>
+<ul>
+<li><strong>Raíz con un único hijo:</strong> es un estado transitorio posterior a una fusión; se contrae. Una raíz interna estable tiene al menos dos hijos.</li>
+<li><strong>Última clave:</strong> se elimina de la raíz hoja y queda la hoja vacía con enlaces nulos. Buscar en ella falla sin descender.</li>
+<li><strong>Clave ausente:</strong> buscar o eliminar informa el fallo y conserva la estructura.</li>
+<li><strong>Duplicados:</strong> el simulador los rechaza explícitamente. Un índice no único podría ordenar pares <span class="math inline">\((\text{clave},\text{id de registro})\)</span> o asociar una lista de referencias a cada clave; habría que adaptar las entradas y las consultas, no introducir duplicados sin cambiar el contrato. <span class="citation" data-cites="ramakrishnan2003 silberschatz2020">(<a href="#ref-ramakrishnan2003" role="doc-biblioref">Ramakrishnan y Gehrke 2003, sec. 10.7</a>; <a href="#ref-silberschatz2020" role="doc-biblioref">Silberschatz et&nbsp;al. 2020, sec. 14.3.5</a>)</span></li>
+<li><strong>Separadores sin dato homónimo:</strong> siguen siendo válidos mientras respeten los intervalos. No se aplica una recomputación global de mínimos.</li>
+</ul>
+<p>Las pruebas comprueban por separado orden, ocupación, aridad, profundidad, intervalos, enlaces y conjunto de claves. Los estados transitorios declaran la única página con exceso o déficit permitido; no son resultados finales de una operación. Las pruebas finitas complementan el argumento de correctitud, sin sustituirlo.</p>
+</section>
+<section id="autoevaluación" class="level2">
+<h2 class="anchored" data-anchor-id="autoevaluación">Autoevaluación</h2>
+<div id="exr-bplus-fronteras" class="theorem exercise">
+<p><span class="theorem-title"><strong>Ejercicio 1</strong></span> Con <span class="math inline">\(d=2\)</span>, raíz <code>[10]</code> y hojas <code>[2,4]</code>, <code>[10,12,14]</code>:</p>
+<ol type="1">
+<li>Elimina <code>10</code>. ¿Hay que reemplazar el separador por <code>12</code>? ¿Cómo se busca <code>10</code> después?</li>
+<li>Elimina ahora <code>2</code>. Indica los hermanos considerados y el resultado completo.</li>
+<li>Para <span class="math inline">\(d=3\)</span> y <span class="math inline">\(H=2\)</span>, calcula el mínimo y máximo de entradas y el número de páginas de una búsqueda por valor.</li>
+</ol>
+</div>
+<details class="db-solution">
+<summary>
+Solución razonada
+</summary>
+<ol type="1">
+<li>Quedan raíz <code>[10]</code> y hojas <code>[2,4]</code>, <code>[12,14]</code>. No hay underflow y se conserva el separador. Buscar <code>10</code> baja a la derecha por igualdad y falla en <code>[12,14]</code>.</li>
+<li>La izquierda queda <code>[4]</code>, con menos de dos entradas. No existe hermano izquierdo y el derecho está al mínimo: no puede prestar. Se fusionan en <code>[4,12,14]</code>. La raíz pierde su separador y se contrae a esa hoja, con altura cero. El antiguo <code>10</code> no se añade a los datos.</li>
+<li>El mínimo es <span class="math inline">\(6\cdot4=24\)</span> y el máximo <span class="math inline">\(6\cdot7^2=294\)</span>. La búsqueda visita <span class="math inline">\(H+1=3\)</span> páginas de índice; recuperar un registro externo puede añadir otro acceso.</li>
+</ol>
+</details>
+</section>
+<section id="resumen" class="level2 summary-box">
+<h2 class="anchored" data-anchor-id="resumen">Resumen</h2>
+<p>Los B+trees mantienen directorios de intervalos y hojas ordenadas, balanceadas y doblemente enlazadas. La ocupación mínima asegura altura logarítmica. Insertar divide de abajo hacia arriba; la variante con redistribución intenta usar espacio vecino. Eliminar presta, fusiona y, si corresponde, contrae la raíz. Copiar en hojas, promocionar en directorios y conservar fronteras válidas al eliminar son decisiones esenciales para que las trazas y la búsqueda coincidan.</p>
+</section>
+<section id="conceptos-relacionados" class="level2 related-links">
+<h2 class="anchored" data-anchor-id="conceptos-relacionados">Conceptos relacionados</h2>
+<ul>
+<li><a href="../fundamentos/sistemas-rdbms.html">Sistemas de bases de datos y métodos de acceso</a></li>
+<li><a href="../fundamentos/modelo-relacional.html">Modelo relacional</a></li>
+<li><a href="../diseno/dependencias-llaves.html">Llaves candidatas y restricciones lógicas</a></li>
+<li><a href="../sql/funciones-filtros.html">Filtros y orden en SQL</a></li>
+</ul>
+</section>
+
+
+
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Volver arriba</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">Referencias</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-ramakrishnan2003" class="csl-entry" role="listitem">
+Ramakrishnan, Raghu, y Johannes Gehrke. 2003. <em>Database Management Systems</em>. 3.ª ed. McGraw-Hill.
+</div>
+<div id="ref-silberschatz2020" class="csl-entry" role="listitem">
+Silberschatz, Abraham, Henry F. Korth, y S. Sudarshan. 2020. <em>Database System Concepts</em>. 7.ª ed. McGraw-Hill Education.
+</div>
+</div></section></div></main> <!-- /main -->
+<script type="module" src="../assets/js/visualizaciones/index.js"></script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../diseno/tercera-forma-normal.html" class="pagination-link" aria-label="Tercera forma normal y síntesis">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Tercera forma normal y síntesis</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>OpenStudy · Bases de Datos · Estudio por conceptos</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Sitio de estudio construido con Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

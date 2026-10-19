@@ -28,5 +28,25 @@
 .db-viz-action { font-weight: 700; color: var(--db-emphasis, #147d78); }
 
 .db-viz-tree { border-left: 2px solid #147d78; padding-left: 1rem; }
+/* B+tree pages retain their font size inside a keyboard-scrollable region. */
+.db-bplus { min-width: 0; }
+.db-bplus-scroll { border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-bplus .db-bplus-svg { display: block; max-width: none; height: auto; font-family: inherit; }
+.db-bplus-edge { stroke: #8897aa; stroke-width: 1.5; fill: none; }
+.db-bplus-route { stroke: var(--db-emphasis, #147d78); stroke-width: 3; }
+.db-bplus-leaf-link { stroke: #526176; stroke-width: 1.5; fill: none; }
+.db-bplus-page { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
+.db-bplus-key { fill: white; stroke: #dce3ed; }
+.db-bplus-separator { fill: #eff6ff; stroke: #9bb9f4; }
+.db-bplus-value { fill: #243247; font-size: 15px; font-weight: 600; }
+.db-bplus-label { fill: #526176; font-size: 13px; }
+.db-bplus-pointer { fill: #526176; }
+.db-bplus-node.is-visited .db-bplus-page { stroke: var(--db-emphasis, #147d78); }
+.db-bplus-node.is-active .db-bplus-page { stroke: var(--db-primary, #2563eb); stroke-width: 3; }
+.db-bplus-node.is-transient .db-bplus-page { stroke: #98620a; stroke-dasharray: 6 3; stroke-width: 3; }
+.db-bplus-condition { font-weight: 600; }
+.db-bplus-legend { font-size: .85rem; color: var(--db-text-secondary); }
+.db-bplus details { min-width: 0; overflow-wrap: anywhere; }
+.db-bplus summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
 @media (max-width: 575.98px) { .db-viz-form { grid-template-columns: minmax(0,1fr); } .db-viz-controls { flex-direction: column; } .db-viz { padding: .75rem; } }
 @media print { .db-viz-interactive { display: none !important; } .db-viz { border: 0; padding: 0; background: white; } .db-viz-fallback { display: block !important; } }

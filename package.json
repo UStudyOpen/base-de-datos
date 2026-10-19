@@ -1,0 +1,6 @@
+{
+  "name": "openstudy-bases-de-datos",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/*.test.js" }
+}

@@ -1,0 +1,430 @@
+---
+title: "SQL y manipulación de datos"
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos Claves</div>
+
+<div class="concept-tags">
+<span class="concept-tag">DDL</span>
+<span class="concept-tag">DML</span>
+<span class="concept-tag">PRIMARY KEY</span>
+<span class="concept-tag">FOREIGN KEY</span>
+<span class="concept-tag">NOT NULL</span>
+<span class="concept-tag">SQL</span>
+</div>
+</div>
+
+<!-- Contenido -->
+
+## Introducción
+
+**SQL** (*Structured Query Language*) es un lenguaje de programación **declarativo** para bases de datos relacionales. Su sintaxis y semántica se desarrollan en el **estándar SQL**, que define formalmente un conjunto de instrucciones para definir, manipular y consultar datos. 
+
+SQL está fuertemente basado en dos fundamentos teóricos:
+
+* [Álgebra relacional](../teoria-consultas/algebra-relacional.qmd): describe operaciones sobre relaciones (tablas), como selección, proyección, join, unión, diferencia.
+
+
+* [Lógica de primer orden](../teoria-consultas/logica-primer-orden.qmd): permite expresar condiciones del tipo y proposiciones declarativas que cumplan o no ciertas condiciones.
+
+El [modelo relacional](../fundamentos/modelo-relacional.qmd) separa **esquema** y **datos** y en SQL esto se refleja con distintas familias de comandos:
+
+- **DDL** (*Data Definition Language*): define o modifica la estructura de la base de datos, como tablas y restricciones;
+- **DML** (*Data Manipulation Language*): modifica o consulta los datos almacenados en la base de datos, como insertar, actualizar o eliminar filas.
+
+## Comandos DDL (Data Definition Language)
+### `CREATE TABLE`
+
+Crea una nueva tabla.
+
+
+
+```sql
+CREATE TABLE nombre_relacion (
+
+  atributo1 tipo1,
+
+  atributo2 tipo2,
+
+  ...
+
+);
+```
+
+Por ejemplo, para crear una tabla de estudiantes y otra de cursos:
+
+```sql
+CREATE TABLE Estudiante (
+
+  rut     VARCHAR(12),
+
+  nombre  VARCHAR(100),
+
+  carrera VARCHAR(100),
+
+  PRIMARY KEY (rut)
+
+);
+
+CREATE TABLE Curso (
+
+  codigo   VARCHAR(20),
+
+  nombre   VARCHAR(120),
+
+  creditos INTEGER,
+
+  PRIMARY KEY (codigo)
+
+);
+```
+
+### `ALTER TABLE`
+
+Modifica la estructura de una tabla existente.
+
+
+
+```sql
+ALTER TABLE nombre_relacion
+ADD COLUMN atributo tipo;
+```
+
+Por ejemplo, para agregar el atributo edad a la tabla de estudiantes:
+
+```sql
+ALTER TABLE Estudiante
+ADD COLUMN edad INTEGER;
+```
+
+### `DROP TABLE`
+
+Elimina una tabla junto con todos los datos almacenados en ella.
+
+
+
+```sql
+DROP TABLE nombre_relacion;
+```
+
+Por ejemplo, para eliminar la tabla de estudiantes:
+
+```sql
+DROP TABLE Estudiante;
+```
+
+### `CREATE VIEW`
+
+Crea una vista a partir del resultado de una consulta.
+
+
+
+```sql
+CREATE VIEW nombre_vista AS
+
+SELECT atributo1, atributo2, ...
+
+FROM nombre_relacion
+
+WHERE condicion;
+```
+
+Por ejemplo, para crear una vista con los estudiantes de Ingeniería:
+
+```sql
+CREATE VIEW EstudiantesIngenieria AS
+
+SELECT rut, nombre
+
+FROM Estudiante
+
+WHERE carrera = 'Ingeniería';
+```
+
+### `DROP VIEW`
+
+Elimina una vista existente.
+
+
+
+```sql
+DROP VIEW nombre_vista;
+```
+
+Por ejemplo, para eliminar la vista de estudiantes de Ingeniería:
+
+```sql
+DROP VIEW EstudiantesIngenieria;
+```
+
+### `CREATE INDEX`
+
+Crea un índice sobre uno o más atributos de una tabla para acelerar ciertas búsquedas.
+
+
+
+```sql
+CREATE INDEX nombre_indice
+
+ON nombre_relacion (atributo);
+```
+
+Por ejemplo, para crear un índice sobre el nombre de los estudiantes:
+
+```sql
+CREATE INDEX indice_nombre_estudiante
+
+ON Estudiante (nombre);
+```
+
+### `DROP INDEX`
+
+Elimina un índice existente.
+
+
+
+```sql
+DROP INDEX nombre_indice;
+```
+
+Por ejemplo, para eliminar el índice sobre el nombre de los estudiantes:
+
+```sql
+DROP INDEX indice_nombre_estudiante;
+```
+
+### `TRUNCATE TABLE`
+
+Elimina todas las tuplas de una tabla, pero mantiene su estructura.
+
+
+
+```sql
+TRUNCATE TABLE nombre_relacion;
+```
+
+Por ejemplo, para eliminar todos los estudiantes sin eliminar la tabla:
+
+```sql
+TRUNCATE TABLE Estudiante;
+```
+
+**Nota:** `TRUNCATE TABLE` no está disponible en SQLite. En SQLite se utiliza:
+
+```sql
+DELETE FROM Estudiante;
+```
+
+
+La declaración de `PRIMARY KEY` corresponde a la [llave](../diseno/dependencias-llaves.qmd).
+
+## Comandos DML (Data Manipulation Language)
+
+### `INSERT INTO`
+
+Inserta una o más tuplas nuevas en una tabla.
+
+
+
+```sql
+INSERT INTO nombre_relacion (
+  atributo1,
+  atributo2,
+  ...
+)
+
+VALUES (
+  valor1,
+  valor2,
+  ...
+);
+```
+
+Por ejemplo, para insertar un estudiante:
+
+```sql
+INSERT INTO Estudiante (
+  rut,
+  nombre,
+  carrera
+)
+
+VALUES (
+  '20.123.456-7',
+  'Ana Pérez',
+  'Ingeniería'
+);
+```
+
+También se pueden insertar varias tuplas a la vez:
+
+```sql
+INSERT INTO Estudiante (
+  rut,
+  nombre,
+  carrera
+)
+
+VALUES
+  ('20.123.456-7', 'Ana Pérez', 'Ingeniería'),
+  ('21.987.654-3', 'Juan Soto', 'Matemáticas');
+```
+
+### `UPDATE`
+
+Modifica los valores de una o más tuplas existentes.
+
+
+
+```sql
+UPDATE nombre_relacion
+
+SET atributo1 = valor1,
+    atributo2 = valor2
+
+WHERE condicion;
+```
+
+Por ejemplo, para cambiar la carrera de un estudiante:
+
+```sql
+UPDATE Estudiante
+
+SET carrera = 'Ciencia de Datos'
+
+WHERE rut = '20.123.456-7';
+```
+
+Si se omite `WHERE`, se modifican todas las tuplas de la tabla:
+
+```sql
+UPDATE Estudiante
+
+SET carrera = 'Ingeniería';
+```
+
+### `DELETE FROM`
+
+Elimina una o más tuplas de una tabla.
+
+
+
+```sql
+DELETE FROM nombre_relacion
+
+WHERE condicion;
+```
+
+Por ejemplo, para eliminar un estudiante:
+
+```sql
+DELETE FROM Estudiante
+
+WHERE rut = '20.123.456-7';
+```
+
+Si se omite `WHERE`, se eliminan todas las tuplas de la tabla:
+
+```sql
+DELETE FROM Estudiante;
+```
+
+### `MERGE`
+
+Permite insertar, actualizar o eliminar tuplas dependiendo de si existe una coincidencia entre dos conjuntos de datos.
+
+
+
+```sql
+MERGE INTO nombre_relacion AS destino
+
+USING otra_relacion AS origen
+
+ON condicion
+
+WHEN MATCHED THEN
+  UPDATE SET atributo = valor
+
+WHEN NOT MATCHED THEN
+  INSERT (atributo1, atributo2)
+  VALUES (valor1, valor2);
+```
+
+Por ejemplo:
+
+```sql
+MERGE INTO Estudiante AS destino
+
+USING NuevosEstudiantes AS origen
+
+ON destino.rut = origen.rut
+
+WHEN MATCHED THEN
+  UPDATE SET nombre = origen.nombre
+
+WHEN NOT MATCHED THEN
+  INSERT (rut, nombre, carrera)
+  VALUES (origen.rut, origen.nombre, origen.carrera);
+```
+
+**Nota:** `MERGE` forma parte del estándar SQL, pero **SQLite no lo soporta directamente**.
+
+### `SELECT`
+
+Consulta datos almacenados sin modificar las tuplas.
+
+```sql
+SELECT atributo1, atributo2, ...
+
+FROM nombre_relacion
+
+WHERE condicion;
+```
+
+Por ejemplo, para obtener los estudiantes de Ingeniería:
+
+```sql
+SELECT rut, nombre
+
+FROM Estudiante
+
+WHERE carrera = 'Ingeniería';
+```
+
+**Nota:** `SELECT` muchas veces se clasifica separadamente como **DQL** (*Data Query Language*), ya que consulta datos pero no los modifica. En una clasificación amplia de SQL puede considerarse parte de las operaciones de manipulación de datos.
+
+
+
+## Tipos de datos
+
+Los tipos SQL pueden agruparse en categorías como:
+
+- numéricos: `INTEGER`, `SMALLINT`, `FLOAT`, ...;
+- caracteres: `CHAR(n)`, `VARCHAR(n)`, `CLOB`, ...;
+- binarios: `BLOB`;
+- booleanos: `BOOLEAN`;
+- temporales: `DATE`, `TIME`, `TIMESTAMP`, ...
+
+::: {.callout-warning title="SQL estándar y motores reales"}
+Los nombres, tamaños, conversiones y comportamiento exacto de los tipos dependen del RDBMS. Por ejemplo, distintos motores implementan de manera diferente números en punto flotante, booleanos y tipos de texto. Verifica los tipos soportados por el motor elegido.
+:::
+
+::: {.summary-box}
+### Resumen
+
+- DDL define o modifica el esquema; DML modifica los datos.
+- `CREATE TABLE` agrega tipos y restricciones a la estructura relacional.
+- `INSERT`, `UPDATE` y `DELETE` alteran la instancia.
+- El soporte exacto de tipos y algunas operaciones de esquema depende del RDBMS.
+- `NULL` y las llaves tienen semántica propia, desarrollada en las páginas enlazadas.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Sistemas de bases de datos y RDBMS](../fundamentos/sistemas-rdbms.qmd)
+- [Modelo relacional](../fundamentos/modelo-relacional.qmd)
+- [`NULL` y lógica de tres valores](../nulos/null-tres-valores.qmd)
+- [Dependencias funcionales y llaves](../diseno/dependencias-llaves.qmd)
+:::

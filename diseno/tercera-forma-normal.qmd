@@ -1,0 +1,183 @@
+---
+title: "Tercera forma normal: cubierta minimal y síntesis"
+description: "3NF, atributos primarios, reducción de dependencias y síntesis sin pérdida que preserva las DF."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">3NF</span><span class="concept-tag">Atributos primarios</span><span class="concept-tag">Cubierta minimal</span><span class="concept-tag">Síntesis</span><span class="concept-tag">Preservación</span>
+</div>
+</div>
+
+## Intuición: conservar restricciones locales
+
+Una descomposición BCNF puede obligar a combinar tablas para comprobar una DF que antes se verificaba en una sola relación. La tercera forma normal admite algunas dependencias que BCNF rechaza y permite construir siempre una descomposición sin pérdida que preserve las DF. La contrapartida es que puede quedar redundancia. [@garciamolina2009, sec. 3.5; @ramakrishnan2003, secs. 19.4.2 y 19.6.2]
+
+::: {#def-tercera-forma name="Tercera forma normal"}
+Un atributo es **primario** si pertenece a alguna llave candidata de $U$ bajo $F$. El esquema está en **3NF** si para toda DF no trivial $X\to a$ implicada por $F$ se cumple al menos una condición:
+
+- $X$ es superllave;
+- $a$ es primario.
+:::
+
+Para $X\to Y$ con varios consecuentes, se comprueba cada atributo de $Y\setminus X$. Los atributos triviales no se someten a la segunda condición. Por ejemplo, agregar $D$ a ambos lados de $B\to E$ produce $BD\to DE$: si $E$ es primario, el $D$ trivial no constituye una violación de 3NF.
+
+## BCNF implica 3NF, pero no a la inversa
+
+BCNF satisface siempre la primera alternativa de la definición, por lo que implica 3NF. El [ejemplo $ABCDE$](dependencias-llaves.qmd#ejemplo-abcde) demuestra que el recíproco es falso. Sus llaves son $A,BC,CE$; por tanto $A,B,C,E$ son primarios. La DF $B\to E$ viola BCNF, ya que $B^+=BE$.
+
+Para comprobar 3NF no basta mirar esa regla aislada. Si un determinante contiene $A$, $BC$ o $CE$, es superllave. Entre los restantes, las únicas adiciones posibles son de $E$ mediante $B\to E$: las otras reglas necesitarían $A$ o $CE$. Así, toda DF no trivial con determinante no superllave solo añade un atributo primario, $E$. Esto prueba 3NF para **todas** las consecuencias.
+
+Aun así, varias tuplas con el mismo $B$ pueden repetir el mismo $E$ y exigir actualizaciones coordinadas. 3NF no elimina universalmente anomalías ni toda redundancia explicada por DF.
+
+## Cubierta minimal {#cubierta-minimal}
+
+Una cubierta es otra presentación de las mismas restricciones. Reducirla antes de sintetizar evita que reglas o antecedentes innecesarios generen relaciones inadecuadas.
+
+::: {#def-cubierta-minimal name="Cubierta minimal"}
+$G$ es una cubierta minimal de $F$ si $F\equiv G$ y:
+
+1. cada regla de $G$ tiene consecuente unitario;
+2. ninguna regla puede eliminarse conservando equivalencia;
+3. ningún atributo de un antecedente puede eliminarse conservando equivalencia.
+:::
+
+Minimal no significa menor número posible de reglas ni una respuesta única. Distintos órdenes de reducción pueden dar cubiertas diferentes. [@garciamolina2009, sec. 3.2.7; @ramakrishnan2003, sec. 19.6.2]
+
+### Algoritmo de reducción
+
+::: {.db-algorithm #procedimiento-cubierta}
+**Entrada:** DF finitas $F$ sobre $U$. **Salida:** una cubierta minimal $G\equiv F$. **Precondición:** no se interpretan nulos como valores ordinarios de las DF.
+
+```text
+1  G ← separar cada consecuente en atributos unitarios
+2  para cada X → a en G:
+3    para cada b en una copia de X:
+4      si a ∈ clausura(G, X − {b}): reemplazar X → a por X − {b} → a
+5  para cada regla f = X → a que queda en G:
+6    si a ∈ clausura(G − {f}, X): eliminar f
+7  devolver G
+```
+
+**Invariante:** $G\equiv F$. En la línea 4 se usa la base actual **incluida la regla examinada**; en la línea 6 se la excluye. Después de cada modificación se usa la nueva base.
+:::
+
+**Justificación de la izquierda.** Si $a\in(X\setminus\{b\})^+_G$, la base vieja implica la regla acortada. A la inversa, esa regla implica $X\to a$ por aumento del antecedente; el resto de las reglas permanece. Por ello no cambia el conjunto de modelos.
+
+**Justificación de redundancia.** La prueba de la línea 6 verifica exactamente si las demás reglas implican la eliminada. Separar consecuentes también conserva equivalencia. Después de las reducciones izquierdas, se revisa redundancia: invertir estas fases puede dejar reglas redundantes. Cada rechazo de una eliminación izquierda sigue siendo válido al acortar más su antecedente, por monotonía de clausura; las demás transformaciones mantienen equivalencia. Al eliminar reglas, una regla que era necesaria no se vuelve deducible de un conjunto aún menor.
+
+Si la separación produce $q$ reglas y $L'$ es la suma del tamaño de sus lados, hay a lo sumo $nq$ pruebas izquierdas y $q$ pruebas de redundancia. Con costo de clausura $C_G$, una cota conservadora es $O((nq+q)C_G+L')$, tomando el mayor $C_G$ de la ejecución. Termina porque las listas recorridas son finitas; cada reducción disminuye atributos escritos o reglas. La traza añade el almacenamiento de las bases intermedias.
+
+### Traza completa de una reducción
+
+Sea $U=ABCD$ y $F=\{A\to BC,AB\to C,B\to C\}$.
+
+| Etapa | Cálculo | Decisión |
+|---|---|---|
+| Separar | $A\to B,A\to C,AB\to C,B\to C$ | Cuatro reglas unitarias |
+| $A\to B$ | $\varnothing^+=\varnothing$ | Conservar $A$ |
+| $A\to C$ | $\varnothing^+=\varnothing$ | Conservar $A$ |
+| $AB\to C$: quitar $A$ | $B^+=BC$ | Reemplazar por $B\to C$ |
+| Regla reducida: quitar $B$ | $\varnothing^+=\varnothing$ | Conservar $B$ |
+| Última $B\to C$ | $\varnothing^+=\varnothing$ | Conservar $B$ |
+| Quitar $A\to B$ | Sin ella, $A^+=AC$ | Necesaria |
+| Quitar $A\to C$ | Sin ella, $A^+=ABC$ | Redundante |
+| Primera copia $B\to C$ | La otra copia deriva $C$ | Eliminar una copia |
+| Última copia $B\to C$ | Sin ella, $B^+=B$ | Necesaria |
+
+La cubierta es $G=\{A\to B,B\to C\}$. Los duplicados intermedios se tratan como entradas de una lista de trabajo; no como restricciones distintas. El atributo $D$ no desaparece del esquema aunque no esté mencionado en $G$.
+
+## Síntesis de relaciones 3NF {#sintesis}
+
+La versión base que adopta el sitio crea una relación por cada regla unitaria y **añade siempre una llave candidata**. Después pueden eliminarse esquemas contenidos. La síntesis de @garciamolina2009 [secs. 3.5.2–3.5.3] justifica las garantías y permite evitar la relación adicional cuando una componente ya contiene una llave. Aquí se mantiene explícita para hacer visible su papel en la reconstrucción.
+
+::: {.db-algorithm #procedimiento-sintesis}
+**Entrada:** esquema finito $U$ y DF $F$. **Salida:** componentes 3NF que cubren $U$, sin pérdida y preservando $F$.
+
+```text
+1  G ← cubiertaMinimal(U, F)
+2  componentes ← lista vacía
+3  para cada X → a en G:
+4    añadir S = X ∪ {a}, con las DF proyectadas F_S
+5  K ← una llave candidata de U bajo F
+6  añadir K, con base vacía de DF no triviales
+7  devolver componentes
+```
+
+Para obtener $K$, partir de $U$ y retirar un atributo cuando el resto aún determina $U$. El explorador intenta retirarlos en orden alfabético inverso. Esto obtiene una llave minimal, no necesariamente de cardinalidad mínima. En cada paso conserva la propiedad de superllave; termina tras $n$ intentos. Una eliminación rechazada seguirá siendo imposible al reducir más el conjunto.
+:::
+
+La construcción de los esquemas a partir de $G,K$ es lineal en los atributos escritos. Obtener $G$ y una llave es polinomial con estos procedimientos. Si además se calculan bases completas proyectadas por enumeración de subconjuntos, como hace el explorador, hay un costo exponencial adicional: $\sum_S O(2^{|S|}(C_F+n))$. No debe confundirse la síntesis de esquemas con materializar todas sus consecuencias locales.
+
+### Por qué la base sobre una llave puede ser vacía
+
+Si $K$ es candidata, no existe una DF no trivial $X\to a$ implicada por $F$ con $X\subseteq K$ y $a\in K\setminus X$. De existir, $K\setminus\{a\}$ determinaría $a$, luego todo $K$ y por ello $U$, contradiciendo minimalidad. Así, $F_K=\varnothing$ significa una **base vacía de DF no triviales**; las DF triviales siguen siendo válidas.
+
+### Garantías de la síntesis
+
+::: {#thm-sintesis name="Síntesis sin pérdida y con preservación"}
+El algoritmo devuelve componentes en 3NF, conserva todas las DF de $F$ por comprobaciones locales y permite reconstruir cada instancia válida mediante el join de sus proyecciones.
+:::
+
+::: {.proof}
+**Preservación.** Cada regla $X\to a$ de $G$ está contenida en su componente $Xa$. La unión de las DF proyectadas implica $G$ y, por equivalencia, $F$.
+
+**Sin pérdida.** Sea $R\models F$ y $t$ una tupla del join de todas las proyecciones. Como está incluida la proyección sobre $K$, existe $r\in R$ que coincide con $t$ en $K$. Sigamos una ejecución de clausura que expande $K$ hasta $U$. Si $r$ ya coincide con $t$ en $X$ y se usa $X\to a\in G$, la componente $Xa$ garantiza una tupla $s\in R$ que coincide con $t$ en $Xa$. Entonces $r[X]=s[X]$ y la DF da $r[a]=s[a]=t[a]$. Por inducción $r=t$ en todo $U$; no hay tuplas espurias. La contención de $R$ en el join es inmediata. Esto incluye el caso de llave vacía: si existe $t$ en el join, su proyección vacía proviene de alguna tupla de $R$.
+
+**3NF de cada $Xa$.** Por minimalidad izquierda, ningún subconjunto propio de $X$ determina $a$. Por tanto $X$ es llave candidata de $Xa$ respecto de las DF proyectadas: si un subconjunto propio determinara todo $Xa$, también determinaría $a$. Todo atributo de $X$ es primario en esa componente. Para una DF no trivial $Z\to b$ dentro de $Xa$, si $b\in X$ ya se cumple 3NF. El único otro caso es $b=a$; como $a\notin Z$, tenemos $Z\subseteq X$, y la minimalidad obliga a $Z=X$. Su determinante es superllave. La componente $K$ no tiene DF no triviales y está incluso en BCNF.
+
+**Cobertura.** La clausura $K_G^+=U$ solo añade atributos mediante reglas de $G$. Cada atributo está inicialmente en $K$ o aparece en alguna componente $Xa$; su unión es $U$.
+:::
+
+Los argumentos de pérdida y preservación corresponden a las garantías de síntesis desarrolladas en @garciamolina2009 [sec. 3.5.3]. La prueba de 3NF anterior se desarrolla aquí mediante minimalidad; esa sección del libro enuncia la garantía sin desarrollar esa parte de la demostración completa.
+
+### Ejemplo resuelto de síntesis
+
+Para $ABCD$ y la cubierta $G=\{A\to B,B\to C\}$ de la traza, $AD$ es llave: $D$ no se deriva y $A$ permite alcanzar $B,C$. La versión base devuelve $AB$, $BC$ y $AD$. Cada componente está en BCNF y, por tanto, en 3NF. Se preservan $A\to B,B\to C$ localmente, y la componente $AD$ inicia la reconstrucción: $AD\Rightarrow ABD\Rightarrow ABCD$.
+
+En el ejemplo $ABCDE$, una cubierta minimal equivalente es
+
+$$
+G=\{A\to B,A\to C,B\to E,CE\to A,CE\to D\}.
+$$
+
+Ninguna regla es redundante: al quitarla, la clausura de su antecedente pierde respectivamente $B,C,E,A,D$. En $CE\to A$ y $CE\to D$, ni $C$ ni $E$ solos alcanzan el consecuente. La síntesis con $K=A$ produce $AB,AC,BE,ACE,CDE,A$. La versión opcional elimina $AB$ solo si estuviese contenido en otra componente (aquí no lo está); elimina $AC$ y $A$ porque están contenidos en $ACE$. Quedan $AB,BE,ACE,CDE$. Ambas versiones preservan $F$ y son sin pérdida.
+
+::: {.db-viz data-db-viz="normalizacion" data-db-mode="synthesis"}
+::: {.db-viz-fallback}
+**Ejemplo estático completo.** Para $ABCDE$ y las cinco reglas anteriores, la fase de cubierta mantiene todas las reglas unitarias: $\varnothing^+=\varnothing$, $C^+=C$, $E^+=E$, por lo que no puede acortar sus antecedentes. Sin cada regla, sus clausuras son, en el mismo orden, $AC$, $ABE$, $B$, $CDE$, $ABCE$; falta el consecuente correspondiente. La versión base crea $AB,AC,BE,ACE,CDE$ y añade la llave $A$. Cada regla tiene una componente que la contiene. La reconstrucción se inicia con $A$ y sigue $A\Rightarrow AB\Rightarrow ABC\Rightarrow ABCE\Rightarrow ABCDE$. Las comprobaciones de 3NF se justifican por la @thm-sintesis.
+:::
+:::
+
+Eliminar un esquema contenido en otro no cambia el join de proyecciones de una misma instancia, porque la proyección pequeña está determinada por la grande; sus DF también están incluidas en la proyección mayor. Esta simplificación conserva las garantías y es opcional. No se mezclan sus pasos con la versión base.
+
+## Casos límite y autoevaluación
+
+Con $F=\varnothing$, la cubierta no genera componentes; se añade $K=U$. Si $F=\{\varnothing\to A\}$ sobre $AB$, la síntesis produce $A$ y la llave $B$. Si todos los atributos son constantes, puede añadirse $K=\varnothing$; una relación de aridad cero tiene sentido en el modelo matemático, aunque no se traduzca directamente a una tabla SQL ordinaria.
+
+::: {#exr-sintesis-llave}
+Para $U=ABCD$, $F=\{AB\to C,C\to B,A\to D\}$, encuentra una cubierta minimal y aplica la síntesis base. ¿Es necesario distinguir primario de llave primaria?
+:::
+
+<details class="db-solution">
+<summary>Solución razonada</summary>
+
+Las reglas ya forman una cubierta minimal: ninguna de las otras deriva el consecuente de la regla retirada; ni $A$ ni $B$ solos determinan $C$. Las llaves son $AB$ y $AC$. Con $K=AB$, la versión base produce $ABC,BC,AD,AB$; opcionalmente se conservan solo $ABC,AD$. En $ABC$, $C\to B$ no tiene determinante superllave, pero $B$ es primario porque pertenece a la llave $AB$ de esa componente. Elegir $AC$ como primaria en SQL no haría dejar de ser primario a $B$.
+
+</details>
+
+::: {.summary-box}
+## Resumen
+
+3NF permite un consecuente no trivial primario aun cuando el determinante no sea superllave. Una cubierta minimal elimina redundancias de la presentación de DF. La síntesis crea una relación por regla y añade una llave para garantizar pérdida y preservación; puede mantener redundancia residual y esquemas contenidos.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Llaves y atributos primarios](dependencias-llaves.qmd#minimalidad)
+- [Clausura y enumeración de llaves](implicacion-clausura.qmd)
+- [Descomposiciones y preservación](descomposiciones.qmd#preservacion)
+- [BCNF](bcnf.qmd)
+:::

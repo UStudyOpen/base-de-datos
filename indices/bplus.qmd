@@ -1,0 +1,421 @@
+---
+title: "Árboles B+: estructura, búsqueda y actualización"
+description: "Índices B+ por páginas: intervalos, altura, splits, redistribución y fusión con un explorador paso a paso."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">Índices</span><span class="concept-tag">Páginas</span><span class="concept-tag">Separadores</span><span class="concept-tag">Balance</span><span class="concept-tag">Split</span><span class="concept-tag">Redistribución</span>
+</div>
+</div>
+
+## Intuición: encontrar una página sin recorrerlas todas
+
+Una relación puede ocupar miles de páginas. Para encontrar un estudiante por su identificador, una búsqueda secuencial sin otra información podría tener que leerlas todas, incluso para concluir que el dato no existe. Un **índice** mantiene una estructura auxiliar que permite localizar las entradas pertinentes. La clave de búsqueda es el atributo o conjunto de atributos que organiza ese acceso; no tiene por qué ser una llave candidata del esquema.
+
+Un **árbol B+**, también llamado **B+tree**, reúne muchos separadores y punteros en cada página. Sus directorios permiten descartar intervalos enteros con cada descenso. Las entradas de datos se encuentran únicamente en las hojas, ordenadas y enlazadas: después de llegar al inicio de un rango se puede continuar hacia la hoja siguiente sin volver a la raíz. La estructura mantiene todas las hojas a la misma profundidad y una ocupación mínima para que la altura siga siendo pequeña. [@ramakrishnan2003, secs. 10.3–10.4]
+
+Aquí una **página** es la unidad lógica que leeríamos o escribiríamos conjuntamente en almacenamiento. El simulador representa páginas y claves; no simula bytes, caché, concurrencia ni recuperación ante fallos. El acceso a una página ya residente en memoria puede evitar una lectura física. Separar estos niveles permite comprender primero el método de acceso.
+
+## Estructura e intervalos {#estructura}
+
+::: {#def-bplus name="Árbol B+ de orden d"}
+Fijamos un entero $d\geq 1$, llamado **orden**. Cada nodo representa una página:
+
+- Una **hoja no raíz** contiene entre $d$ y $2d$ entradas de datos.
+- Un **directorio no raíz** contiene entre $d$ y $2d$ separadores y, si tiene $k$ separadores, exactamente $k+1$ punteros a hijos.
+- La **raíz interna** contiene entre $1$ y $2d$ separadores, por tanto entre $2$ y $2d+1$ hijos.
+- Una raíz que también sea hoja contiene entre $0$ y $2d$ entradas. Permitimos el árbol vacío y lo representamos mediante esa hoja sin entradas.
+- Todas las hojas tienen la misma profundidad y están **doblemente enlazadas** en orden de claves. Sus extremos no tienen predecesora o sucesora, respectivamente.
+
+La **altura** $H$ es el número de aristas desde la raíz hasta una hoja. Una sola hoja, vacía o no, tiene altura $0$.
+:::
+
+En este sitio usamos entradas con **claves enteras distintas**. En un índice real una entrada puede contener el registro completo, un par clave–identificador de registro o una clave con una lista de referencias. Los directorios almacenan valores que guían el recorrido, no copias completas de registros. [@ramakrishnan2003, secs. 10.3–10.3.1]
+
+### Un separador es una frontera
+
+Un directorio tiene la forma
+
+$$
+p_0,\ k_1,\ p_1,\ \ldots,\ k_m,\ p_m,
+\qquad k_1<\cdots<k_m.
+$$
+
+Los valores almacenados en los subárboles satisfacen:
+
+$$
+\begin{aligned}
+p_0 &: x<k_1,\\
+p_i &: k_i\leq x<k_{i+1} &&(1\leq i<m),\\
+p_m &: k_m\leq x.
+\end{aligned}
+$$
+
+Cada intervalo se intersecta con los límites heredados de los ancestros. La igualdad conduce siempre al hijo de la **derecha** del separador correspondiente. Un puntero identifica una página hija, no una posición contigua del archivo.
+
+::: {.callout-important}
+## Frontera válida no significa mínimo exacto
+
+Un separador no tiene que coincidir permanentemente con la menor clave del hijo derecho. Por ejemplo, la raíz `[10]` y las hojas `[2, 4]`, `[10, 12, 14]` son válidas para $d=2$. Al eliminar `10`, quedan `[2, 4]`, `[12, 14]` y la raíz **sigue siendo `[10]`**: todas las claves izquierdas son menores que $10$ y todas las derechas mayores o iguales. Buscar `10` llega correctamente a la derecha y falla allí. No se modifica esa frontera solo porque desapareció el dato.
+:::
+
+El split de hoja elige inicialmente un mínimo exacto, pero esa coincidencia no es un invariante de este modelo. Las operaciones de redistribución sí deben ajustar la frontera que atraviesan.
+
+### Orden, capacidad y fanout
+
+El orden $d$ cuenta entradas o separadores; no mide bytes. El **fanout** de un directorio con $k$ separadores es $k+1$. La capacidad física depende de cabeceras, tamaño de clave, punteros y formato. Si una página tiene $B$ bytes, cabecera de $h$ bytes, claves de $s$ bytes y punteros de $p$ bytes, una condición idealizada para un directorio lleno es
+
+$$
+h+2ds+(2d+1)p\leq B.
+$$
+
+Las hojas pueden tener otro formato y otra capacidad física. Adoptar aquí el mismo máximo $2d$ simplifica el modelo; no identifica el orden con el tamaño de página. Los formatos variables y las decisiones prácticas se discuten en @ramakrishnan2003 [sec. 10.8.3].
+
+## Búsqueda por valor y por rango {#busqueda}
+
+### Descenso por intervalos
+
+::: {.db-algorithm #algoritmo-busqueda}
+**Entrada:** un B+tree válido $T$ y una clave $x$. **Salida:** la hoja destino y si contiene $x$.
+
+```text
+BUSCAR(T, x)
+  P ← raíz de T
+  mientras P sea directorio:
+    i ← cantidad de separadores de P menores o iguales a x
+    P ← hijo i de P                         // hijos numerados desde 0
+  devolver (P, x pertenece a las entradas de P)
+```
+
+**Invariante:** si $x$ está almacenada, se encuentra en el subárbol actual. Los intervalos son disjuntos y cubren el intervalo del padre: exactamente un hijo puede contenerla. Cada descenso reduce los niveles restantes; al llegar a la hoja basta comparar sus entradas. Encontrar $x$ en un directorio no demuestra que el dato exista.
+:::
+
+La selección dentro de una página puede realizarse mediante búsqueda binaria. Para $H$ aristas se visitan **$H+1$ páginas del índice**, incluida la hoja. Si la entrada remite a datos externos, recuperar esos registros tiene un costo adicional. No se cuentan esos accesos como si fueran niveles del árbol. [@silberschatz2020, sec. 14.3.2]
+
+### Ejemplo: buscar 22 y buscar 23
+
+En el árbol de referencia de [inserción](#secuencia-insercion), la raíz es `[21]`. Para $22\geq21$ se elige su hijo derecho `[27, 33]`. Como $22<27$, se toma el primer hijo `[21, 22, 25]`: la búsqueda es exitosa. Se visitan tres páginas, pues $H=2$. Buscar `23` recorre las mismas páginas y falla al comparar las entradas de la hoja. Ni el éxito ni el fracaso necesitan explorar el resto del árbol.
+
+### Recorrer un rango
+
+::: {.db-algorithm}
+**Entrada:** $T$ válido y extremos $a\leq b$. **Salida:** entradas cuyas claves pertenecen a $[a,b]$, en orden.
+
+```text
+RANGO(T, a, b)
+  P ← hoja destino de BUSCAR(T, a)
+  resultado ← lista vacía
+  mientras P exista:
+    para x en las entradas ordenadas de P:
+      si x > b: devolver resultado
+      si x ≥ a: añadir x a resultado
+    P ← siguiente hoja de P
+  devolver resultado
+```
+:::
+
+Para $10\leq x\leq25$, se desciende a `[7, 9, 10]` y se continúa por `[12, 14]`, `[15, 18, 19]`, `[21, 22, 25]`. Al leer `[27, 28, 30]`, su primera clave supera $25$ y se termina. El resultado es `10, 12, 14, 15, 18, 19, 21, 22, 25`. Con esta política de parada se visitan dos directorios y cinco hojas: **siete páginas distintas**. No se presupone información extra que permita detenerse antes de leer la última hoja.
+
+Si se visitan $L$ hojas, el recorrido requiere $H+L$ accesos lógicos a páginas del índice: el descenso ya incluye la primera hoja. En CPU, una búsqueda binaria por directorio cuesta $O(\log(d+1))$ comparaciones; un rango añade el examen de entradas de sus hojas y la producción de resultados. Los registros externos pueden añadir muchas lecturas, según su disposición física.
+
+## Ocupación, altura y costo {#altura}
+
+::: {#thm-altura-bplus name="Cotas de ocupación por altura"}
+Sea $n$ el número de entradas de datos de un árbol válido de orden $d\geq1$ y altura $H\geq1$. Entonces
+
+$$
+2d(d+1)^{H-1}\leq n\leq2d(2d+1)^H.
+$$
+:::
+
+::: {.proof}
+La raíz tiene al menos dos hijos. Cada directorio no raíz tiene al menos $d+1$ hijos: hay al menos $2(d+1)^{H-1}$ hojas y cada una contiene al menos $d$ entradas. Para el máximo, cada directorio, incluida la raíz, tiene a lo sumo $2d+1$ hijos: hay a lo sumo $(2d+1)^H$ hojas, cada una con a lo sumo $2d$ entradas. Multiplicar da las cotas.
+:::
+
+Como $H\geq1$ implica $n\geq2d>0$, podemos tomar logaritmos de $n/(2d)\geq1$. Las bases $d+1$ y $2d+1$ son mayores que uno, incluso para $d=1$:
+
+$$
+\max\left\{1,\left\lceil\log_{2d+1}\frac{n}{2d}\right\rceil\right\}
+\leq H\leq
+1+\left\lfloor\log_{d+1}\frac{n}{2d}\right\rfloor.
+$$
+
+Son condiciones necesarias para un árbol con raíz interna, no una afirmación de que cada altura del intervalo sea alcanzable mediante cualquier secuencia. Una raíz hoja tiene $H=0$ y $0\leq n\leq2d$; el árbol vacío queda incluido y no se calcula $\log 0$. Para $n=2d$ pueden existir una sola hoja llena o una raíz interna con dos hojas mínimas.
+
+### Ejemplo de costo
+
+Con $d=2$ y $H=2$, el mínimo es $4\cdot3=12$ entradas: dos directorios no raíz con tres hojas cada uno, y dos entradas por hoja. El máximo es $4\cdot5^2=100$: cinco directorios con cinco hojas cada uno, y cuatro entradas por hoja. Buscar por valor visita tres páginas en ambos extremos.
+
+En un modelo con $d=100$ y $n=1\,000\,000$, las cotas dan $2\leq H\leq2$: se visitan tres páginas de índice. Esto no afirma que una página concreta admita ese orden; primero habría que verificar sus bytes disponibles. Para $d$ fijo, la altura y los accesos por búsqueda son $O(\log(n+1))$. Los splits y las fusiones recorren a lo sumo un camino ascendente, por lo que las actualizaciones también requieren $O(H+1)$ accesos a páginas, más un número constante de páginas vecinas por nivel. Mover entradas dentro de cada página añade trabajo de CPU de hasta $O(d(H+1))$ en una implementación con arreglos. [@silberschatz2020, sec. 14.3.4]
+
+El explorador añade copias completas y validaciones del árbol en cada paso para permitir el retroceso y detectar errores. Ese trabajo pedagógico consume tiempo y memoria adicionales; sus tiempos de ejecución no miden el costo de un índice real por páginas.
+
+## Inserción ordinaria: dividir cuando una página se llena {#insercion}
+
+::: {.db-algorithm #algoritmo-insercion}
+**Entrada:** $T$ válido y un entero $x$ no almacenado. **Salida:** $T$ con $x$, conservando los invariantes. Una clave repetida se rechaza sin cambiar el árbol.
+
+```text
+INSERTAR(T, x)                         // política ordinaria: sin redistribución
+  L ← hoja destino de BUSCAR(T, x)
+  si x ya existe: rechazar
+  insertar x ordenadamente en L
+  P ← L
+  mientras P contiene 2d+1 entradas o separadores:
+    si P es hoja:
+      dejar las primeras d entradas en P
+      mover las últimas d+1 a una nueva hoja Q
+      reparar los enlaces anterior/siguiente de P, Q y su vecina
+      s ← primera clave de Q          // COPIAR: también permanece en Q
+    en otro caso:
+      s ← separador central de P
+      dividir en P y Q, cada uno con d separadores y d+1 hijos
+                                      // PROMOCIONAR: s sale de ambos
+    si P era raíz:
+      crear raíz con hijos P, Q y separador s; terminar
+    insertar s y el puntero a Q en el padre, después del puntero a P
+    P ← padre
+  devolver T
+```
+:::
+
+Un **overflow** es el estado transitorio con $2d+1$ entradas o separadores. El split de hoja distribuye $d$ a la izquierda y $d+1$ a la derecha; el separador copiado sigue siendo dato. En un directorio, el centro se promociona: deja $d$ separadores a cada lado y pertenece solo al padre en ese nivel. Los límites originales siguen válidos porque las claves y los hijos se reparten en orden. [@ramakrishnan2003, sec. 10.5; @silberschatz2020, sec. 14.3.3.1]
+
+### Ejemplo completo: split de raíz hoja
+
+Con $d=2$, insertar `12, 7, 30, 18` produce la raíz hoja `[7, 12, 18, 30]`. Insertar `3` da temporalmente `[3, 7, 12, 18, 30]`. El máximo es cuatro: se divide en `[3, 7]` y `[12, 18, 30]`, se conectan ambas hojas y se crea la raíz `[12]`. La clave `12` permanece en la hoja derecha. La altura pasa de cero a uno.
+
+### Secuencia completa de referencia {#secuencia-insercion}
+
+Partiendo de vacío, con $d=2$ y **sin redistribución**, insertar en este orden:
+
+```text
+12, 7, 30, 18, 3, 25, 9, 21, 15, 40,
+1, 27, 33, 10, 5, 22, 36, 14, 28, 19
+```
+
+produce el árbol siguiente. Los renglones de hojas corresponden, en orden, a los hijos de los directorios:
+
+```text
+Raíz:                         [21]
+Directorios:       [7, 12, 15]          [27, 33]
+Hojas:
+  [1, 3, 5] ↔ [7, 9, 10] ↔ [12, 14] ↔ [15, 18, 19]
+      ↔ [21, 22, 25] ↔ [27, 28, 30] ↔ [33, 36, 40]
+```
+
+Hay seis splits de hoja, uno de directorio y dos creaciones de raíz; la altura final es dos. Cada split de hoja añade una hoja, por lo que de una inicial se pasa a siete. El explorador calcula toda la secuencia mediante el algoritmo y permite detenerse en cada desbordamiento.
+
+## Variante: redistribuir antes de dividir {#redistribucion}
+
+Esta política se selecciona explícitamente y se mantiene durante toda la traza de inserción. Ante overflow, se examina primero el **hermano derecho** y después el **izquierdo**, exclusivamente entre hijos del mismo padre. Si alguno tiene menos de $2d$ entradas o separadores, se mueve **una** unidad hacia él; si ninguno tiene espacio, se hace el split ordinario. La raíz no tiene hermanos.
+
+::: {.db-algorithm}
+**Entrada:** una página $P$ con overflow durante una inserción y su padre, si existe. **Salida:** overflow resuelto o indicación de que debe hacerse split.
+
+```text
+INTENTAR_REDISTRIBUIR(P)
+  para lado en [derecho, izquierdo]:
+    S ← hermano de P en ese lado, con el mismo padre
+    si S existe y tiene menos de 2d unidades:
+      si son hojas: mover el extremo de P hacia S y ajustar la frontera
+      si son directorios: rotar un hijo atravesando la frontera del padre
+      devolver resuelto
+  devolver hacer split
+```
+
+Esta comprobación se inserta antes de dividir cada página en el algoritmo ordinario. La política ordinaria omite por completo estos intentos.
+:::
+
+En hojas se mueve el mayor al derecho o el menor al izquierdo, y se reemplaza la frontera por el mínimo de la hoja derecha del par. Por ejemplo, desde raíz `[30]` y hojas `[10, 20]`, `[30, 40, 50, 60]`, insertar `45`:
+
+| Política | Raíz resultante | Hojas resultantes |
+|---|---|---|
+| Ordinaria | `[30, 45]` | `[10, 20]` · `[30, 40]` · `[45, 50, 60]` |
+| Con redistribución | `[40]` | `[10, 20, 30]` · `[40, 45, 50, 60]` |
+
+La derecha no existe; la izquierda tiene espacio. Redistribuir evita crear una hoja. Ambos resultados son válidos y almacenan las mismas claves.
+
+### Rotaciones de directorios {#rotaciones}
+
+En directorios se mueve también un **puntero a subárbol**. Sea $s$ la frontera del padre entre los directorios $A$ (izquierdo) y $B$ (derecho):
+
+| Movimiento de un hijo | Separador que baja | Separador que sube |
+|---|---|---|
+| Último hijo de $A$ pasa a ser primero de $B$ | $s$ se antepone a los separadores de $B$ | Último separador de $A$ reemplaza $s$ |
+| Primer hijo de $B$ pasa a ser último de $A$ | $s$ se agrega a los separadores de $A$ | Primer separador de $B$ reemplaza $s$ |
+
+No se trata de copiar directamente una clave entre directorios: el separador del padre entra en la página receptora y el del donante pasa al padre. Esto conserva los intervalos del hijo transferido, incluso si las fronteras no son mínimos exactos.
+
+**Ejemplo interno.** Con $d=2$, supongamos raíz `[50]`, directorio izquierdo `[10, 20, 30, 40]` y derecho `[60, 70]`, con hojas mínimas válidas bajo esos intervalos. Un split de hoja puede añadir `35` al izquierdo, dejándolo transitoriamente `[10, 20, 30, 35, 40]`. El derecho tiene espacio: el último hijo izquierdo se mueve al principio del derecho, `50` baja y `40` sube. Quedan raíz `[40]`, izquierdo `[10, 20, 30, 35]` y derecho `[50, 60, 70]`. El preset «Redistribución interna» reproduce este mecanismo con un árbol construido mediante inserciones.
+
+## Eliminación: prestar, fusionar y contraer {#eliminacion}
+
+Una eliminación puede dejar una página con $d-1$ entradas o separadores: **underflow**. La excepción es la raíz. Adoptamos esta prioridad determinista, tanto para hojas como para directorios:
+
+1. Pedir una unidad al hermano **izquierdo** si tiene más de $d$.
+2. Si no puede, pedir al **derecho** si tiene más de $d$.
+3. Si ninguno presta, fusionar con el izquierdo cuando exista; si no, con el derecho.
+
+Solo cuentan hermanos con el **mismo padre**. Una hoja adyacente en la lista puede pertenecer a otro padre y no ser candidata. El explorador muestra los intentos, incluso cuando un hermano no puede prestar.
+
+::: {.db-algorithm #algoritmo-eliminacion}
+**Entrada:** $T$ válido y clave $x$. **Salida:** $T$ sin $x$, o aviso de clave ausente sin cambios.
+
+```text
+ELIMINAR(T, x)
+  P ← hoja destino de BUSCAR(T, x)
+  si x no existe en P: informar y terminar
+  quitar x de P                         // no recalcular mínimos de ancestros
+  mientras P no sea raíz y tenga menos de d entradas/separadores:
+    buscar prestamista: primero izquierdo, después derecho, mismo padre
+    si existe:
+      transferir una entrada (hoja) o rotar un hijo por el padre (directorio)
+      ajustar la frontera atravesada; terminar
+    elegir par a fusionar, prefiriendo el izquierdo
+    si son hojas:
+      concatenar sus entradas y reparar enlaces
+    si son directorios:
+      concatenar separadores incluyendo entre ellos la frontera del padre
+      concatenar hijos
+    quitar del padre la frontera y el puntero al nodo derecho eliminado
+    P ← padre
+  si la raíz interna tiene un solo hijo:
+    reemplazar la raíz por ese hijo
+  devolver T
+```
+:::
+
+En una hoja, pedir desde la izquierda mueve su máximo al inicio de la receptora; pedir desde la derecha mueve su mínimo al final. Se actualiza la frontera del par. En directorios se usan las [rotaciones](#rotaciones), con idéntica prioridad de hermanos. [@ramakrishnan2003, sec. 10.6]
+
+### Unsplit: la frontera se trata de manera diferente
+
+La **fusión**, también llamada **unsplit**, conserva la página izquierda y retira la derecha. En hojas se concatenan datos y se **descarta** la frontera del padre: no se convierte en un dato nuevo. En directorios esa frontera **baja** entre ambas listas de separadores, pues hace falta para distinguir los hijos de las dos páginas originales.
+
+Si un nodo tiene $d-1$ unidades y su hermano no puede prestar, este tiene $d$. La hoja fusionada tendrá $2d-1\leq2d$ entradas. El directorio fusionado tendrá $(d-1)+1+d=2d$ separadores, contando el que baja. La fusión puede provocar underflow en el padre; se repite allí.
+
+### Ejemplo completo de préstamo y fusión {#secuencia-eliminacion}
+
+Partimos del [árbol de referencia](#secuencia-insercion) y eliminamos `14, 19, 18, 15, 1, 3`. La tabla presenta **estados finales de cada operación**, calculados con la prioridad anterior:
+
+| Eliminar | Comprobación y acción | Raíz y directorios | $H$ |
+|---|---|---|---|
+| `14` | `[12]` queda corta; `[7,9,10]` presta `10` desde la izquierda | `[21]`; `[7,10,15]` / `[27,33]` | 2 |
+| `19` | `[15,18]` tiene dos entradas; no rebalancear | Sin cambios | 2 |
+| `18` | `[15]` queda corta; `[10,12]` no presta y no hay hermano derecho del mismo padre; fusionar | `[21]`; `[7,10]` / `[27,33]` | 2 |
+| `15` | `[10,12]` cumple el mínimo; no rebalancear | Sin cambios | 2 |
+| `1` | `[3,5]` cumple el mínimo | Sin cambios | 2 |
+| `3` | `[5]` queda corta; `[7,9]` no presta; fusionar; el padre `[10]` queda corto; fusionar directorios bajando `21`; contraer raíz | `[10,21,27,33]`, hijos hojas | 1 |
+
+Después de eliminar `14`, las hojas son:
+
+```text
+[1,3,5] ↔ [7,9] ↔ [10,12] ↔ [15,18,19]
+    ↔ [21,22,25] ↔ [27,28,30] ↔ [33,36,40]
+```
+
+Después de las seis eliminaciones:
+
+```text
+Raíz: [10, 21, 27, 33]
+Hojas: [5,7,9] ↔ [10,12] ↔ [21,22,25] ↔ [27,28,30] ↔ [33,36,40]
+```
+
+La altura disminuye al eliminar `3`, porque la antigua raíz pierde su último separador y queda con un único hijo. Ese hijo se convierte en la nueva raíz. Hay cinco hojas y un directorio. El préstamo desde un directorio se rige por las mismas rotaciones del apartado anterior; el preset «Préstamo interno» permite estudiarlo separado de esta secuencia.
+
+### Ejemplo de préstamo entre directorios
+
+Considera raíz `[31]`, directorio izquierdo `[27,29]` y derecho `[33,35,37]`, con hojas:
+
+```text
+Izquierdo: [25,26] · [27,28] · [29,30]
+Derecho:   [31,32] · [33,34] · [35,36] · [37,38,39,40]
+```
+
+Eliminar `25` deja `[26]`. No hay hermano izquierdo de esa hoja y `[27,28]` no puede prestar: se fusionan en `[26,27,28]`. El directorio izquierdo queda `[29]`, con dos hijos y menos de dos separadores. No tiene hermano izquierdo; el derecho tiene tres separadores y puede prestar. Su primer hijo `[31,32]` pasa al final del directorio izquierdo. La frontera `31` baja, y `33` sube a la raíz. El resultado es:
+
+```text
+Raíz: [33]
+Directorios: [29,31] / [35,37]
+Hojas: [26,27,28] ↔ [29,30] ↔ [31,32] ↔ [33,34] ↔ [35,36] ↔ [37,38,39,40]
+```
+
+La altura sigue siendo dos. El préstamo mueve un subárbol completo y no introduce `31` como dato adicional: esa clave ya estaba en la hoja transferida.
+
+## Explorador paso a paso {#explorador}
+
+Selecciona un ejemplo y avanza por sus snapshots. La política visible afecta solo a inserciones; las eliminaciones conservan siempre su prioridad izquierda–derecha. Cambiar ejemplo o política reconstruye la traza desde su punto de partida. **Reiniciar** vuelve al inicio de la traza actual; **Anterior** recupera el estado guardado, sin intentar deshacer con una operación inversa.
+
+Las celdas conservan su tamaño en pantallas estrechas. Usa el desplazamiento horizontal del diagrama, **Centrar raíz** o **Centrar página activa** para recorrer un árbol ancho; la estructura textual por niveles ofrece otra forma de inspeccionarlo.
+
+Puedes ejecutar búsquedas por valor o rango, insertar y eliminar enteros desde cualquier **estado estable** mostrado. Esto inicia una nueva traza a partir de ese estado. Durante un overflow o underflow transitorio, termina primero el rebalanceo. El explorador limita el árbol a 60 claves para mantener legible el dibujo; el motor no tiene ese límite pedagógico.
+
+::: {.db-viz data-db-viz="bplus"}
+::: {.db-viz-fallback}
+**Ejemplo completo sin JavaScript y para impresión ($d=2$).**
+
+1. **Inicio:** raíz hoja `[7,12,18,30]`. Insertar `3` produce `[3,7,12,18,30]`: cinco entradas superan el máximo cuatro, estado transitorio.
+2. **Split:** izquierda `[3,7]`, derecha `[12,18,30]`; reparar ambos enlaces. Copiar `12` a una nueva raíz `[12]`. Ambas hojas cumplen el mínimo y la altura pasa a uno.
+3. **Buscar `18`:** en `[12]`, $18\geq12$, bajar a la derecha; encontrar `18` en `[12,18,30]`. Dos páginas visitadas.
+4. **Eliminar `3`:** la izquierda queda `[7]`, por debajo de dos. No hay hermano izquierdo; el derecho tiene tres entradas y puede prestar. Mover `12` a la izquierda y reemplazar la frontera por `18`: raíz `[18]`, hojas `[7,12]` y `[18,30]`.
+5. **Eliminar `7`:** la izquierda queda `[12]`. El derecho `[18,30]` tiene el mínimo, no presta. Fusionar en `[12,18,30]`, retirar el separador `18` del padre y reparar enlaces. La raíz queda con un único hijo: contraer. La nueva raíz es esa hoja y la altura vuelve a cero.
+
+Los ejemplos de las secciones anteriores desarrollan también el árbol de veinte entradas, la eliminación encadenada y las rotaciones internas. La explicación completa permanece disponible aunque falle la visualización.
+:::
+:::
+
+## Correctitud y casos límite {#garantias}
+
+::: {#thm-operaciones-bplus name="Conservación de invariantes"}
+Partiendo de un árbol válido, las operaciones descritas terminan y producen otro árbol válido con el conjunto de claves esperado. Una búsqueda devuelve una entrada exactamente cuando su clave está almacenada.
+:::
+
+::: {.proof}
+El descenso conserva el posible destino mediante los intervalos. Insertar ordenadamente añade exactamente una clave; eliminar retira exactamente la encontrada. Cada transformación local reparte o concatena listas contiguas, conserva el orden y mueve cada hijo con su intervalo. Las rotaciones ajustan la frontera atravesada; eliminar sin rebalancear solo reduce un conjunto dentro de un intervalo ya válido.
+
+Los splits restauran la ocupación del nodo dividido y trasladan un posible exceso al padre. Los préstamos restauran la ocupación sin cambiar el número de hijos del padre. Una fusión conserva la capacidad y traslada un posible déficit al padre. En ambos casos la propagación sube estrictamente un nivel, de modo que termina. Crear una raíz añade un nivel a todas las hojas; contraerla quita uno a todas. Las otras transformaciones conservan la profundidad de las hojas y reparan los enlaces cuando cambia su lista.
+:::
+
+- **Raíz con un único hijo:** es un estado transitorio posterior a una fusión; se contrae. Una raíz interna estable tiene al menos dos hijos.
+- **Última clave:** se elimina de la raíz hoja y queda la hoja vacía con enlaces nulos. Buscar en ella falla sin descender.
+- **Clave ausente:** buscar o eliminar informa el fallo y conserva la estructura.
+- **Duplicados:** el simulador los rechaza explícitamente. Un índice no único podría ordenar pares $(\text{clave},\text{id de registro})$ o asociar una lista de referencias a cada clave; habría que adaptar las entradas y las consultas, no introducir duplicados sin cambiar el contrato. [@ramakrishnan2003, sec. 10.7; @silberschatz2020, sec. 14.3.5]
+- **Separadores sin dato homónimo:** siguen siendo válidos mientras respeten los intervalos. No se aplica una recomputación global de mínimos.
+
+Las pruebas comprueban por separado orden, ocupación, aridad, profundidad, intervalos, enlaces y conjunto de claves. Los estados transitorios declaran la única página con exceso o déficit permitido; no son resultados finales de una operación. Las pruebas finitas complementan el argumento de correctitud, sin sustituirlo.
+
+## Autoevaluación
+
+::: {#exr-bplus-fronteras}
+Con $d=2$, raíz `[10]` y hojas `[2,4]`, `[10,12,14]`:
+
+1. Elimina `10`. ¿Hay que reemplazar el separador por `12`? ¿Cómo se busca `10` después?
+2. Elimina ahora `2`. Indica los hermanos considerados y el resultado completo.
+3. Para $d=3$ y $H=2$, calcula el mínimo y máximo de entradas y el número de páginas de una búsqueda por valor.
+:::
+
+<details class="db-solution">
+<summary>Solución razonada</summary>
+
+1. Quedan raíz `[10]` y hojas `[2,4]`, `[12,14]`. No hay underflow y se conserva el separador. Buscar `10` baja a la derecha por igualdad y falla en `[12,14]`.
+2. La izquierda queda `[4]`, con menos de dos entradas. No existe hermano izquierdo y el derecho está al mínimo: no puede prestar. Se fusionan en `[4,12,14]`. La raíz pierde su separador y se contrae a esa hoja, con altura cero. El antiguo `10` no se añade a los datos.
+3. El mínimo es $6\cdot4=24$ y el máximo $6\cdot7^2=294$. La búsqueda visita $H+1=3$ páginas de índice; recuperar un registro externo puede añadir otro acceso.
+
+</details>
+
+::: {.summary-box}
+## Resumen
+
+Los B+trees mantienen directorios de intervalos y hojas ordenadas, balanceadas y doblemente enlazadas. La ocupación mínima asegura altura logarítmica. Insertar divide de abajo hacia arriba; la variante con redistribución intenta usar espacio vecino. Eliminar presta, fusiona y, si corresponde, contrae la raíz. Copiar en hojas, promocionar en directorios y conservar fronteras válidas al eliminar son decisiones esenciales para que las trazas y la búsqueda coincidan.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Sistemas de bases de datos y métodos de acceso](../fundamentos/sistemas-rdbms.qmd)
+- [Modelo relacional](../fundamentos/modelo-relacional.qmd)
+- [Llaves candidatas y restricciones lógicas](../diseno/dependencias-llaves.qmd)
+- [Filtros y orden en SQL](../sql/funciones-filtros.qmd)
+:::

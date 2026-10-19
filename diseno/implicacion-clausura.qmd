@@ -1,0 +1,347 @@
+---
+title: "Razonamiento con dependencias: implicación y clausura"
+description: "Conjuntos de dependencias funcionales, implicación, equivalencia y algoritmo de clausura de atributos."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">Implicación</span>
+<span class="concept-tag">Clausura</span>
+<span class="concept-tag">Invariantes</span>
+<span class="concept-tag">Enumeración con poda</span>
+</div>
+</div>
+
+## Intuición y concepto
+
+Una base de datos rara vez tiene una sola dependencia funcional. Cuando conocemos un conjunto $F$, algunas dependencias adicionales se siguen lógicamente de él. La **clausura de atributos** permite calcular esas consecuencias y decidir si ciertos atributos forman una superllave.
+
+## Satisfacción de un conjunto de dependencias
+
+Fijemos un esquema de atributos. Sea $F$ un conjunto de dependencias funcionales sobre ese esquema; todas las relaciones consideradas a continuación tienen esos mismos atributos.
+
+$$
+R\models F
+$$
+
+significa que $R$ satisface **cada** dependencia de $F$:
+
+$$
+R\models F
+\iff
+\forall(\bar A\to\bar B)\in F,
+\;R\models\bar A\to\bar B.
+$$
+
+## Implicación
+
+::: {.callout-note title="Definición formal"}
+Decimos que $F$ **implica** $F'$, escrito
+
+$$
+F\models F',
+$$
+
+si para toda relación $R$:
+
+$$
+R\models F
+\quad\Longrightarrow\quad
+R\models F'.
+$$
+
+[@arenas2022]
+:::
+
+Para una sola dependencia escribimos, por ejemplo,
+
+$$
+F\models A\to C.
+$$
+
+Esto no pregunta si una instancia concreta satisface $A\to C$, sino si **toda** relación que respete $F$ necesariamente debe respetarla.
+
+## Equivalencia de conjuntos
+
+$F$ y $F'$ son equivalentes cuando tienen exactamente los mismos modelos:
+
+$$
+F\equiv F'
+\iff
+\forall R,
+\quad
+R\models F
+\text{ si y solo si }
+R\models F'.
+$$
+
+## Reglas de razonamiento
+
+Dos reglas útiles permiten descomponer dependencias y encadenarlas:
+
+### Dividir y juntar
+
+$$
+\{\bar A\to B_1\cdots B_m\}
+\equiv
+\{\bar A\to B_1,\ldots,\bar A\to B_m\}.
+$$
+
+Por ejemplo:
+
+$$
+codigo\to nombre\ creditos
+$$
+
+es equivalente a
+
+$$
+\{codigo\to nombre,\;codigo\to creditos\}.
+$$
+
+### Transitividad
+
+$$
+\{\bar A\to\bar B,\;\bar B\to\bar C\}
+\models
+\bar A\to\bar C.
+$$
+
+Si un atributo determina otro, y ese segundo determina un tercero, el primero determina el tercero.
+
+Estas reglas forman parte del razonamiento con dependencias funcionales. Los axiomas de Armstrong proporcionan un sistema completo de deducción; aquí usaremos la clausura para decidir implicación de forma algorítmica. [@silberschatz2020; @garciamolina2009]
+
+## Dos problemas algorítmicos
+
+Dado $F$, queremos resolver:
+
+1. ¿es $\bar A$ una superllave?
+2. ¿se cumple $F\models\bar A\to\bar B$?
+
+Ambos se resuelven calculando la clausura de $\bar A$.
+
+## Clausura de atributos
+
+::: {.callout-note title="Definición formal"}
+La **clausura** de $\bar A$ bajo $F$ es
+
+$$
+\bar A^+
+:=
+\{B\mid F\models\bar A\to B\}.
+$$
+
+:::
+
+Contiene exactamente los atributos individuales que están funcionalmente determinados por $\bar A$ según $F$.
+
+## Ejemplo universitario
+
+Supongamos una relación auxiliar
+
+$$
+InscripcionDetallada(rut,nombreEst,carrera,codigo,nombreCurso,creditos)
+$$
+
+con
+
+$$
+F=\{
+ rut\to nombreEst\ carrera,
+ codigo\to nombreCurso\ creditos
+\}.
+$$
+
+Entonces:
+
+$$
+\{rut,codigo\}^+
+=
+\{rut,codigo,nombreEst,carrera,nombreCurso,creditos\}.
+$$
+
+Por lo tanto, `rut codigo` determina todos los atributos de esta relación y es una superllave bajo $F$.
+
+En cambio:
+
+$$
+\{rut\}^+
+=
+\{rut,nombreEst,carrera\},
+$$
+
+por lo que `rut` no es superllave de `InscripcionDetallada`.
+
+## Algoritmo de clausura
+
+El procedimiento aplica dependencias hasta alcanzar un punto fijo:
+
+```text
+entrada: F y un conjunto de atributos A
+clausura <- A
+reglas   <- F
+
+mientras exista B -> C en reglas con B contenido en clausura:
+  clausura <- clausura union C
+  eliminar B -> C de reglas
+
+retornar clausura
+```
+
+Cada vez que ya conocemos todos los atributos del lado izquierdo de una dependencia, podemos agregar los del lado derecho. Incluso si una regla no agrega atributos, seguimos buscando otras aplicables. El proceso termina porque cada iteración elimina una regla de un conjunto finito.
+
+### Ejecución sobre el ejemplo
+
+Inicio:
+
+$$
+clausura=\{rut,codigo\}.
+$$
+
+Por `rut → nombreEst carrera`:
+
+$$
+clausura=
+\{rut,codigo,nombreEst,carrera\}.
+$$
+
+Por `codigo → nombreCurso creditos`:
+
+$$
+clausura=
+\{rut,codigo,nombreEst,carrera,nombreCurso,creditos\}.
+$$
+
+No queda ninguna regla pendiente aplicable; el algoritmo termina.
+
+## Corrección del algoritmo
+
+El argumento de inducción y el contraejemplo de dos tuplas se desarrollan también en @garciamolina2009 [sec. 3.2.5]. Aquí se aplican a la versión que retira reglas, incluidos determinantes vacíos.
+
+La corrección requiere demostrar dos direcciones:
+
+1. si un atributo entra a `clausura`, entonces realmente pertenece a $\bar A^+$;
+2. si un atributo no entra al finalizar, puede construirse una relación que satisface $F$ pero viola $\bar A\to B$, por lo que $B\notin\bar A^+$.
+
+El primer punto se demuestra inductivamente sobre las iteraciones. El segundo usa dos tuplas que coinciden en los atributos de la clausura y difieren en los demás.
+
+Sea $C$ el conjunto final. Para la primera dirección, inicialmente $\bar A\subseteq C$ y sus atributos están determinados trivialmente por $\bar A$. Si todos los atributos de $X$ ya están determinados y $X\to Y\in F$, la transitividad justifica incorporar $Y$.
+
+Para la segunda, supongamos $B\notin C$ y un dominio con al menos dos valores distintos, $a$ y $b$. Construyamos dos tuplas sobre el esquema: $t_1$ vale $a$ en todos los atributos; $t_2$ vale $a$ en $C$ y $b$ fuera de $C$. La relación $\{t_1,t_2\}$ satisface $F$: si ambas coinciden en el antecedente $X$ de una regla, entonces $X\subseteq C$; como el algoritmo terminó, su consecuente también está en $C$, y ambas tuplas coinciden en él. Sin embargo, coinciden en $\bar A$ y difieren en $B$. Por tanto, $F\not\models\bar A\to B$.
+
+## Resolver los dos problemas
+
+::: {.callout-note title="Implicación y superllaves bajo F"}
+La clausura permite decidir:
+
+$$
+\bar A\text{ es superllave bajo }F
+\iff
+\bar A^+=att(R),
+$$
+
+$$
+F\models\bar A\to\bar B
+\iff
+\{\bar B\}\subseteq\bar A^+.
+$$
+
+:::
+
+Esta es una de las herramientas algorítmicas más importantes del diseño relacional.
+
+## Contrato, costo y casos límite {#contrato-clausura}
+
+La entrada consta de un conjunto finito $U$, reglas $X\to Y$ con $X,Y\subseteq U$ y una semilla $S\subseteq U$. La salida es exactamente $S^+$. La prueba presupone el modelo relacional de conjuntos, sin `NULL`, y dominios con al menos dos valores para construir el contraejemplo. Las listas de atributos se interpretan como conjuntos en el cálculo de DF.
+
+Los invariantes son: $S\subseteq C\subseteq S^+$; el acumulado $C$ nunca disminuye; cada regla retirada tiene su consecuente en $C$. Cada iteración retira una regla, por lo que hay a lo sumo $m=|F|$ aplicaciones. Al terminar, todas las reglas cuyo antecedente está en $C$ tienen su consecuente en $C$, hayan sido retiradas o no.
+
+Sea $n=|U|$ y $L=\sum_{X\to Y\in F}(|X|+|Y|)$. Con conjuntos de pertenencia constante y búsqueda lineal de la próxima regla, cada búsqueda cuesta $O(m+L)$; el cálculo sin historial cuesta $O(n+m(m+L))$ en tiempo y $O(n+m+L)$ en espacio. Guardar una copia de acumulado y reglas pendientes en cada paso añade $O(m(n+m))$ espacio a la visualización. La cota es polinomial; no afirma que esta sea la implementación más eficiente posible.
+
+La versión por punto fijo, que recorre todas las reglas hasta que **una pasada completa** no cambia $C$, produce la misma clausura: ambos procedimientos mantienen el invariante y terminan en un conjunto cerrado bajo todas las reglas. Parar porque una sola regla no añadió nada es incorrecto.
+
+| Entrada | Comportamiento y resultado |
+|---|---|
+| $F=\varnothing$ | No hay aplicaciones; $S^+=S$. |
+| $A\to B,\ B\to A$, semilla $A$ | Agrega $B$, retira la regla de retorno aunque no añada nada y termina en $AB$. |
+| $A\to A,\ A\to B$, semilla $A$ | La primera regla es inocua; hay que continuar hasta obtener $AB$. |
+| $\varnothing\to A,\ A\to B$, semilla vacía | El antecedente vacío está contenido desde el comienzo; resultado $AB$. |
+
+## Enumerar todas las llaves {#enumerar-llaves}
+
+Para encontrar una llave basta partir de $U$ y retirar, uno por uno, atributos cuya eliminación mantenga la clausura $U$. Para encontrar **todas**, exploramos conjuntos por cardinalidad creciente y evitamos calcular clausuras de conjuntos que ya contienen una llave encontrada.
+
+::: {.db-algorithm #procedimiento-llaves}
+**Entrada:** esquema finito $U$ y DF $F$. **Salida:** todas las llaves candidatas, sin repeticiones. **Precondición:** los atributos de cada regla están en $U$.
+
+```text
+1  llaves ← lista vacía
+2  para X ⊆ U, por tamaño creciente, incluido ∅:
+3    si alguna K en llaves está contenida en X: continuar
+4    si clausura(F, X) = U: agregar X a llaves
+5  devolver llaves
+```
+
+**Invariante:** las llaves ya emitidas son minimales y se han examinado o podado todos los conjuntos anteriores en el orden.
+:::
+
+**Corrección.** Si se emite $X$ y existiera una superllave propia dentro de él, esa superllave contendría una llave candidata de menor tamaño, encontrada antes; la línea 3 habría podado $X$. Recíprocamente, una llave candidata jamás contiene otra llave propia, de modo que no puede ser podada antes de examinarse. La enumeración termina porque hay $2^n$ conjuntos.
+
+Si $k$ es el número de llaves y $C_F$ el costo de una clausura, una cota conservadora de las comprobaciones es $O(2^n(C_F+nk))$, además de generar y ordenar los subconjuntos. La implementación visual materializa esos conjuntos y limita la entrada a ocho atributos. No se promete tiempo polinomial: con $p$ pares independientes $A_i\to B_i$, $B_i\to A_i$, cada elección de un atributo por par es una llave, dando $2^p$ salidas.
+
+### Traza de la enumeración sobre $ABCDE$
+
+Con las [DF del ejemplo](dependencias-llaves.qmd#ejemplo-abcde), $\varnothing$ falla. Entre los unitarios se emite $A$; $B,C,D,E$ fallan. Se podan todos los pares con $A$; entre los demás se emiten $BC$ y $CE$, mientras $BD,BE,CD,DE$ fallan. En los tamaños mayores se podan los conjuntos que contienen $A$, $BC$ o $CE$; el único triple realmente examinado es $BDE$, cuya clausura es $BDE$. Por ejemplo, $CDE$ se poda porque contiene $CE$; todos los conjuntos de tamaño cuatro o cinco se podan. La salida es $A,BC,CE$.
+
+## Laboratorio de clausura {#laboratorio-clausura}
+
+Se admiten hasta ocho atributos de una letra mayúscula y cuarenta reglas. Usa `∅` o un campo vacío para el conjunto vacío. El orden de aplicación es el de escritura de las reglas; cambiarlo puede cambiar la traza, pero no el resultado. Los botones recorren estados guardados: «Anterior» restaura el estado previo exacto.
+
+::: {.db-viz data-db-viz="clausuras"}
+::: {.db-viz-fallback}
+**Ejemplo estático completo.** Para $U=ABCDE$, $F=\{A\to B,A\to C,B\to E,CE\to A,CE\to D\}$ y semilla $A$:
+
+| Paso | Regla retirada | Acumulado | Pendientes |
+|---|---|---|---|
+| 0 | — | $A$ | Las cinco reglas |
+| 1 | $A\to B$ | $AB$ | $A\to C,B\to E,CE\to A,CE\to D$ |
+| 2 | $A\to C$ | $ABC$ | $B\to E,CE\to A,CE\to D$ |
+| 3 | $B\to E$ | $ABCE$ | $CE\to A,CE\to D$ |
+| 4 | $CE\to A$ | $ABCE$ | $CE\to D$ |
+| 5 | $CE\to D$ | $ABCDE$ | Ninguna |
+
+La regla del paso 4 no añade atributos, pero no detiene el cálculo. $A$ es llave porque alcanza $U$ y $\varnothing^+=\varnothing$. Las otras llaves son $BC$ y $CE$: quitar cualquiera de sus atributos deja las clausuras $BE$, $C$ o $E$, todas propias.
+:::
+:::
+
+## Autoevaluación con contraejemplo
+
+::: {#exr-clausura-ciclos}
+Con $U=ABCD$ y $F=\{A\to B,B\to A,B\to C\}$, calcula $A^+$ y decide si $F\models A\to D$. Encuentra todas las llaves.
+:::
+
+<details class="db-solution">
+<summary>Solución y testigo de no implicación</summary>
+
+$A^+=ABC$. Dos tuplas $(A:0,B:0,C:0,D:0)$ y $(A:0,B:0,C:0,D:1)$ satisfacen todas las reglas, pero violan $A\to D$. El atributo $D$ debe estar en toda llave porque ninguna regla lo produce. Hace falta además $A$ o $B$ para obtener el ciclo; las llaves son $AD$ y $BD$. $CD$ no permite obtener $A$ ni $B$.
+
+</details>
+
+::: {.summary-box}
+### Resumen
+
+- $F\models F'$ significa que toda relación que satisface $F$ también satisface $F'$.
+- Dos conjuntos son equivalentes si tienen exactamente las mismas consecuencias sobre todas las relaciones.
+- Dividir/juntar y transitividad permiten deducir dependencias.
+- $\bar A^+$ reúne todos los atributos determinados por $\bar A$.
+- Con la clausura podemos decidir implicación y superllaves.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Dependencias funcionales y llaves](dependencias-llaves.qmd)
+- [Descomposiciones y pérdida de información](descomposiciones.qmd)
+- [Álgebra relacional](../teoria-consultas/algebra-relacional.qmd)
+:::

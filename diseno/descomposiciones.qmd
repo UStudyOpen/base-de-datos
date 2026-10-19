@@ -1,0 +1,318 @@
+---
+title: "Descomposiciones y pérdida de información"
+description: "Proyecciones de una relación, reconstrucción mediante join, tuplas espurias y dependencias proyectadas."
+---
+
+## Intuición y concepto
+
+Las dependencias funcionales explican por qué una relación redundante puede sufrir anomalías. Una estrategia de diseño es **descomponerla** en relaciones más pequeñas. El riesgo es que al separar atributos perdamos la capacidad de reconstruir exactamente la información original. Las proyecciones y el join permiten precisar cuándo la reconstrucción es exacta.
+
+## Relación redundante de ejemplo
+
+Consideremos:
+
+$$
+InscripcionDetallada(rut,nombreEst,carrera,codigo,nombreCurso,creditos,semestre)
+$$
+
+con dependencias del dominio como
+
+$$
+rut\to nombreEst\ carrera,
+\qquad
+codigo\to nombreCurso\ creditos.
+$$
+
+La relación repite datos de estudiante y de curso en cada inscripción.
+
+## Descomposición binaria
+
+::: {.callout-note title="Definición formal"}
+Una descomposición de una relación $R$ en listas de atributos $\bar A$ y $\bar B$ consiste en
+
+$$
+att(R)=\{\bar A\}\cup\{\bar B\},
+$$
+
+$$
+S=\pi_{\bar A}(R),
+\qquad
+T=\pi_{\bar B}(R).
+$$
+
+:::
+
+Una descomposición general es una familia de subconjuntos cuya unión cubre el esquema. Los algoritmos recursivos que estudiaremos construyen esa familia mediante cortes binarios. No toda familia arbitraria requiere o admite la misma justificación mediante un único criterio binario.
+
+## Un primer paso útil
+
+Tomemos
+
+$$
+\bar A=(rut,nombreEst,carrera),
+$$
+
+$$
+\bar B=(rut,codigo,nombreCurso,creditos,semestre).
+$$
+
+Entonces:
+
+$$
+S=\pi_{rut,nombreEst,carrera}(InscripcionDetallada),
+$$
+
+$$
+T=\pi_{rut,codigo,nombreCurso,creditos,semestre}(InscripcionDetallada).
+$$
+
+La proyección elimina repeticiones idénticas porque el álgebra relacional usa conjuntos.
+
+## Reconstrucción y tuplas espurias
+
+Una vez separadas las relaciones intentamos reconstruir con
+
+$$
+S\bowtie T.
+$$
+
+Siempre recuperaremos las tuplas originales en esta construcción por proyección, pero el join **puede producir tuplas adicionales** cuando los atributos compartidos no conservan suficiente información para emparejar correctamente las partes. Esas combinaciones adicionales se conocen como tuplas espurias en la bibliografía de diseño relacional. [@silberschatz2020; @garciamolina2009]
+
+### Ejemplo de una mala elección
+
+Supongamos que de una relación con
+
+::: {.table-responsive}
+| rut | nombreEst | codigo | nombreCurso |
+|---|---|---|---|
+| r2 | Ben | PROG201 | Programación Avanzada |
+| r2 | Ben | BD101 | Bases de Datos |
+:::
+
+formamos:
+
+$$
+X=\pi_{rut,nombreEst,codigo}(R)
+$$
+
+y
+
+$$
+Y=\pi_{rut,nombreCurso}(R).
+$$
+
+El atributo compartido es solo `rut`. Al hacer $X\bowtie Y$, cada código de Ben puede combinarse con **cada** nombre de curso de Ben. Aparecen asociaciones falsas como `PROG201` con `Bases de Datos`.
+
+La información no desapareció de las proyecciones, pero la separación olvidó qué nombre de curso correspondía a qué código.
+
+## Descomposición sin pérdida
+
+::: {.callout-note title="Definición formal"}
+Sean $S=\pi_{\bar A}(R)$ y $T=\pi_{\bar B}(R)$. La descomposición es **sin pérdida** para $R$ si
+
+$$
+R=S\bowtie T.
+$$
+
+:::
+
+Esta igualdad exige dos cosas:
+
+- el join recupere todas las tuplas originales;
+- no genere ninguna tupla espuria.
+
+::: {.callout-warning title="Nivel de generalidad"}
+La igualdad anterior describe una relación $R$ concreta. Una descomposición es sin pérdida **bajo un conjunto de dependencias $F$** cuando esa igualdad se cumple para toda relación del esquema que satisfaga $F$. Comprobar solo una instancia no basta para garantizarlo.
+:::
+
+## Dependencias después de descomponer
+
+No basta con conocer las dependencias escritas originalmente dentro de cada lado. También debemos considerar las que están **implicadas** por $F$ y usan solo atributos de la nueva relación.
+
+Para el lado $S$ con atributos $\bar A$, definimos:
+
+$$
+F_S
+:=
+\{\bar X\to\bar Y
+\mid
+F\models\bar X\to\bar Y,
+\{\bar X\}\subseteq\{\bar A\},
+\{\bar Y\}\subseteq\{\bar A\}
+\}.
+$$
+
+Análogamente, para $T$:
+
+$$
+F_T
+:=
+\{\bar Z\to\bar U
+\mid
+F\models\bar Z\to\bar U,
+\{\bar Z\}\subseteq\{\bar B\},
+\{\bar U\}\subseteq\{\bar B\}
+\}.
+$$
+
+Esta operación suele llamarse **proyección de dependencias** sobre los atributos de una relación.
+
+## Ejemplo de dependencias proyectadas
+
+Sea
+
+$$
+R(rut,nombreEst,codigo,nombreCurso)
+$$
+
+con
+
+$$
+F=\{rut\to nombreEst,\;codigo\to nombreCurso\}.
+$$
+
+Si descomponemos en
+
+$$
+A=\{rut,nombreEst,codigo\}
+$$
+
+y
+
+$$
+B=\{codigo,nombreCurso\},
+$$
+
+entonces, entre otras dependencias triviales:
+
+$$
+(rut\to nombreEst)\in F_A,
+$$
+
+$$
+(codigo\to nombreCurso)\in F_B.
+$$
+
+Las reglas de cada componente deben obtenerse a partir de **todas las consecuencias de $F$** que permanecen dentro de sus atributos, no solo copiando textualmente dependencias originales.
+
+## Calcular una base de dependencias proyectadas
+
+Podemos obtener un conjunto de reglas equivalente a $F_S$ enumerando todos los subconjuntos $X$ de los atributos de $S$, calculando $X^+$ bajo $F$ y conservando los atributos determinados que pertenecen a $S$.
+
+En forma conceptual:
+
+```text
+reglas <- conjunto vacío
+para cada subconjunto X de atributos(S), incluido el vacío:
+  calcular X+ según F
+  Y <- (X+ - X) intersección atributos(S)
+  si Y no es vacío:
+    agregar X -> Y a reglas
+retornar reglas
+```
+
+Este algoritmo reutiliza la [clausura de atributos](implicacion-clausura.qmd). Devuelve una **base equivalente** a las dependencias proyectadas: omite reglas triviales y reúne consecuentes, sin enumerar literalmente todo $F_S$. El subconjunto vacío es necesario cuando $F$ implica atributos constantes, como $\varnothing\to A$. La enumeración puede ser exponencial en el número de atributos de $S$.
+
+## Criterio binario: la intersección determina un lado {#criterio-binario}
+
+Intuitivamente, un join es seguro si la parte compartida identifica por completo una de las dos piezas. El resultado siguiente supone que las restricciones son **solo DF** sobre relaciones de conjuntos sin nulos. [@ramakrishnan2003, sec. 19.5.1]
+
+::: {#thm-perdida-binaria name="Criterio de descomposición binaria sin pérdida"}
+Sean $U=V\cup W$, $Z=V\cap W$ y $F$ un conjunto de DF sobre $U$. La descomposición en $V,W$ es sin pérdida bajo $F$ si y solo si
+
+$$
+F\models Z\to V\quad\text{o}\quad F\models Z\to W.
+$$
+:::
+
+::: {.proof}
+**Suficiencia.** Supongamos $F\models Z\to V$. Una tupla del join combina la parte $V$ de una tupla $r\in R$ con la parte $W$ de otra $s\in R$ que coincide con $r$ en $Z$. Por la DF, $r$ y $s$ coinciden en todo $V$. La tupla combinada es entonces $s$, que ya estaba en $R$. La otra contención es cierta para cualquier proyección. El caso $Z\to W$ es simétrico.
+
+**Necesidad.** Si ninguna implicación vale, sea $C=Z^+$. Existen $a\in V\setminus C$ y $b\in W\setminus C$. Construyamos $r_0$ con ceros en todos los atributos y $r_1$ con cero en $C$ y uno fuera de $C$. Como en la prueba de clausura, $\{r_0,r_1\}$ satisface $F$. Sus proyecciones coinciden en $Z$, pero el join también contiene la combinación de $r_0[V]$ con $r_1[W]$. Esta tiene cero en $a$ y uno en $b$, de modo que es distinta de ambas tuplas originales. La descomposición tiene pérdida. Se usan dos valores posibles por atributo; las restricciones ajenas a las DF podrían impedir este testigo.
+:::
+
+La @thm-perdida-binaria se decide con una sola clausura de $Z$: basta comprobar si contiene $V$ o $W$. No exige una FK, ni que cada entidad tenga una tupla asociada. El join reúne proyecciones de **la misma instancia**; no añade una hipótesis de participación obligatoria.
+
+### Ejemplo resuelto
+
+Para $U=ABCD$ y $F=\{A\to B,C\to D\}$, el corte $AB/ACD$ tiene intersección $A$; $A^+=AB$ contiene el primer componente, así que es sin pérdida. El corte $AB/BCD$ tiene intersección $B$ y $B^+=B$: no determina ningún componente. Las tuplas $0000$ y $1011$, en orden $A,B,C,D$, satisfacen $F$; el join añade $0011$ y $1000$.
+
+## Proyección: contrato y garantía {#contrato-proyeccion}
+
+La entrada del algoritmo anterior es $U,F,S\subseteq U$; la salida es una base de las DF proyectadas sobre $S$. En cada iteración, toda regla emitida está implicada por $F$ y solo usa atributos de $S$. Si $F\models X\to Y$ con $X,Y\subseteq S$, la iteración de $X$ emite $X\to(X^+\setminus X)\cap S$, que implica toda su parte no trivial. Las DF triviales no necesitan escribirse. Esto prueba ambas direcciones de equivalencia. [@garciamolina2009, sec. 3.2.8]
+
+Por ejemplo, para $F=\{A\to B,B\to C\}$ proyectado a $AC$, las iteraciones son: $\varnothing$ no emite nada; $A^+=ABC$ emite $A\to C$; $C^+=C$ y $(AC)^+=ABC$ no emiten nada nuevo no trivial. Filtrar las dos reglas escritas habría dado incorrectamente la base vacía.
+
+La enumeración termina tras $2^{|S|}$ subconjuntos, incluido el vacío. Si una clausura cuesta $C_F$, el costo es $O(2^{|S|}(C_F+|U|))$; la base emitida puede ocupar $O(|S|2^{|S|})$. Con $F=\{\varnothing\to A\}$ y $S=A$, la iteración vacía emite precisamente esa constante. Con $F=\varnothing$, devuelve una base vacía para cualquier $S$.
+
+## Preservación de dependencias {#preservacion}
+
+Una descomposición $\{U_1,\ldots,U_k\}$ **preserva** $F$ cuando comprobar las restricciones de cada componente basta para imponer las originales. Si $G=\bigcup_i F_{U_i}$, la condición lógica es
+
+$$
+G\models F.
+$$
+
+Como $F\models G$ por definición de proyección, esto equivale a $F\equiv G$. Se decide calculando, para cada $X\to Y\in F$, si $Y\subseteq X_G^+$. Las proyecciones deben incluir consecuencias derivadas. [@ramakrishnan2003, sec. 19.5.2]
+
+### Relación con la formulación por joins
+
+También puede formularse así: para cualesquiera relaciones locales $R_i$ que satisfagan sus DF proyectadas, el join $\bowtie_i R_i$ satisface $F$. La condición lógica implica esta propiedad porque las DF locales siguen valiendo en el join. Recíprocamente, si $G\not\models X\to a$, las dos tuplas que coinciden exactamente en $X_G^+$ satisfacen $G$ y violan esa regla. Sus proyecciones satisfacen cada $F_{U_i}$, y su join contiene las dos tuplas testigo, por lo que también viola $X\to a$.
+
+Esta equivalencia no afirma que el join conserve todas las tuplas locales: puede haber tuplas sin compañero. Tampoco es la definición de descomposición sin pérdida, que parte de una única relación válida y exige recuperar exactamente esa relación.
+
+### Dos garantías independientes
+
+El [ejemplo $ABCDE$](dependencias-llaves.qmd#ejemplo-abcde) se puede cortar por $B\to E$ en $BE$ y $ABCD$. La intersección $B$ determina $BE$, así que no hay pérdida. Bases equivalentes de las proyecciones son
+
+$$
+\begin{aligned}
+F_{BE}&\equiv\{B\to E\},\\
+F_{ABCD}&\equiv\{A\to BCD,\ BC\to A\}.
+\end{aligned}
+$$
+
+En su unión, $(CE)^+=CE$; no se implican $CE\to A$ ni $CE\to D$. La prueba no depende de que las reglas no estén escritas: depende de la clausura.
+
+Un testigo local es $BE=\{(0,0),(1,0)\}$ y $ABCD=\{(0,0,0,0),(1,1,0,1)\}$. Ambos respetan todas las DF proyectadas. El join da, en orden $A,B,C,D,E$, las tuplas $00000$ y $11010$: coinciden en $CE$ y difieren en $A,D$. Por tanto las restricciones locales no bastan.
+
+::: {#exr-preservacion-perdida}
+¿Preservar las DF implica una descomposición sin pérdida? Considera $ABC$, $F=\{A\to B\}$ y el corte $AB/BC$.
+:::
+
+<details class="db-solution">
+<summary>Solución razonada</summary>
+
+Se preserva $A\to B$ dentro de $AB$. Sin embargo, $B^+=B$ no contiene $AB$ ni $BC$. La relación $\{(0,0,0),(1,0,1)\}$ satisface $A\to B$; el join añade $(0,0,1)$ y $(1,0,0)$. La preservación permite validar DF localmente, pero no evita tuplas espurias. El ejemplo anterior muestra la independencia en la otra dirección.
+
+</details>
+
+## Relación con la normalización
+
+El análisis de una descomposición reúne tres preguntas de diseño:
+
+1. ¿qué redundancias sugieren las dependencias funcionales?
+2. ¿la descomposición permite reconstruir la relación sin información espuria?
+3. ¿qué dependencias quedan vigentes en cada componente?
+
+Estas preguntas sirven de base para estudiar formas normales y algoritmos de normalización. La [descomposición BCNF](bcnf.qmd) garantiza reconstrucción sin pérdida; la [síntesis 3NF](tercera-forma-normal.qmd) garantiza además preservación de DF. [@silberschatz2020; @garciamolina2009]
+
+::: {.summary-box}
+### Resumen
+
+- Una descomposición binaria se obtiene proyectando una relación sobre dos conjuntos de atributos cuya unión cubre el esquema original.
+- El join de las proyecciones puede producir combinaciones espurias.
+- Una descomposición es sin pérdida para $R$ cuando $R=S\bowtie T$.
+- Las dependencias de cada componente incluyen todas las consecuencias de $F$ que solo mencionan sus atributos.
+- La clausura permite calcular esas dependencias proyectadas.
+:::
+
+::: {.related-links}
+## Conceptos relacionados
+
+- [Dependencias funcionales y llaves](dependencias-llaves.qmd)
+- [Implicación y clausura](implicacion-clausura.qmd)
+- [Forma normal de Boyce–Codd](bcnf.qmd)
+- [Tercera forma normal](tercera-forma-normal.qmd)
+- [Joins y operadores derivados](../teoria-consultas/joins-operadores.qmd)
+:::
