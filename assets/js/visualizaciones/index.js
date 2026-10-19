@@ -1,4 +1,4 @@
-const modules = {clausuras: './clausuras.js', normalizacion: './normalizacion.js', bplus: './bplus.js'};
+const modules = {clausuras: './clausuras.js', normalizacion: './normalizacion.js', bplus: './bplus.js', hashing: './hashing.js'};
 export async function initialize(scope = document) {
   for (const root of scope.querySelectorAll('[data-db-viz]')) {
     if (root.dataset.dbReady || root.dataset.dbLoading) continue;

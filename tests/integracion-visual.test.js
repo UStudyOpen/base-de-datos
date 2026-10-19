@@ -14,6 +14,7 @@ test('Rendered pages provide an intact static example and a relative module load
     ['diseno/bcnf.html', 'normalizacion'],
     ['diseno/tercera-forma-normal.html', 'normalizacion'],
     ['indices/bplus.html', 'bplus'],
+    ['indices/hashing.html', 'hashing'],
   ]) {
     const html = load(`docs/${name}`);
     assert.match(html, new RegExp(`data-db-viz="${component}"`), name);
@@ -31,6 +32,8 @@ test('Sources and deployable visualization resources are identical', () => {
     'assets/js/visualizaciones/normalizacion.js',
     'assets/js/visualizaciones/bplus.js',
     'assets/js/visualizaciones/bplus-model.js',
+    'assets/js/visualizaciones/hashing.js',
+    'assets/js/visualizaciones/hashing-model.js',
   ]) {
     assert.ok(existsSync(join(root, `docs/${path}`)), path);
     assert.equal(load(path), load(`docs/${path}`), path);
@@ -57,4 +60,16 @@ test('B+ is discoverable and the technical status stays outside the published si
   const search = JSON.parse(load('docs/search.json'));
   assert.ok(search.some(entry => entry.href.split('#')[0] === 'indices/bplus.html'));
   assert.doesNotMatch(html, /clases_referencia|libros_referencia|guia_repaso_i2/);
+});
+
+
+test('Hashing provides two independent fallbacks, citations, navigation and search', () => {
+  const html=load('docs/indices/hashing.html');
+  assert.equal((html.match(/data-db-viz="hashing"/g)||[]).length,2);
+  assert.match(html,/data-hashing-mode="static"/);assert.match(html,/data-hashing-mode="extendable"/);
+  assert.match(html,/ref-ramakrishnan2003/);assert.match(html,/ref-silberschatz2020/);
+  assert.match(html,/mathjax/i);assert.match(load('docs/index.html'),/indices\/hashing\.html/);
+  assert.match(load('docs/indices/bplus.html'),/hashing\.html/);
+  assert.ok(JSON.parse(load('docs/search.json')).some(x=>x.href.split('#')[0]==='indices/hashing.html'));
+  assert.doesNotMatch(html,/clases_referencia|libros_referencia|guia_repaso_i2/);
 });

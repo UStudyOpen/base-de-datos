@@ -79,6 +79,8 @@ website:
         contents:
           - href: indices/bplus.qmd
             text: Árboles B+
+          - href: indices/hashing.qmd
+            text: Hashing
   page-footer:
     left: "OpenStudy · Bases de Datos · Estudio por conceptos"
     right: "Sitio de estudio construido con Quarto"

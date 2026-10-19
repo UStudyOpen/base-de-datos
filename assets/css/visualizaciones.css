@@ -50,3 +50,22 @@
 .db-bplus summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
 @media (max-width: 575.98px) { .db-viz-form { grid-template-columns: minmax(0,1fr); } .db-viz-controls { flex-direction: column; } .db-viz { padding: .75rem; } }
 @media print { .db-viz-interactive { display: none !important; } .db-viz { border: 0; padding: 0; background: white; } .db-viz-fallback { display: block !important; } }
+
+/* Hashing: fixed readable SVG coordinates, with local scroll at every viewport. */
+.db-hashing { min-width: 0; }
+.db-hash-scroll { max-height: 680px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-hashing .db-hash-svg { display: block; max-width: none; height: auto; font-family: inherit; }
+.db-hash-label { fill: #526176; font-size: 13px; }
+.db-hash-value { fill: #243247; font-size: 15px; font-weight: 600; }
+.db-hash-bucket rect, .db-hash-page rect, .db-hash-ref rect { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
+.db-hash-ref rect { fill: #eff6ff; }
+.db-hash-edge { fill: none; stroke: #8897aa; stroke-width: 1.5; }
+.db-hash-edge.is-active { stroke: #147d78; stroke-width: 2.5; }
+.db-hash-bucket.is-active rect, .db-hash-page.is-active rect, .db-hash-ref.is-active rect { stroke: #2563eb; stroke-width: 3; }
+.db-hash-bucket.is-changed rect, .db-hash-page.is-changed rect, .db-hash-ref.is-changed rect { stroke: #98620a; stroke-width: 3; stroke-dasharray: 6 3; }
+.db-hash-page.is-read rect { fill: #e7f4f2; stroke: #147d78; stroke-width: 3; }
+.db-hash-condition { font-weight: 600; }
+.db-hash-legend { font-size: .85rem; color: var(--db-text-secondary); }
+.db-hashing details { min-width: 0; overflow-wrap: anywhere; }
+.db-hashing summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
+@media (prefers-reduced-motion: reduce) { .db-hashing *, .db-hashing *::before, .db-hashing *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

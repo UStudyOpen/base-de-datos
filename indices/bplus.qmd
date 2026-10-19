@@ -418,4 +418,5 @@ Los B+trees mantienen directorios de intervalos y hojas ordenadas, balanceadas y
 - [Modelo relacional](../fundamentos/modelo-relacional.qmd)
 - [Llaves candidatas y restricciones lógicas](../diseno/dependencias-llaves.qmd)
 - [Filtros y orden en SQL](../sql/funciones-filtros.qmd)
+- [Hashing estático y extensible](hashing.qmd): acceso por igualdad, colisiones y directorios dinámicos.
 :::

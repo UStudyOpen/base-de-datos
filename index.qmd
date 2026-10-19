@@ -63,9 +63,9 @@ Redundancia, dependencias funcionales, llaves, clausura, descomposiciones sin p�
 ::: {.topic-card}
 ### Índices
 
-Árboles B+ por páginas: búsqueda por valor y rango, altura, inserción y eliminación con un explorador paso a paso.
+Árboles B+ por páginas y hashing: búsquedas, inserción, eliminación, cadenas de overflow y directorios dinámicos con exploradores paso a paso.
 
-[Explorar B+trees](indices/bplus.qmd)
+[Explorar B+trees](indices/bplus.qmd) · [Hashing](indices/hashing.qmd)
 :::
 ::::
 

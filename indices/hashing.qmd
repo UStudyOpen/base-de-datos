@@ -1,0 +1,480 @@
+---
+title: "Hashing estático y extensible"
+description: "Funciones hash, cadenas de overflow y directorios dinámicos: algoritmos, demostraciones y dos exploradores paso a paso."
+---
+
+<div class="concept-section">
+<div class="concept-label">Conceptos clave</div>
+<div class="concept-tags">
+<span class="concept-tag">Igualdad</span><span class="concept-tag">Colisiones</span><span class="concept-tag">Overflow</span><span class="concept-tag">Directorio</span><span class="concept-tag">Split</span><span class="concept-tag">Profundidad local</span>
+</div>
+</div>
+
+## Intuición: transformar una clave en una dirección
+
+Un índice hash calcula dónde buscar una entrada a partir de su **clave de búsqueda**. Por ejemplo:
+
+```sql
+SELECT nombre FROM Estudiante WHERE rut = 'r17';
+```
+
+Un índice sobre `rut` puede conducir al grupo de entradas pertinente sin recorrer toda la relación. La clave de búsqueda no tiene por qué ser una llave candidata: una implementación real debe admitir varias referencias para un mismo valor cuando el atributo no es único. Aquí trabajaremos con **claves enteras distintas**, una entrada por clave, para aislar los cambios de estructura.
+
+El acceso directo ideal calcula una dirección y lee una página. En la práctica, varias claves pueden conducir a la misma dirección, las páginas tienen capacidad limitada y el índice necesita resolver colisiones. Una página residente en memoria no requiere necesariamente una lectura física; contaremos accesos lógicos a páginas y explicitaremos cuándo se traducen en I/O. [@ramakrishnan2003, sec. 11.1]
+
+El hashing tradicional favorece **igualdades**. No conserva el orden: claves consecutivas pueden ir a buckets alejados. Para `BETWEEN`, desigualdades o un recorrido ordenado, normalmente habría que examinar muchos buckets y ordenar resultados. Los [árboles B+](bplus.qmd#busqueda) sí organizan intervalos y enlazan hojas en orden. Que un motor ofrezca índices hash y la sintaxis para crearlos son particularidades del motor; la consulta SQL anterior no impone un método de acceso. [@silberschatz2020, sec. 24.5.1]
+
+## Funciones hash y colisiones {#funciones}
+
+::: {#def-hash name="Función hash"}
+Para un universo de claves $K$ y $N\geq1$ buckets numerados, fijamos una función determinista
+
+$$
+h:K\longrightarrow\{0,\ldots,N-1\}.
+$$
+
+Dos claves distintas $x,y$ **colisionan** cuando $h(x)=h(y)$. El mismo argumento siempre produce el mismo resultado mientras no cambie la función.
+:::
+
+Si $K$ tiene más de $N$ elementos, el principio del palomar impide una función inyectiva hacia esos $N$ destinos. Una colisión no implica overflow: dos entradas pueden compartir una página que aún tiene espacio.
+
+Para enteros no negativos usaremos la **división**: $h(k)=k\bmod N$. Otra familia es $h(k)=(ak+b)\bmod N$. Elegir $a,b,N$ exige considerar las claves: si $a$ y $N$ tienen un divisor común, puede reducirse el conjunto de destinos. Por ejemplo, $(2k)\bmod 8$ solo usa buckets pares. Incluso tomar un módulo primo no garantiza uniformidad para toda secuencia.
+
+Una buena distribución reparte la carga del conjunto de trabajo. No seleccionamos un bucket al azar en cada búsqueda: si la función se escoge aleatoriamente de una familia, luego queda fijada para que las búsquedas reproduzcan las inserciones. La uniformidad deseable es una propiedad respecto de una distribución o conjunto de claves, no una garantía de toda función hash.
+
+**Ejemplos verificables.** Para $k=10,15,22,31,40,53$, la función $(3k+2)\bmod7$ produce $4,5,5,4,3,0$. Para $10,20,\ldots,100$, el módulo $10$ usa un solo bucket; el módulo $8$ usa cuatro (`2,4,6,0`) y el módulo $7$ usa los siete. Un módulo alineado con el paso de la secuencia puede concentrar toda la carga.
+
+## Hashing estático: páginas principales y overflow {#estatico}
+
+Fijamos $N$ y una función $h$. Cada bucket posee una **página principal**, incluso si está vacía, de capacidad $B\geq1$ entradas. Cuando se llena, las entradas adicionales van a páginas de **overflow** encadenadas, también de capacidad $B$. En nuestra convención se conserva el orden de inserción y se llena una página antes de crear la siguiente. La dirección principal puede calcularse a partir del número de bucket y la disposición del archivo; calcular $h$ no es una lectura de disco. [@ramakrishnan2003, sec. 11.1]
+
+### Algoritmos y casos límite
+
+::: {.db-algorithm}
+```text
+BUSCAR_ESTATICO(k)
+  i ← h(k)
+  P ← página principal de i
+  mientras P exista:
+    leer P
+    si k pertenece a P: devolver encontrado y páginas recorridas
+    P ← siguiente página de overflow
+  devolver ausente y páginas recorridas
+
+INSERTAR_ESTATICO(k)
+  i ← h(k)
+  buscar k en la cadena de i; si existe, rechazar sin cambios
+  insertar en la primera página con espacio
+  si todas están llenas:
+    reservar página de overflow, enlazarla e insertar allí
+```
+:::
+
+**Corrección.** Todas las claves de una cadena tienen el mismo hash y se insertan únicamente en ella. Por tanto, buscar otra cadena sería innecesario. Recorrer hasta encontrar la clave o llegar al final decide su presencia. La inserción conserva esta ubicación y no supera $B$ por página. Un bucket vacío también exige examinar su página principal para concluir ausencia. Una colisión con espacio disponible solo añade una entrada, sin reservar páginas.
+
+### Ejemplo completo: distribución y costo
+
+Con $B=3$, insertar en este orden:
+
+```text
+8, 12, 5, 16, 21, 4, 9, 20, 13, 3, 7, 24, 17, 28
+```
+
+| Bucket | Con N=4 | Con N=5 |
+|---|---|---|
+| 0 | `[8,12,16] → [4,20,24] → [28]` | `[5,20]` |
+| 1 | `[5,21,9] → [13,17]` | `[16,21]` |
+| 2 | `[]` | `[12,7,17]` |
+| 3 | `[3,7]` | `[8,13,3] → [28]` |
+| 4 | — | `[4,9,24]` |
+
+Para $N=4$ hay $7,5,0,2$ entradas por bucket, **tres páginas de overflow** y siete páginas totales: cuatro principales más tres adicionales. Para $N=5$ hay $2,2,3,4,3$ entradas, un overflow y seis páginas totales. Cambiar $N$ exige **redistribuir todas las claves**; no basta con añadir un bucket a la estructura anterior.
+
+| Buscar | N=4: páginas examinadas | N=5: páginas examinadas |
+|---|---|---|
+| 28 | Bucket 0, páginas 1, 2, 3: éxito | Bucket 3, páginas 1, 2: éxito |
+| 17 | Bucket 1, páginas 1, 2: éxito | Bucket 2, página 1: éxito |
+| 10 | Bucket 2, página 1: ausencia | Bucket 0, página 1: ausencia |
+| 33 | Bucket 1, páginas 1, 2: ausencia | Bucket 3, páginas 1, 2: ausencia |
+
+Si cada una de las **14 claves almacenadas** es igualmente probable, el promedio exitoso para $N=4$ es $(12+7+2)/14=3/2$ páginas: el bucket 0 aporta $3\cdot1+3\cdot2+1\cdot3=12$, el bucket 1 aporta $3\cdot1+2\cdot2=7$ y el bucket 3 aporta $2\cdot1=2$. Equivalentemente, ocho claves están en páginas principales, cinco en los primeros overflow y una en el segundo: $(8+10+3)/14=3/2$.
+
+Para $N=5$, trece claves están en páginas principales y una en overflow: $(13+2)/14=15/14$. Estos promedios dependen de la distribución de consultas. Una búsqueda fallida recorre toda la cadena del bucket escogido; si los buckets fueran igualmente probables, el promedio fallido sería $7/4$ y $6/5$, respectivamente.
+
+### Explorador de cadenas
+
+El ejemplo comienza vacío. «Siguiente» muestra una selección, inserción, creación de overflow o lectura de página; las búsquedas siguen a las inserciones. Puede seleccionarse una búsqueda directa sobre el estado final.
+
+<div class="db-viz" data-db-viz="hashing" data-hashing-mode="static">
+<div class="db-viz-fallback">
+
+**Alternativa estática completa.** Con $N=4$, $B=3$ y la secuencia anterior, las cadenas finales son:
+
+```text
+0: [8,12,16] → [4,20,24] → [28]
+1: [5,21,9]  → [13,17]
+2: []
+3: [3,7]
+```
+
+Al insertar `4` aparece el primer overflow del bucket 0; `28` crea el segundo. `13` crea el overflow del bucket 1. Buscar `28` lee tres páginas; buscar `17`, dos; buscar `10`, una; buscar `33`, dos. Las dos primeras búsquedas tienen éxito. Con $N=5$ solo hay overflow en el bucket 3: `[8,13,3] → [28]`; los demás buckets y los costos completos aparecen en las tablas precedentes.
+
+</div>
+</div>
+
+### Costos y crecimiento
+
+Si el bucket $i$ tiene $n_i$ entradas y no hay huecos, su número de páginas es
+
+$$
+p_i=\max\{1,\lceil n_i/B\rceil\}.
+$$
+
+Una búsqueda exitosa lee la posición de la página que contiene la entrada; una fallida lee $p_i$. La fórmula exacta del promedio exitoso bajo consultas uniformes sobre las $m>0$ claves es
+
+$$
+\frac{1}{m}\sum_{i=0}^{N-1}\sum_{r=1}^{n_i}\left\lceil\frac rB\right\rceil.
+$$
+
+La inserción del modelo comprueba duplicados recorriendo la cadena: añade una escritura en una página existente; crear overflow añade su escritura y la actualización del enlace de la página anterior. La reserva y los metadatos del gestor pueden añadir I/O. No se equiparan lecturas y escrituras.
+
+Con distribución equilibrada y carga $\alpha=m/(BN)$ acotada, esperamos cadenas cortas; no obtenemos una garantía universal de una lectura. Si las claves se concentran, el peor caso visita $\lceil m/B\rceil$ páginas. Con $N$ fijo el crecimiento prolonga las cadenas. Para dos millones de entradas y $B=100$, $N=20\,000$ ofrece capacidad principal suficiente **solo bajo reparto ideal**; con veinte millones y ese mismo $N$, harían falta unas diez páginas por bucket bajo reparto perfectamente equilibrado. El llenado aleatorio provoca overflow antes de ese ideal. Rehacer el archivo con $2N$ buckets requiere leer y redistribuir las entradas y escribir las nuevas páginas, no un cambio constante de un parámetro.
+
+## Hashing extensible: directorio y profundidades {#extensible}
+
+El **hashing extensible** (*extendible* o *extendable hashing*) permite dividir buckets individuales. Un directorio relaciona patrones de bits con páginas físicas. Muchos punteros pueden compartir **un mismo bucket**; duplicar punteros no duplica sus entradas. [@ramakrishnan2003, sec. 11.2; @silberschatz2020, sec. 24.5.2]
+
+::: {#def-extensible name="Convención binaria por sufijos"}
+Para las claves enteras no negativas de este sitio:
+
+$$
+h_n(k)=k\bmod2^n.
+$$
+
+Son los últimos $n$ bits, rellenados con ceros a la izquierda para mostrarlos. Si $n=0$, el resultado es $0$ y el patrón es la cadena vacía, que escribimos $\varepsilon$.
+
+La **profundidad global** $g$ determina las $2^g$ entradas del directorio, ordenadas por valor numérico. Cada bucket tiene capacidad $B$ y **profundidad local** $l$, con $0\leq l\leq g$, y un sufijo $s$ de longitud $l$. Lo referencian exactamente las entradas $i$ que satisfacen $i\bmod2^l=s$.
+:::
+
+Hay **exactamente $2^{g-l}$ referencias** al bucket: sus últimos $l$ bits están fijados y los $g-l$ anteriores se eligen libremente. Por ejemplo, con $g=3$, el bucket de sufijo `01` y $l=2$ recibe los punteros `001` y `101`. Un bucket con $l=g$ tiene un solo puntero. Las clases de sufijos de todos los buckets particionan el directorio.
+
+El estado inicial es $g=0$, una entrada $\varepsilon$ y **un bucket vacío con $l=0$**. No hay overflow en este modelo extensible: un bucket lleno se divide antes de insertar el dato pendiente. En sistemas con hashes de longitud finita, más de $B$ entradas con igual hash completo requieren una política adicional, como overflow. El simulador rechaza la operación si no puede separar las claves dentro de sus límites.
+
+### Buscar una clave {#busqueda}
+
+::: {.db-algorithm}
+```text
+BUSCAR(k)
+  i ← k mod 2^g
+  P ← directorio[i]
+  leer P
+  devolver (P, k pertenece a P)
+```
+:::
+
+Para $k=29=11101_2$ y $g=3$, $h_3(29)=5$, mostrado como `101`. Esta entrada apunta al bucket `01`, de profundidad local dos, en el estado final del ejemplo siguiente. Allí están `[5,29]`. Buscar `13=01101₂` llega al mismo bucket y falla tras examinarlo. La igualdad de sufijo no prueba la presencia de una clave.
+
+**Corrección:** las inserciones conservan que cada clave esté en el bucket apuntado por $h_g(k)$; split, doubling y merge conservan esa correspondencia. Solo ese bucket puede contenerla. Tanto el éxito como el fracaso requieren examinarlo. El directorio en RAM evita su lectura física; en disco se lee la página del directorio pertinente y luego la del bucket.
+
+### Insertar, dividir y duplicar {#insercion}
+
+::: {.db-algorithm}
+```text
+INSERTAR(k)
+  si BUSCAR(k) encuentra k: rechazar sin cambios
+  repetir:
+    i ← h_g(k); P ← directorio[i]
+    si P tiene espacio: añadir k; terminar
+    l ← profundidad local de P
+    si l = g:
+      directorio ← concatenar(directorio, directorio)
+      g ← g + 1
+    crear Q; ambos buckets pasan a profundidad local l+1
+    separar las claves existentes según el bit l+1 desde la derecha
+    redirigir TODAS las entradas antes dirigidas a P:
+      bit l+1 = 0 hacia el bucket de sufijo 0s
+      bit l+1 = 1 hacia el bucket de sufijo 1s
+    volver a intentar insertar k
+```
+:::
+
+Si hay espacio, no cambia ninguna profundidad. Ante bucket lleno, el split lee **un nuevo bit**, el de peso $2^l$, y aumenta ambas profundidades locales. Si $l<g$, el directorio ya distingue ese bit: **no se duplica**. Si $l=g$, primero se duplica y aumenta $g$; a continuación se reparte el bucket y se actualizan sus punteros. Los buckets ajenos al split conservan contenido y profundidad local.
+
+Con sufijos, duplicar equivale a copiar la lista completa de punteros, no a repetir cada puntero contiguamente. Desde `00,01,10,11` se pasa a `000,001,010,011,100,101,110,111`; inicialmente cada entrada nueva $i+2^g$ conserva el puntero de $i$. Tras el split se actualizan las referencias afectadas según el nuevo bit.
+
+**Conservación y terminación.** El split particiona las entradas existentes por un bit: ninguna se pierde ni se copia como dato. La nueva clave queda pendiente hasta que su bucket tenga espacio. Puede ocurrir que todas las claves existentes y la pendiente compartan varios bits: con $B=2$, insertar `0,8,16` exige cuatro splits y cuatro doublings, hasta $g=4$. Los tres comparten los tres bits inferiores, pero `8` se separa en el cuarto. Para enteros distintos sin límite de profundidad, algún bit termina distinguiéndolos. Con límites explícitos, una operación que no pueda terminar se rechaza completa, conservando el estado de entrada.
+
+::: {.callout-important}
+## Estado transitorio y estado estable
+
+Una duplicación deja referencias coherentes, pero aún falta resolver el bucket lleno. Cada división redistribuye y actualiza sus referencias como una unidad. El explorador marca los pasos de doubling y split como **transitorios**, mantiene pendiente la nueva clave y no permite iniciar otra operación hasta el estado estable final. Una estructura transitoria no se presenta como operación terminada.
+:::
+
+### Eliminar, fusionar y reducir {#eliminacion}
+
+Adoptamos una política conservadora: **una sola fusión como máximo por eliminación**, únicamente si el bucket afectado queda vacío y su hermano tiene igual profundidad local. Es una convención del sitio dentro de las variantes de contracción de hashing extensible. La posibilidad de omitir merges en sistemas reales se discute en @ramakrishnan2003 [sec. 11.2].
+
+::: {.db-algorithm}
+```text
+ELIMINAR(k)
+  P ← bucket de h_g(k)
+  si k no existe: informar ausencia; terminar sin cambios
+  eliminar k de P
+  si P no queda vacío: terminar
+  l ← profundidad local de P
+  si l > 0:
+    i ← una entrada que apunta a P
+    j ← i con el bit de peso 2^(l-1) cambiado
+    Q ← directorio[j]
+    si profundidad local de Q = l:
+      conservar Q, retirar P y fijar profundidad local de Q en l-1
+      redirigir todas las referencias de P y Q hacia Q
+  mientras g > 0 y todo bucket tenga profundidad local < g:
+    conservar la primera mitad del directorio
+    g ← g - 1
+```
+:::
+
+El hermano difiere en el último bit añadido al dividir, no en cualquier bit. Si tiene profundidad mayor, ese lado fue subdividido y no existe un único hermano de igual profundidad con el que fusionar. Un bucket vacío puede quedar legítimamente sin merge. Si $l=0$, no existe bit para cambiar ni hermano: se conserva el bucket mínimo.
+
+**Corrección.** El bucket retirado está vacío. El superviviente contiene a lo sumo $B$ claves y al quitar el bit diferenciador recibe exactamente la unión de ambas clases de referencias. Su profundidad baja uno. No se reevalúa recursivamente el bucket fusionado. Cuando todas las profundidades son menores que $g$, cada par de entradas $i,i+2^{g-1}$ ya apunta al mismo bucket: quitar la segunda mitad no cambia ninguna búsqueda. La reducción se repite mientras se cumpla la condición, sin bajar de $g=0$. La condición se comprueba solo después de una eliminación que dejó vacío el bucket; los demás casos terminan antes.
+
+## Propiedades y estados alcanzables {#propiedades}
+
+Los invariantes **estructurales** son: directorio de tamaño $2^g$, $0\leq l\leq g$, capacidad $B$, $2^{g-l}$ alias coherentes y ubicación de cada clave según su sufijo. Deben conservarse también después de eliminar. Las siguientes propiedades se refieren a **estados estables construidos solo mediante inserciones**, desde el estado inicial mínimo.
+
+::: {#thm-profundidad-hash name="P1: profundidad máxima"}
+En esos estados, $g=\max l$.
+:::
+
+::: {.proof}
+Inicialmente ambos son cero. Una inserción directa no cambia profundidades. Un split con $l<g$ no aumenta $g$ ni elimina todos los buckets de profundidad $g$; si llega a esa profundidad, sigue sin superarla. Un split con $l=g$ aumenta $g$ y crea dos buckets con profundidad igual al nuevo valor. Por inducción, incluso tras splits sucesivos, se conserva la igualdad.
+:::
+
+::: {#thm-hermanos-hash name="P2: ocupación conjunta de hermanos"}
+Si dos buckets son hermanos de sufijos `0s`, `1s`, con igual profundidad local positiva, contienen conjuntamente al menos $B+1$ entradas en los estados estables alcanzados solo por inserciones.
+:::
+
+::: {.proof}
+El split se desencadena por $B$ entradas existentes y una pendiente. Si no se vuelve a dividir uno de sus hijos durante esa inserción, el par acaba con esas $B+1$ entradas. Si se vuelve a dividir un hijo, deja de existir ese par de hermanos físicos con igual profundidad: el nuevo par procede de un nuevo split. Cada par que subsiste en un estado estable se remonta así a su propio split completo. Las inserciones posteriores solo aumentan su contenido o subdividen uno de sus miembros, destruyendo el par. Nunca reducen su ocupación conjunta.
+:::
+
+P2 no se exige en cada snapshot transitorio: antes de colocar la entrada pendiente el par puede sumar solo $B$. Tampoco se exige después de eliminar. P1 vuelve a cumplirse en estados normalizados por la contracción descrita, pero no es por sí sola un requisito estructural: un directorio redundante puede ser válido.
+
+**Validez frente a alcanzabilidad.** Con $B=2$, un directorio de $g=2$ que comparte un bucket par `[4,8]` de $l=1$ y otro impar `[1,5]` de $l=1$ es estructuralmente válido, pero viola P1 y no se obtiene solo con inserciones desde el inicio mínimo. Un directorio $g=1$ con `[4]` y `[1]`, ambos de $l=1$, cumple P1 pero viola P2. Este último sí se obtiene insertando `4,8,1` y eliminando `8`, sin merge porque el bucket par no queda vacío. Cumplir P1 y P2 es una condición necesaria, no una caracterización general suficiente de alcanzabilidad. El estado con `[4,8]` y `[1]` se alcanza insertando precisamente esas tres claves.
+
+## Explorador de hashing extensible
+
+Cada paso muestra la clave pendiente, su representación binaria, el índice elegido, la condición evaluada y el estado resultante. Los punteros compartidos llegan a una sola tarjeta física. Borde discontinuo y texto identifican cambios estructurales; el borde grueso identifica el destino. No hay animación automática.
+
+Los ejemplos usan $B=2$. Las operaciones propias aceptan enteros de $0$ a $65\,535$, hasta 60 claves y profundidad global máxima 8 (256 entradas). El motor admite capacidades entre 1 y 16 y profundidad máxima configurable entre 0 y 8. Si una inserción excede el límite, no se conserva ningún split parcial. El costo de copiar snapshots y validar toda la estructura es adicional y pedagógico; no mide el rendimiento de un índice real.
+
+<div class="db-viz" data-db-viz="hashing" data-hashing-mode="extendable">
+<div class="db-viz-fallback">
+
+**Alternativa estática completa.** Con $B=2$, partir de $g=l=0$ e insertar `12,5,3,18,6,29,10,16,20,27`. El estado final tiene $g=3$:
+
+```text
+000 → A [16]       l=3
+001 → B [5,29]     l=2  ← también 101
+010 → C [18,10]    l=3
+011 → D [3,27]     l=2  ← también 111
+100 → E [12,20]    l=3
+101 → B
+110 → F [6]        l=3
+111 → D
+```
+
+Hay seis buckets físicos y ocho referencias. Eliminar `12` deja `[20]`. Eliminar `16` vacía A y permite fusionarlo con E: queda `[20]`, $l=2$, con referencias `000,100`; $g$ sigue en 3. Eliminar `20` deja ese bucket vacío, pero su hermano del lado `10` está subdividido en `010` y `110`, de $l=3$: no puede fusionarse. Eliminar `10` deja `[18]`; eliminar `18` permite merge con `[6]` y reduce $g$ a 2. Eliminar `5` y `3` deja los buckets `00:[]`, `01:[29]`, `10:[6]`, `11:[27]`, todos con $l=2$. Las tablas siguientes detallan la secuencia completa y sus estados intermedios.
+
+</div>
+</div>
+
+## Ejemplos resueltos: inserciones y eliminaciones {#ejemplos}
+
+### Caso A: crecimiento desde un bucket vacío
+
+En la tabla, «entrada inicial» utiliza el $g$ anterior a la operación. Las claves en binario pueden tener más bits que el directorio; solo se selecciona su sufijo pertinente.
+
+| Insertar | Binario | Entrada inicial | Acción | g final |
+|---|---|---|---|---|
+| 12 | `1100` | ε | Directa, l=0 | 0 |
+| 5 | `101` | ε | Directa, l=0 | 0 |
+| 3 | `11` | ε | Split l:0→1 y doubling | 1 |
+| 18 | `10010` | `0` | Directa, l=1 | 1 |
+| 6 | `110` | `0` | Split l:1→2 y doubling | 2 |
+| 29 | `11101` | `01` | Split l:1→2, sin doubling | 2 |
+| 10 | `1010` | `10` | Split l:2→3 y doubling | 3 |
+| 16 | `10000` | `000` | Directa, l=2 | 3 |
+| 20 | `10100` | `100` | Split l:2→3, sin doubling | 3 |
+| 27 | `11011` | `011` | Directa, l=2 | 3 |
+
+Los siguientes son **estados completos**. Cada renglón da todas las entradas del directorio que comparten el bucket, su profundidad local y su contenido; los nombres físicos son irrelevantes para la estructura.
+
+```text
+Después de 3: g=1
+  0 → l=1 [12]
+  1 → l=1 [5,3]
+
+Después de 6: g=2
+  00    → l=2 [12]
+  01,11 → l=1 [5,3]
+  10    → l=2 [18,6]
+
+Después de 10: g=3
+  000,100 → l=2 [12]
+  001,101 → l=2 [5,29]
+  010     → l=3 [18,10]
+  011,111 → l=2 [3]
+  110     → l=3 [6]
+
+Después de 20: g=3
+  000     → l=3 [16]
+  001,101 → l=2 [5,29]
+  010     → l=3 [18,10]
+  011,111 → l=2 [3]
+  100     → l=3 [12,20]
+  110     → l=3 [6]
+
+Final, después de 27: g=3
+  000     → l=3 [16]
+  001,101 → l=2 [5,29]
+  010     → l=3 [18,10]
+  011,111 → l=2 [3,27]
+  100     → l=3 [12,20]
+  110     → l=3 [6]
+```
+
+Hay **cinco splits** (al insertar `3,6,29,10,20`) y **tres doublings** (`3,6,10`). Cada split añade un bucket: de uno inicial se pasa a seis; $2^3=8$ entradas de directorio. Ni el número de buckets ni el de claves determina por sí solo $g$.
+
+### Caso B: eliminación conservadora
+
+Partimos del estado final anterior. El sufijo de la tabla identifica al bucket afectado antes de eliminar; $l$ corresponde a ese bucket y, si hay merge, al superviviente después.
+
+| Eliminar | Sufijo | ¿Vacío? | Hermano y decisión | l antes→después | g antes→después |
+|---|---|---|---|---|---|
+| 12 | `100` | No | No se considera merge | 3→3 | 3→3 |
+| 16 | `000` | Sí | `100`, l=3: merge | 3→2 | 3→3 |
+| 20 | `00` | Sí | Lado `10` subdividido, l=3: no merge | 2→2 | 3→3 |
+| 10 | `010` | No | No se considera merge | 3→3 | 3→3 |
+| 18 | `010` | Sí | `110`, l=3: merge y reducción | 3→2 | 3→2 |
+| 5 | `01` | No | No se considera merge | 2→2 | 2→2 |
+| 3 | `11` | No | No se considera merge | 2→2 | 2→2 |
+
+```text
+Después de eliminar 16: g=3
+  000,100 → l=2 [20]
+  001,101 → l=2 [5,29]
+  010     → l=3 [18,10]
+  011,111 → l=2 [3,27]
+  110     → l=3 [6]
+
+Después de eliminar 20: g=3
+  000,100 → l=2 []
+  001,101 → l=2 [5,29]
+  010     → l=3 [18,10]
+  011,111 → l=2 [3,27]
+  110     → l=3 [6]
+
+Después de eliminar 18: g=2
+  00 → l=2 []
+  01 → l=2 [5,29]
+  10 → l=2 [6]
+  11 → l=2 [3,27]
+
+Final: g=2
+  00 → l=2 []
+  01 → l=2 [29]
+  10 → l=2 [6]
+  11 → l=2 [27]
+```
+
+**Caso límite:** al eliminar `20`, cambiar el bit de peso $2^{2-1}=2$ de `000` selecciona `010`, cuyo bucket tiene profundidad tres. El alias `100` llevaría a `110`, otro bucket también de profundidad tres. No hay un único hermano con $l=2$ y no se fusiona, aunque el bucket afectado esté vacío. Tampoco se fusionan después `01:[29]` y `11:[27]`: ninguno acaba de vaciarse.
+
+### Caso C: crecer y volver a reducir
+
+Con un único bucket `[0,2]`, $g=l=0$, insertar `1` obliga a duplicar y dividir: `0 → [0,2]`, `1 → [1]`, ambos de $l=1$. Eliminar `1` deja vacío su bucket; el hermano tiene igual profundidad, se fusionan y el directorio vuelve a $g=0$, `[0,2]`. Repetir estas operaciones repite los cambios estructurales. En directorios mayores, duplicar y contraer con demasiada frecuencia puede resultar costoso; por eso las políticas prácticas pueden postergar la contracción. Esta observación no cambia la política del explorador.
+
+## Costos, capacidad y comparación {#costos}
+
+En hashing extensible sin overflow, buscar por igualdad visita un bucket. Si el directorio está en RAM y el bucket no, requiere **una lectura**; si el directorio está en disco, direccionable por posición y sin caché, requiere **dos**: una página de directorio y una de bucket. No se lee el directorio completo para una búsqueda. Recuperar una tupla externa añade otro acceso cuando no está ya en memoria. [@ramakrishnan2003, sec. 11.2]
+
+Sea $E=2^g$ el número de **entradas** del directorio y $D$ su tamaño en **páginas**. Un split lee y redistribuye hasta $B$ entradas existentes, escribe dos buckets y modifica los punteros afectados; esas referencias podrían ocupar varias páginas del directorio. Duplicar cuesta $O(E)$ copias de punteros en RAM u $O(D)$ I/O para materializar el nuevo directorio, además de la división. Si una inserción requiere varios splits, se suman sus costos; no hay garantía general de un solo split ni de costo constante por modificación. Distribuciones muy sesgadas pueden crear un directorio grande con pocos datos.
+
+### Ejemplo cuantitativo: páginas de 4 KiB
+
+Supongamos $10^7$ entradas, páginas de $4096$ bytes, punteros de 8 bytes y entradas de datos de 16 bytes. **Ignoramos cabeceras, alineación y espacio libre**:
+
+$$
+\begin{aligned}
+B&=4096/16=256\quad\text{entradas por bucket},\\
+C&=4096/8=512\quad\text{punteros por página},\\
+b&\geq\lceil10^7/256\rceil=39\,063\quad\text{buckets},\\
+g&\geq\lceil\log_2 39\,063\rceil=16,\\
+E&\geq65\,536,\qquad D\geq65\,536/512=128\quad\text{páginas}.
+\end{aligned}
+$$
+
+Son **cotas inferiores de capacidad**, no predicciones de ocupación ni garantía de alcanzar el límite con cualquier secuencia. Con $g=16$, el directorio ocupa 512 KiB; un doubling da $g=17$, 131 072 punteros y 256 páginas (1 MiB). Materializar el nuevo directorio completo escribe 256 páginas; si se reutiliza la primera mitad sin reescribirla, la segunda mitad añade 128 páginas y se escriben además las páginas cuyos punteros cambian. El número preciso de I/O depende de esa estrategia.
+
+Para comparar, un B+tree idealizado con hojas de 256 entradas y hasta 256 hijos por directorio necesita al menos 39 063 hojas, 153 directorios sobre ellas y una raíz: altura dos aristas y **tres páginas de índice** por búsqueda desde disco sin caché. Si la entrada remite a una tupla externa y se pide un atributo no cubierto, se añade una lectura: cuatro frente a tres para hashing con directorio en disco, o dos para hashing con directorio en RAM y bucket en disco. No se supone que todo el árbol B+ esté sin caché mientras se compara con otro índice totalmente residente.
+
+**El sesgo rompe las estimaciones por capacidad.** Con $B=2$, las tres claves `0,16,32` comparten cuatro bits inferiores y fuerzan $g\geq5$. En general, $B+1$ claves que coinciden en los últimos $t$ bits no caben en un bucket y no pueden separarse usando $g\leq t$; por tanto requieren al menos $t+1$ bits si la inserción termina sin overflow. El tamaño del directorio no está acotado de manera útil solo por la cantidad de datos.
+
+| Aspecto | Hashing | B+tree |
+|---|---|---|
+| Igualdad | Un bucket, más directorio u overflow según variante | Descenso raíz–hoja |
+| Rango y orden | Sin orden útil entre buckets | Hojas ordenadas y enlazadas |
+| Estructura | Función y cadenas, o directorio de sufijos | Altura balanceada |
+| Modificaciones | Overflow estático; splits y posible doubling extensible | Splits, préstamos, fusiones en un camino |
+| Cota de búsqueda | Depende de variante, reparto y residencia | H+1 páginas de índice por igualdad |
+
+El hashing no es universalmente más rápido: importan el reparto, la memoria disponible, las consultas y las referencias a datos. Véanse las [cotas de B+trees](bplus.qmd#altura) para las hipótesis de altura y ocupación.
+
+### Profundización: base ternaria
+
+Puede reemplazarse la base dos por tres, usando $h_n(k)=k\bmod3^n$ y últimos dígitos ternarios. El directorio tiene $3^g$ entradas; un bucket de profundidad local $l$ recibe $3^{g-l}$ referencias. Un split reparte según el siguiente dígito en **tres buckets**, todos de profundidad $l+1$, y si $l=g$ se triplica el directorio. La justificación cuenta las elecciones libres de los $g-l$ dígitos restantes. No se traslada literalmente el merge binario: haría falta una política que considere la familia completa de tres hermanos. El explorador implementa únicamente la variante binaria definida antes.
+
+## Autoevaluación con solución razonada
+
+::: {.callout-tip collapse="true"}
+## 1. ¿Toda colisión necesita overflow?
+
+No. Con $B=3$, insertar `8` y `12` en el bucket 0 del módulo cuatro ocupa dos lugares de su página principal. Overflow aparece recién al insertar una cuarta entrada que llega a una página ya llena.
+:::
+
+::: {.callout-tip collapse="true"}
+## 2. Con g=3 y l=1, ¿cuántos punteros hay? ¿Se duplica al dividir?
+
+Hay $2^{3-1}=4$ referencias. El split crea dos buckets de profundidad dos con dos referencias cada uno; no duplica el directorio porque $l<g$. Si el sufijo original era `1`, se reparte entre `01` y `11`.
+:::
+
+::: {.callout-tip collapse="true"}
+## 3. Un bucket vacío tiene l=2 y su candidato a hermano l=3. ¿Se fusionan?
+
+No. El lado hermano está subdividido. Fusionar con solo una de sus partes no produce una clase completa de sufijo de longitud uno. Es el caso de eliminar `20` en el ejemplo resuelto.
+:::
+
+::: {.callout-tip collapse="true"}
+## 4. ¿Puede una búsqueda fallida costar cero lecturas?
+
+En el modelo sin caché, no: se examina al menos la página principal o el bucket de destino. Que el hash se calcule en CPU no permite saber si la clave existe. Si todas las páginas necesarias están ya en RAM, las lecturas físicas pueden ser cero tanto para éxito como para fracaso.
+:::
+
+::: {.callout-tip collapse="true"}
+## 5. ¿Pueden tres claves forzar un directorio de 32 entradas?
+
+Sí: con $B=2$, `0,16,32` comparten cuatro bits. Las divisiones hasta profundidad cuatro no bastan; el quinto bit separa `16` de `0,32`. El estado final tiene $g=5$, aunque solo hay tres datos. La capacidad total no es una cota superior del directorio.
+:::
+
+## Resumen y conceptos relacionados
+
+Una función determinista conduce a un bucket, pero no elimina las colisiones. El hashing estático conserva $N$ y absorbe crecimiento con overflow. El extensible divide por el siguiente bit, distingue profundidad local de global y duplica solo cuando $l=g$. Eliminar puede fusionar un bucket recién vaciado con su hermano de igual profundidad; la contracción del directorio obedece una condición adicional. Contar páginas exige distinguir cálculo, directorio, bucket, overflow y datos externos.
+
+- [B+trees: búsquedas por valor y rango](bplus.qmd).
+- [Llaves y dependencias](../diseno/dependencias-llaves.qmd): una clave de búsqueda no es necesariamente una llave candidata.
+- [Consultas SQL](../sql/consultas-basicas.qmd): resultados y multiplicidades son independientes del método de acceso.
+
+## Bibliografía
+
+Las cadenas de overflow y el modelo de directorio por bits inferiores se fundamentan en @ramakrishnan2003 [secs. 11.1–11.2]. @silberschatz2020 [secs. 24.5.1–24.5.2] desarrolla índices hash estáticos y dinámicos; su exposición del extensible usa prefijos del hash. Aquí se fija explícitamente la convención por sufijos y la política de eliminación para que todos los ejemplos y operaciones sean reproducibles.

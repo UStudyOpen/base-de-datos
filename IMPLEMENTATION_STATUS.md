@@ -2,6 +2,58 @@
 
 Actualizado: 19 de octubre de 2026. Archivo de continuidad técnica y académica del sitio; no sustituye la validación local previa a publicar.
 
+## P4 — Hashing: implementación actual
+
+### Estado recibido y alcance
+
+- HEAD al iniciar P4: `a4db761` (`B+ tree`); `git status --short` vacío. Se trabajó sobre esta copia sin reemplazar archivos por un ZIP. No se encontró `open-study-base-de-datos(3).zip` en el espacio de trabajo.
+- Se conservan las 22 páginas anteriores y se añade `indices/hashing.qmd`: 23 páginas académicas. Hashing aparece inmediatamente después de B+trees en la categoría Índices existente. No se cambia la arquitectura ni la identidad visual.
+- No se modifican los algoritmos de B+trees, clausuras, BCNF ni 3NF. El único cambio editorial en B+ es un enlace relacionado. `references.bib` conserva sus cinco entradas y claves sin modificaciones.
+
+### Fuentes verificadas (registro técnico no publicado)
+
+- Consultados los PDFs locales de introducción a índices y hashing, y el contenido de B+trees para contraste. La guía disponible en `/home/nicolas/Descargas/guia_repaso_i2.pdf` se extrajo y se consultaron los ejercicios 24–27 y 35. Ningún PDF ni atribución docente se incorpora al sitio.
+- Verificados los pasajes de Ramakrishnan–Gehrke, tercera edición, secciones **11.1–11.2** (páginas impresas 371–379): overflow, directorio por bits inferiores, profundidades, división, doubling y contracción opcional.
+- Verificados los pasajes de Silberschatz–Korth–Sudarshan, séptima edición, secciones **24.5.1–24.5.2**, especialmente 24.5.2.1–24.5.2.2: índices estáticos y dinámicos, alias, repetición de splits y límites de hashes completos. Este libro usa prefijos; el sitio declara explícitamente su convención por sufijos. No se añaden citas a libros cuyos pasajes no se consultaron en P4.
+- La guía cuantitativa usa «4 KB». El ejemplo público fija inequívocamente **4 KiB = 4096 bytes**, ignora cabeceras y presenta cotas inferiores, no predicciones de ocupación. Se distingue escribir un directorio completo nuevo de ampliar su segunda mitad reutilizando la primera.
+
+### Archivos y convenciones
+
+- Nuevos: `indices/hashing.qmd`, `assets/js/visualizaciones/hashing-model.js`, `assets/js/visualizaciones/hashing.js`, `tests/hashing.test.js`, `tests/hashing-browser.mjs`.
+- Integración mínima: `_quarto.yml`, `index.qmd`, `indices/bplus.qmd`, `assets/js/visualizaciones/index.js`, `assets/css/visualizaciones.css`, `tests/integracion-visual.test.js` y este registro. `docs/` se regenera exclusivamente con Quarto, incluidos recursos y búsqueda.
+- Motor puro, sin `document` ni `window`; estados de entrada y snapshots congelados. Las operaciones fallidas descartan todas las transformaciones tentativas; no se publica un estado parcial tras exceder el límite.
+- Estático: páginas principales y overflow de capacidad B; conserva orden de inserción. La búsqueda cuenta cada página examinada, incluida la principal vacía. El simulador permite N=4 y N=5 y búsquedas 28,17,10,33.
+- Extensible: inicio g=l=0; últimos bits, directorio en orden numérico ascendente. Split por bit de peso 2^l; doubling solo con l=g. Eliminación: como máximo un merge, solo al vaciar y con hermano de igual l; después, contracción repetida si todas las profundidades son menores que g. No se implementa merge por mera suma de ocupaciones.
+- Operaciones propias: B=2, claves 0–65535, hasta 60 entradas, g máximo 8. El motor admite B entre 1 y 16 y profundidad máxima entre 0 y 8. Los límites son pedagógicos, visibles en la página.
+- El visualizador no reimplementa operaciones. Distingue estados transitorios de doubling, split y merge; deshabilita nuevas operaciones hasta completar la pendiente. Anterior, siguiente y reinicio recorren snapshots deterministas.
+- SVG con directorio, punteros compartidos y un único dibujo por bucket físico; etiquetas y bordes complementan el color. Regiones desplazables conservan texto legible, teclado y foco visible; descripciones textuales, aria-live y fallbacks completos para impresión o fallo de JavaScript.
+- Siete presets extensibles: inserción, eliminación, alternancia, colisiones, reducción repetida desde un estado redundante explícitamente preparado, búsquedas y vacío. El estado redundante es estructuralmente válido pero no se presenta como alcanzable solo mediante inserciones desde el inicio mínimo.
+
+### Resultados algorítmicos y validación
+
+- Estático N=4: distribución 7,5,0,2, tres overflow y siete páginas totales. N=5: 2,2,3,4,3, un overflow y seis páginas. Costos de buscar 28,17,10,33: 3,2,1,2 frente a 2,1,1,2. Promedio exitoso uniforme: 21/14 y 15/14 páginas.
+- Caso A extensible: cinco splits (3,6,29,10,20), tres doublings (3,6,10), g=3, seis buckets y ocho entradas de directorio. Certificados manuales por sufijo contrastados con el motor, incluida cada inserción.
+- Caso B: merges al eliminar 16 y 18; solo el segundo reduce g de 3 a 2. Tras eliminar 20 queda vacío el sufijo 00 de l=2 y su lado hermano está subdividido en buckets de l=3; no hay merge. Final: 00:[], 01:[29], 10:[6], 11:[27], todos l=2.
+- Casos C/D: crecimiento y contracción repetidos; tres claves 0,8,16 requieren cuatro splits/doublings; 0,16,32 fuerzan g=5. Un estado redundante válido comprueba tres reducciones tras un único merge. Duplicados, ausentes y exceso de profundidad conservan el estado previo.
+- `node --test tests/*.test.js`, con el Node 24.21.0 disponible en `/usr/lib/chatgpt/resources/cua_node/bin/node`: **34 pruebas aprobadas, 0 fallidas**. Incluye diez pruebas nuevas de hashing y una de integración; se ejecutó después de completar el render. Una ejecución anticipada durante el render falló porque Quarto aún no había repuesto el HTML; no se atribuyó ese fallo al contenido y se repitió la suite tras terminar el render.
+- El oráculo independiente reconstruye clases de sufijos mediante máscaras, compara con conjuntos y comprueba certificados exactos, todos los pasos y las condiciones de split/doubling/merge/contracción. Cuatro capacidades, secuencias deterministas y 1000 operaciones mixtas reproducibles con semilla fija; P1/P2 se verifican solo en estados estables de inserción. El texto aporta los argumentos universales.
+- `python3 tests/sql_examples.py`: aprobado en SQLite 3.51.2; no se declara ejecución de dialectos ajenos.
+- `quarto render`: **23 páginas**, sin errores ni warnings relevantes. `python3 tests/check_site.py`: aprobado, 19 rutas originales conservadas, enlaces y fragmentos correctos, cinco claves bibliográficas, recursos publicados idénticos y sin PDFs privados.
+- `git diff --check` sobre fuentes: aprobado. La salida HTML de Quarto añade espacios finales en su plantilla de navegación; no se edita HTML generado para retirarlos.
+- `tests/hashing-browser.mjs` en Brave/Chromium con Playwright: **326 snapshots comprobados**, siete presets extensibles y diez configuraciones estáticas. Comparación de claves dibujadas, directorio y número de buckets con cada snapshot; bloqueo en transitorios, operaciones propias, rechazo de duplicados/entradas inválidas/exceso de profundidad, navegación y cambio de ejemplo, instancias independientes e inicialización idempotente.
+- Hashing verificado a **320, 390, 768, 1024 y 1440 px** sin desbordamiento horizontal del documento y con texto SVG de 15 px. Foco, teclado, desplazamiento local, impresión, MathJax, JavaScript desactivado y módulo bloqueado comprobados. Carga real bajo **`/open-study-base-de-datos/indices/hashing.html`** con un servidor temporal que mapea ese prefijo a `docs/`; sin errores propios ni recursos fallidos. Capturas inspeccionadas en escritorio y móvil, incluidas cadenas de overflow y punteros compartidos.
+- Comprobación adicional de controles estáticos: avanzar dos pasos y retroceder restituye el SVG anterior; reiniciar restituye exactamente el SVG inicial. Foco y scroll horizontal a 320 px comprobados.
+- Regresión `tests/bplus-browser.mjs`: **508 snapshots**, nueve presets y ambas políticas, más operaciones propias, rangos, responsive, foco, reflujo equivalente al 200 %, impresión, instancias múltiples, sin JavaScript, fallo del módulo y MathJax: aprobada. El primer servidor de prefijo devolvía «Not Found» para el favicon implícito y el filtro histórico del test esperaba «File not found»; se repitió con el servidor estándar documentado, sin cambiar el test ni el producto. El único error de consola registrado es ese 404 conocido de `/favicon.ico`, ajeno a los componentes; todos los recursos propios cargan.
+- Smoke de navegador sobre clausuras, BCNF y 3NF: inicialización, avance y retroceso correctos, sin errores de JavaScript ni alertas de componente. Sus pruebas algorítmicas anteriores también pasan en la suite de 34 pruebas.
+
+Para reproducir el navegador, servir el directorio padre con `python3 -m http.server 8765 --bind 127.0.0.1 --directory ..` y ejecutar `node tests/hashing-browser.mjs` y `node tests/bplus-browser.mjs`. Ambas pruebas admiten `PLAYWRIGHT_MODULE` y `BROWSER_EXECUTABLE`; hashing admite además `HASHING_TEST_URL` para un servidor con prefijo exacto. En esta sesión se usó `/usr/lib/chatgpt/resources/cua_node/lib/node_modules/playwright-core/index.mjs` y `/usr/bin/brave-browser`, en instancias nuevas sin perfiles personales. No se añaden dependencias de ejecución al sitio.
+
+### Límites y continuación
+
+La estructura materializa snapshots completos y valida globalmente cada paso: no constituye una medición de rendimiento de un índice. No simula concurrencia, recuperación, caché ni asignación física. La variante ternaria es una profundización conceptual, sin segundo motor. Quedan como revisiones humanas complementarias la lectura editorial académica, lectores de pantalla, zoom nativo y Firefox/Safari; no se declara auditoría WCAG completa.
+
+**P4 implementada y validada dentro del alcance solicitado.** P5–P8 permanecen sin iniciar. No se realizaron commits, pushes, despliegues ni modificaciones remotas.
+
 ## P3 — B+trees: implementación actual
 
 ### Estado recibido y conservación
@@ -57,7 +109,7 @@ P3 está implementada dentro de su alcance. La categoría Índices y la página 
 | P1: DF, clausuras y llaves | Páginas y explorador existentes; pruebas académicas aprobadas | Revisión visual y pruebas de teclado/foco en navegador |
 | P2: descomposiciones, BCNF, 3NF | Tres páginas ampliadas/nuevas, motor y ejemplos presentes; pruebas académicas aprobadas | Revisión visual y de casos interactivos en navegador |
 | P3: B+trees | Implementado y validado en esta etapa; véase el registro actual anterior | Revisiones humanas complementarias de accesibilidad y navegadores |
-| P4: hashing | No implementado | Página, simulador y pruebas |
+| P4: hashing | Página, motores y exploradores implementados; validación registrada arriba | Revisiones humanas complementarias |
 | P5: procesamiento y reescritura | No implementado | Páginas, AST/visualización y pruebas |
 | P6: almacenamiento y buffer | No implementado | Páginas, simulador y pruebas |
 | P7: índices y costos | No implementado | Página y ejemplos con costos verificados |
@@ -93,5 +145,5 @@ Las limitaciones de Quarto y conexión a localhost que siguen corresponden al en
 
 1. Completar las revisiones humanas complementarias indicadas para P3.
 2. Ejecutar las validaciones tras futuras modificaciones y conservar `docs/` generado por Quarto.
-3. Abordar P4 únicamente como una tarea posterior con alcance propio.
+3. P4 se desarrolló posteriormente con alcance propio; su registro actual aparece al inicio. P5–P8 requieren tareas independientes.
 4. Mantener estas convenciones y las pruebas sin refactorizaciones innecesarias.
