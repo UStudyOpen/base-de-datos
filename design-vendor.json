@@ -1,0 +1,22 @@
+{
+  "name": "ustudyopen-design",
+  "version": "0.3.0",
+  "quarto": "1.10.18",
+  "source": "UStudyOpen/ustudyopen-design",
+  "source_kind": "local working-tree snapshot; not a tagged or approved release",
+  "files": {
+    "PROVENANCE.md": "0ab4852df13cc3cf9372d1357ccd52eaafa44a4ecf3fded29730eafe38b78749",
+    "_extension.yml": "2064a076d09021135222dbde543e7073a416d05a478b62efacba2d8c923274f1",
+    "assets/after-body.html": "ffbb4569d20dc4e90f8765de460601f0ae709f6e2fb7616b3a2d994d1a2fbd9e",
+    "assets/favicon.svg": "a5a4417904d071f86e435c7ba60c0d28dcf364eafe16c7a994ef68af51caefa1",
+    "brand/_brand-dark.yml": "ffa91487247e856a1cd0db8b92ce2823d36bb01b86265ffc1728c2a050b32892",
+    "brand/_brand.yml": "21aae3442dbb43b81a8d1e8ba9a248f13ef67a1ad7ba6f12fb6cfa679fe2a96d",
+    "filters/status.lua": "deddc165eb52029ab045dd3fcd86f7fc2320f5c65fa32a9a7a570c83c9ed076d",
+    "scss/_academic.scss": "01f18f4b5db0defe57267a13e0147b72156bbdd016a20d3df5cae86cc7e57a4f",
+    "scss/_base.scss": "39f605ee15da0ad4ea8e7a1dcfeae675d5aaede3353c45fc8d663621096fe28a",
+    "scss/_callouts.scss": "16c05f9ba67b1c4b906f4fdda7f568a8c0e5c584b606b12a8a29f46d1b4a141c",
+    "scss/_components.scss": "8149fe507c03f1f037ecaa17c02f2c1deaa7dd9e6205d2f3f21958f6ba3beb46",
+    "scss/_layout.scss": "ca8b7ada731451440247b6d589f555c4bcda83f561aabd43f34adcec73cc3b10",
+    "scss/uso.scss": "930e425f328379418c00c581fae523ae9c04cda123c3c00edc9a65391987c9cf"
+  }
+}

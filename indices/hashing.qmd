@@ -1,6 +1,8 @@
 ---
 title: "Hashing estático y extensible"
 description: "Funciones hash, cadenas de overflow y directorios dinámicos: algoritmos, demostraciones y dos exploradores paso a paso."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

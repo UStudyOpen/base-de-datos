@@ -1,5 +1,7 @@
 ---
 title: "SQL y manipulación de datos"
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

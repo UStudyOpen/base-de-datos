@@ -1,0 +1,356 @@
+{
+  "course": {
+    "schema": 1,
+    "slug": "base-de-datos",
+    "name": "Bases de Datos",
+    "reference_code": null,
+    "independent": true,
+    "status": "en-desarrollo",
+    "authorship": "Colaboradores del curso; identificación individual pendiente de confirmar",
+    "license": "CC BY-NC 4.0",
+    "first_page": "fundamentos/sistemas-rdbms.qmd",
+    "objectives": [
+      "Representar información mediante relaciones, esquemas y restricciones.",
+      "Formular e interpretar consultas en lógica, álgebra relacional y SQL.",
+      "Analizar diseño relacional, índices, almacenamiento y procesamiento de consultas."
+    ],
+    "units": [
+      {
+        "section": "Fundamentos del modelo relacional",
+        "contents": [
+          {
+            "href": "fundamentos/sistemas-rdbms.qmd",
+            "text": "Sistemas de bases de datos y RDBMS"
+          },
+          {
+            "href": "fundamentos/modelo-relacional.qmd",
+            "text": "Modelo relacional"
+          },
+          {
+            "href": "fundamentos/relaciones-nombradas.qmd",
+            "text": "Atributos y relaciones nombradas"
+          }
+        ]
+      },
+      {
+        "section": "Teoría de consultas",
+        "contents": [
+          {
+            "href": "teoria-consultas/logica-primer-orden.qmd",
+            "text": "Lógica de primer orden y consultas"
+          },
+          {
+            "href": "teoria-consultas/algebra-relacional.qmd",
+            "text": "Álgebra relacional"
+          },
+          {
+            "href": "teoria-consultas/joins-operadores.qmd",
+            "text": "Joins y operadores derivados"
+          },
+          {
+            "href": "teoria-consultas/equivalencia-patrones.qmd",
+            "text": "Equivalencia y patrones de consulta"
+          }
+        ]
+      },
+      {
+        "section": "SQL",
+        "contents": [
+          {
+            "href": "sql/ddl-dml.qmd",
+            "text": "DDL y DML"
+          },
+          {
+            "href": "sql/consultas-basicas.qmd",
+            "text": "SELECT-FROM-WHERE, joins y conjuntos"
+          },
+          {
+            "href": "sql/subconsultas.qmd",
+            "text": "Subconsultas"
+          },
+          {
+            "href": "sql/agregacion.qmd",
+            "text": "Agregación, GROUP BY y HAVING"
+          },
+          {
+            "href": "sql/funciones-filtros.qmd",
+            "text": "Funciones, filtros, orden y dialectos"
+          }
+        ]
+      },
+      {
+        "section": "Nulos e información incompleta",
+        "contents": [
+          {
+            "href": "nulos/null-tres-valores.qmd",
+            "text": "NULL y lógica de tres valores"
+          },
+          {
+            "href": "nulos/informacion-incompleta.qmd",
+            "text": "Información incompleta y mundos posibles"
+          },
+          {
+            "href": "nulos/outer-joins.qmd",
+            "text": "Outer joins"
+          }
+        ]
+      },
+      {
+        "section": "Diseño relacional y dependencias",
+        "contents": [
+          {
+            "href": "diseno/dependencias-llaves.qmd",
+            "text": "Redundancia, dependencias funcionales y llaves"
+          },
+          {
+            "href": "diseno/implicacion-clausura.qmd",
+            "text": "Implicación y clausura"
+          },
+          {
+            "href": "diseno/descomposiciones.qmd",
+            "text": "Descomposiciones y pérdida de información"
+          },
+          {
+            "href": "diseno/bcnf.qmd",
+            "text": "Forma normal de Boyce–Codd"
+          },
+          {
+            "href": "diseno/tercera-forma-normal.qmd",
+            "text": "Tercera forma normal y síntesis"
+          }
+        ]
+      },
+      {
+        "section": "Índices",
+        "contents": [
+          {
+            "href": "indices/bplus.qmd",
+            "text": "Árboles B+"
+          },
+          {
+            "href": "indices/hashing.qmd",
+            "text": "Hashing"
+          }
+        ]
+      },
+      {
+        "section": "Procesamiento de consultas",
+        "contents": [
+          {
+            "href": "procesamiento/planes-logicos.qmd",
+            "text": "Planes lógicos y procesamiento"
+          },
+          {
+            "href": "procesamiento/reescritura.qmd",
+            "text": "Reescritura y equivalencia"
+          }
+        ]
+      },
+      {
+        "section": "Almacenamiento y organización física",
+        "contents": [
+          {
+            "href": "almacenamiento/paginas-registros.qmd",
+            "text": "Páginas y registros"
+          },
+          {
+            "href": "almacenamiento/buffer-manager.qmd",
+            "text": "Buffer Manager"
+          }
+        ]
+      }
+    ],
+    "pages": [
+      {
+        "path": "almacenamiento/buffer-manager.qmd",
+        "title": "Buffer Manager: FIFO y LRU",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "almacenamiento/paginas-registros.qmd",
+        "title": "Almacenamiento: páginas y registros",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "diseno/bcnf.qmd",
+        "title": "Forma normal de Boyce–Codd (BCNF)",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "diseno/dependencias-llaves.qmd",
+        "title": "Redundancia, dependencias funcionales y llaves",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "diseno/descomposiciones.qmd",
+        "title": "Descomposiciones y pérdida de información",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "diseno/implicacion-clausura.qmd",
+        "title": "Razonamiento con dependencias: implicación y clausura",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "diseno/tercera-forma-normal.qmd",
+        "title": "Tercera forma normal: cubierta minimal y síntesis",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "fundamentos/modelo-relacional.qmd",
+        "title": "Modelo relacional: tuplas, relaciones, esquemas y bases de datos",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "fundamentos/relaciones-nombradas.qmd",
+        "title": "Atributos y relaciones nombradas",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "fundamentos/sistemas-rdbms.qmd",
+        "title": "Sistemas de bases de datos y RDBMS",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "index.qmd",
+        "title": "Bases de Datos",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "indices/bplus.qmd",
+        "title": "Árboles B+: estructura, búsqueda y actualización",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "indices/hashing.qmd",
+        "title": "Hashing estático y extensible",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "nulos/informacion-incompleta.qmd",
+        "title": "Información incompleta y mundos posibles",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "nulos/null-tres-valores.qmd",
+        "title": "NULL y lógica de tres valores",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "nulos/outer-joins.qmd",
+        "title": "Outer joins",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "procesamiento/planes-logicos.qmd",
+        "title": "Planes lógicos y procesamiento de consultas",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "procesamiento/reescritura.qmd",
+        "title": "Reescritura y equivalencia de consultas",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "sql/agregacion.qmd",
+        "title": "Agregación, GROUP BY y HAVING",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "sql/consultas-basicas.qmd",
+        "title": "Consultas SQL: SELECT-FROM-WHERE, joins y conjuntos",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "sql/ddl-dml.qmd",
+        "title": "SQL y manipulación de datos",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "sql/funciones-filtros.qmd",
+        "title": "Funciones, filtros, orden y dialectos SQL",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "sql/subconsultas.qmd",
+        "title": "Subconsultas",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "teoria-consultas/algebra-relacional.qmd",
+        "title": "Álgebra relacional",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "teoria-consultas/equivalencia-patrones.qmd",
+        "title": "Equivalencia y patrones de consulta",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "teoria-consultas/joins-operadores.qmd",
+        "title": "Joins, producto cartesiano y operadores derivados",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      },
+      {
+        "path": "teoria-consultas/logica-primer-orden.qmd",
+        "title": "Lógica de primer orden y consultas",
+        "required": true,
+        "status": "en-desarrollo",
+        "reviewed": false
+      }
+    ],
+    "planned": []
+  }
+}

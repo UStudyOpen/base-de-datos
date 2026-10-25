@@ -1,6 +1,8 @@
 ---
 title: "Subconsultas"
 description: "Consultas anidadas en FROM y WHERE, correlación, EXISTS, IN, consultas escalares y ANY/ALL."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

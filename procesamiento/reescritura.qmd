@@ -1,6 +1,8 @@
 ---
 title: "Reescritura y equivalencia de consultas"
 description: "Reglas, hipótesis y contraejemplos para transformar planes sin alterar sus resultados."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

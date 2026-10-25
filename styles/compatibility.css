@@ -1,0 +1,13 @@
+/* Course-specific static storage diagrams; shared presentation lives in the extension. */
+/* Static storage SVGs have presentation attributes in the unchanged QMD.
+   Override only those known colors; keep coordinates, labels and line styles. */
+@media screen {
+.db-storage-diagram [fill="#243247"] { fill: var(--uso-text); }
+.db-storage-diagram [fill="#f7f9fc"], .db-storage-diagram [fill="#edf2f9"] { fill: var(--uso-surface-alt); }
+.db-storage-diagram [fill="white"] { fill: var(--uso-surface); }
+.db-storage-diagram [fill="#eff6ff"] { fill: var(--uso-primary-soft); }
+.db-storage-diagram [fill="#e7f4f2"] { fill: var(--uso-emphasis-soft); }
+.db-storage-diagram [stroke="#58677b"] { stroke: var(--uso-control-border); }
+.db-storage-diagram [stroke="#147d78"] { stroke: var(--uso-emphasis-ink); }
+.db-storage-diagram [stroke="#2563eb"] { stroke: var(--uso-primary); }
+}

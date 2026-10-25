@@ -1,6 +1,8 @@
 ---
 title: "NULL y lógica de tres valores"
 description: "Semántica de NULL en SQL, UNKNOWN, tablas de verdad y consecuencias para WHERE, agregación y subconsultas."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

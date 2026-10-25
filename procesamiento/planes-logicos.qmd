@@ -1,6 +1,8 @@
 ---
 title: "Planes lógicos y procesamiento de consultas"
 description: "Del SQL al árbol lógico: validación, catálogo, álgebra extendida y multiplicidades."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

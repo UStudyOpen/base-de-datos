@@ -1,6 +1,8 @@
 ---
 title: "Sistemas de bases de datos y RDBMS"
 description: "Qué problema resuelve un sistema de manejo de bases de datos relacional y cómo se relaciona con SQL."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

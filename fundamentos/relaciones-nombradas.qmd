@@ -1,6 +1,8 @@
 ---
 title: "Atributos y relaciones nombradas"
 description: "Tuplas y relaciones con atributos explícitos, base formal para el álgebra relacional."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

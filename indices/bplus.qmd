@@ -1,6 +1,8 @@
 ---
 title: "Árboles B+: estructura, búsqueda y actualización"
 description: "Índices B+ por páginas: intervalos, altura, splits, redistribución y fusión con un explorador paso a paso."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

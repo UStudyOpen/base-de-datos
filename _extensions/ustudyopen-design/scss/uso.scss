@@ -1,0 +1,64 @@
+/*-- scss:defaults --*/
+$font-size-base: 1rem;
+$font-size-root: 100%;
+$line-height-base: 1.7;
+
+/*-- scss:rules --*/
+:root {
+  --uso-bg: #{$brand-uso-bg};
+  --uso-surface: #{$brand-uso-surface};
+  --uso-surface-alt: #{$brand-uso-surface-alt};
+  --uso-inline-code-bg: #{$brand-uso-inline-code-bg};
+  --uso-inline-code-text: var(--uso-text);
+  --uso-text: #{$brand-uso-text};
+  --uso-heading: #{$brand-uso-heading};
+  --uso-muted: #{$brand-uso-muted};
+  --uso-primary: #{$brand-uso-primary};
+  --uso-on-primary: #{$brand-uso-on-primary};
+  --uso-primary-hover: #{$brand-uso-primary-hover};
+  --uso-link: #{$brand-uso-link};
+  --uso-primary-soft: #{$brand-uso-primary-soft};
+  --uso-emphasis: #{$brand-uso-emphasis};
+  --uso-emphasis-soft: #{$brand-uso-emphasis-soft};
+  --uso-success: #{$brand-uso-success};
+  --uso-warning: #{$brand-uso-warning};
+  --uso-danger: #{$brand-uso-danger};
+  --uso-border: #{$brand-uso-border};
+  --uso-control-border: #{$brand-uso-control-border};
+  --uso-focus: #{$brand-uso-focus};
+  --uso-callout-border: #{$brand-uso-callout-border};
+  --uso-callout-note-header: #{$brand-uso-callout-note-header};
+  --uso-callout-tip-header: #{$brand-uso-callout-tip-header};
+  --uso-callout-important-header: #{$brand-uso-callout-important-header};
+  --uso-callout-warning-header: #{$brand-uso-callout-warning-header};
+  --uso-emphasis-ink: #{$brand-uso-emphasis-ink};
+  --uso-series-3: #{$brand-uso-series-3};
+}
+:root {
+  --uso-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --uso-font-code: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --uso-space-0: 0;
+  --uso-space-1: .25rem;
+  --uso-space-2: .5rem;
+  --uso-space-3: .75rem;
+  --uso-space-4: 1rem;
+  --uso-space-5: 1.5rem;
+  --uso-space-6: 2rem;
+  --uso-space-7: 3rem;
+  --uso-space-8: 4rem;
+  --uso-radius-control: .375rem;
+  --uso-radius-panel: .625rem;
+  --uso-radius-hero: .875rem;
+  --uso-shadow: 0 .25rem 1rem rgb(0 0 0 / 6%);
+  --uso-chart-axis: var(--uso-control-border);
+  --uso-chart-grid: var(--uso-border);
+  --uso-series-1: var(--uso-primary);
+  --uso-series-2: var(--uso-emphasis);
+  --uso-reading-width: 70ch;
+}
+@import 'base';
+@import 'layout';
+@import 'components';
+@import 'callouts';
+
+@import 'academic';

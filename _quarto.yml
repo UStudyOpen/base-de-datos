@@ -1,120 +1,166 @@
 project:
   type: website
-  output-dir: docs
+  output-dir: _site
   render:
-    - "**/*.qmd"
+  - almacenamiento/buffer-manager.qmd
+  - almacenamiento/paginas-registros.qmd
+  - diseno/bcnf.qmd
+  - diseno/dependencias-llaves.qmd
+  - diseno/descomposiciones.qmd
+  - diseno/implicacion-clausura.qmd
+  - diseno/tercera-forma-normal.qmd
+  - fundamentos/modelo-relacional.qmd
+  - fundamentos/relaciones-nombradas.qmd
+  - fundamentos/sistemas-rdbms.qmd
+  - index.qmd
+  - indices/bplus.qmd
+  - indices/hashing.qmd
+  - nulos/informacion-incompleta.qmd
+  - nulos/null-tres-valores.qmd
+  - nulos/outer-joins.qmd
+  - procesamiento/planes-logicos.qmd
+  - procesamiento/reescritura.qmd
+  - sql/agregacion.qmd
+  - sql/consultas-basicas.qmd
+  - sql/ddl-dml.qmd
+  - sql/funciones-filtros.qmd
+  - sql/subconsultas.qmd
+  - teoria-consultas/algebra-relacional.qmd
+  - teoria-consultas/equivalencia-patrones.qmd
+  - teoria-consultas/joins-operadores.qmd
+  - teoria-consultas/logica-primer-orden.qmd
   resources:
-    - assets/css/visualizaciones.css
-    - assets/js/visualizaciones/*.js
-    - .nojekyll
-    - "!libros_referencia/**"
-    - "!clases_referencia/**"
-    - "!tests/**"
-
+  # Exclude the historical published tree from resource discovery.
+  - '!docs/**'
+  - assets/css/visualizaciones.css
+  - assets/js/visualizaciones/bplus-model.js
+  - assets/js/visualizaciones/bplus.js
+  - assets/js/visualizaciones/buffer-model.js
+  - assets/js/visualizaciones/buffer.js
+  - assets/js/visualizaciones/clausuras.js
+  - assets/js/visualizaciones/core.js
+  - assets/js/visualizaciones/hashing-model.js
+  - assets/js/visualizaciones/hashing.js
+  - assets/js/visualizaciones/index.js
+  - assets/js/visualizaciones/normalizacion.js
+  - assets/js/visualizaciones/paginas.js
+  - assets/js/visualizaciones/query-plan-model.js
+  - assets/js/visualizaciones/query-plan.js
+  - .nojekyll
+  post-render:
+  - python3 tests/post_render.py
+brand:
+  light: _extensions/ustudyopen-design/brand/_brand.yml
+  dark: _extensions/ustudyopen-design/brand/_brand-dark.yml
 lang: es
 bibliography: references.bib
-
 website:
-  title: "Bases de Datos"
-  search: true
+  title: Bases de Datos
+  search:
+    location: navbar
+    type: overlay
+  favicon: _extensions/ustudyopen-design/assets/favicon.svg
+  navbar:
+    title: UStudyOpen
+    pinned: true
+    background: light
+    collapse-below: lg
+    left:
+    - text: Bases de Datos
+      href: index.qmd
+    - text: Inicio
+      href: index.qmd
   page-navigation: true
   back-to-top-navigation: true
   sidebar:
+    title: Bases de Datos
     style: docked
     collapse-level: 1
     contents:
-      - href: index.qmd
-        text: Inicio
-      - section: "Fundamentos del modelo relacional"
-        contents:
-          - href: fundamentos/sistemas-rdbms.qmd
-            text: Sistemas de bases de datos y RDBMS
-          - href: fundamentos/modelo-relacional.qmd
-            text: Modelo relacional
-          - href: fundamentos/relaciones-nombradas.qmd
-            text: Atributos y relaciones nombradas
-      - section: "Teoría de consultas"
-        contents:
-          - href: teoria-consultas/logica-primer-orden.qmd
-            text: Lógica de primer orden y consultas
-          - href: teoria-consultas/algebra-relacional.qmd
-            text: Álgebra relacional
-          - href: teoria-consultas/joins-operadores.qmd
-            text: Joins y operadores derivados
-          - href: teoria-consultas/equivalencia-patrones.qmd
-            text: Equivalencia y patrones de consulta
-      - section: "SQL"
-        contents:
-          - href: sql/ddl-dml.qmd
-            text: DDL y DML
-          - href: sql/consultas-basicas.qmd
-            text: SELECT-FROM-WHERE, joins y conjuntos
-          - href: sql/subconsultas.qmd
-            text: Subconsultas
-          - href: sql/agregacion.qmd
-            text: Agregación, GROUP BY y HAVING
-          - href: sql/funciones-filtros.qmd
-            text: Funciones, filtros, orden y dialectos
-      - section: "Nulos e información incompleta"
-        contents:
-          - href: nulos/null-tres-valores.qmd
-            text: NULL y lógica de tres valores
-          - href: nulos/informacion-incompleta.qmd
-            text: Información incompleta y mundos posibles
-          - href: nulos/outer-joins.qmd
-            text: Outer joins
-      - section: "Diseño relacional y dependencias"
-        contents:
-          - href: diseno/dependencias-llaves.qmd
-            text: Redundancia, dependencias funcionales y llaves
-          - href: diseno/implicacion-clausura.qmd
-            text: Implicación y clausura
-          - href: diseno/descomposiciones.qmd
-            text: Descomposiciones y pérdida de información
-          - href: diseno/bcnf.qmd
-            text: Forma normal de Boyce–Codd
-          - href: diseno/tercera-forma-normal.qmd
-            text: Tercera forma normal y síntesis
-      - section: "Índices"
-        contents:
-          - href: indices/bplus.qmd
-            text: Árboles B+
-          - href: indices/hashing.qmd
-            text: Hashing
-      - section: "Procesamiento de consultas"
-        contents:
-          - href: procesamiento/planes-logicos.qmd
-            text: Planes lógicos y procesamiento
-          - href: procesamiento/reescritura.qmd
-            text: Reescritura y equivalencia
-      - section: "Almacenamiento y organización física"
-        contents:
-          - href: almacenamiento/paginas-registros.qmd
-            text: Páginas y registros
-          - href: almacenamiento/buffer-manager.qmd
-            text: Buffer Manager
+    - href: index.qmd
+      text: Inicio
+    - section: Fundamentos del modelo relacional
+      contents:
+      - href: fundamentos/sistemas-rdbms.qmd
+        text: Sistemas de bases de datos y RDBMS
+      - href: fundamentos/modelo-relacional.qmd
+        text: Modelo relacional
+      - href: fundamentos/relaciones-nombradas.qmd
+        text: Atributos y relaciones nombradas
+    - section: Teoría de consultas
+      contents:
+      - href: teoria-consultas/logica-primer-orden.qmd
+        text: Lógica de primer orden y consultas
+      - href: teoria-consultas/algebra-relacional.qmd
+        text: Álgebra relacional
+      - href: teoria-consultas/joins-operadores.qmd
+        text: Joins y operadores derivados
+      - href: teoria-consultas/equivalencia-patrones.qmd
+        text: Equivalencia y patrones de consulta
+    - section: SQL
+      contents:
+      - href: sql/ddl-dml.qmd
+        text: DDL y DML
+      - href: sql/consultas-basicas.qmd
+        text: SELECT-FROM-WHERE, joins y conjuntos
+      - href: sql/subconsultas.qmd
+        text: Subconsultas
+      - href: sql/agregacion.qmd
+        text: Agregación, GROUP BY y HAVING
+      - href: sql/funciones-filtros.qmd
+        text: Funciones, filtros, orden y dialectos
+    - section: Nulos e información incompleta
+      contents:
+      - href: nulos/null-tres-valores.qmd
+        text: NULL y lógica de tres valores
+      - href: nulos/informacion-incompleta.qmd
+        text: Información incompleta y mundos posibles
+      - href: nulos/outer-joins.qmd
+        text: Outer joins
+    - section: Diseño relacional y dependencias
+      contents:
+      - href: diseno/dependencias-llaves.qmd
+        text: Redundancia, dependencias funcionales y llaves
+      - href: diseno/implicacion-clausura.qmd
+        text: Implicación y clausura
+      - href: diseno/descomposiciones.qmd
+        text: Descomposiciones y pérdida de información
+      - href: diseno/bcnf.qmd
+        text: Forma normal de Boyce–Codd
+      - href: diseno/tercera-forma-normal.qmd
+        text: Tercera forma normal y síntesis
+    - section: Índices
+      contents:
+      - href: indices/bplus.qmd
+        text: Árboles B+
+      - href: indices/hashing.qmd
+        text: Hashing
+    - section: Procesamiento de consultas
+      contents:
+      - href: procesamiento/planes-logicos.qmd
+        text: Planes lógicos y procesamiento
+      - href: procesamiento/reescritura.qmd
+        text: Reescritura y equivalencia
+    - section: Almacenamiento y organización física
+      contents:
+      - href: almacenamiento/paginas-registros.qmd
+        text: Páginas y registros
+      - href: almacenamiento/buffer-manager.qmd
+        text: Buffer Manager
   page-footer:
-    left: "OpenStudy · Bases de Datos · Estudio por conceptos"
-    right: "Sitio de estudio construido con Quarto"
-
+    left: UStudyOpen · Proyecto educativo independiente
+    right: 'Autoría: colaboradores del curso · [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)'
 format:
-  html:
-    theme:
-      - cosmo
-      - theme.scss
+  ustudyopen-design-html:
     css:
-      - styles/base.css
-      - styles/layout.css
-      - styles/components.css
-      - styles/concepts.css
-      - styles/responsive.css
-      - assets/css/visualizaciones.css
-    include-after-body: _includes/visualizaciones.html
-    toc: true
-    toc-depth: 3
+    - styles/compatibility.css
+    - assets/css/visualizaciones.css
     number-sections: false
-    code-copy: true
     code-overflow: wrap
-    html-math-method: mathjax
     link-external-newwindow: true
-    smooth-scroll: true
+    include-after-body:
+    - _extensions/ustudyopen-design/assets/after-body.html
+    - _includes/visualizaciones.html
+metadata-files:
+- course.yml
+quarto-required: =1.10.18

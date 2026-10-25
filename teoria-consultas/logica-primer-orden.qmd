@@ -1,6 +1,8 @@
 ---
 title: "Lógica de primer orden y consultas"
 description: "Sintaxis y semántica de las consultas de primer orden sobre bases de datos relacionales."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

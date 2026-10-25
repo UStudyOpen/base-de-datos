@@ -1,0 +1,54 @@
+meta:
+  name: UStudyOpen
+color:
+  palette:
+    uso-bg: "#111827"
+    uso-surface: "#1b2638"
+    uso-surface-alt: "#243247"
+    uso-inline-code-bg: "#475569"
+    uso-text: "#e8eef7"
+    uso-heading: "#f5f8ff"
+    uso-muted: "#b3bfd0"
+    uso-primary: "#93b4ff"
+    uso-on-primary: "#111827"
+    uso-primary-hover: "#b7ceff"
+    uso-link: "#a8c7ff"
+    uso-primary-soft: "#213656"
+    uso-emphasis: "#64d8cf"
+    uso-emphasis-soft: "#173d3c"
+    uso-success: "#80d5a6"
+    uso-warning: "#f4c46a"
+    uso-danger: "#ff9ba7"
+    uso-border: "#40516a"
+    uso-control-border: "#8192a9"
+    uso-focus: "#93b4ff"
+    uso-callout-border: "#93a4bb"
+    uso-callout-note-header: "#354b69"
+    uso-callout-tip-header: "#244b49"
+    uso-callout-important-header: "#4a303c"
+    uso-callout-warning-header: "#443b29"
+    uso-emphasis-ink: "#64d8cf"
+    uso-series-3: "#c4b5fd"
+  background: uso-bg
+  foreground: uso-text
+  primary: uso-primary
+  secondary: uso-muted
+  success: uso-success
+  warning: uso-warning
+  danger: uso-danger
+  info: uso-emphasis
+  light: uso-surface
+  dark: uso-heading
+typography:
+  base:
+    family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    size: 1rem
+    line-height: 1.7
+  headings:
+    color: uso-heading
+    weight: 700
+  monospace:
+    family: '"SFMono-Regular", Consolas, "Liberation Mono", monospace'
+  link:
+    color: uso-link
+    decoration: underline

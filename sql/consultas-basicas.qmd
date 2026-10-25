@@ -1,6 +1,8 @@
 ---
 title: "Consultas SQL: SELECT-FROM-WHERE, joins y conjuntos"
 description: "El núcleo de DQL y su relación con selección, proyección, producto y join del álgebra relacional."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

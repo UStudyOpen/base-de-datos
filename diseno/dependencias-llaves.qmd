@@ -1,6 +1,8 @@
 ---
 title: "Redundancia, dependencias funcionales y llaves"
 description: "Motivación del diseño relacional, anomalías, dependencias funcionales, superllaves y llaves."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

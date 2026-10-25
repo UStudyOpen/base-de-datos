@@ -1,0 +1,52 @@
+body {
+  background: var(--uso-bg);
+  color: var(--uso-text);
+  font-family: var(--uso-font-body);
+  text-underline-offset: .18em;
+}
+h1, h2, h3, h4 { color: var(--uso-heading); font-weight: 700; line-height: 1.25; opacity: 1; }
+h1 { font-size: clamp(2rem, 4.5vw, 2.5rem); letter-spacing: -.035em; }
+h2 { font-size: 1.6rem; margin-top: var(--uso-space-8); }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
+a { color: var(--uso-link); }
+a:hover { color: var(--uso-primary-hover); }
+main a.anchorjs-link:focus-visible { opacity: 1; }
+body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--uso-focus);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+::selection { background: var(--uso-primary); color: var(--uso-on-primary); }
+code, pre, kbd { font-family: var(--uso-font-code); }
+p code, li code, td code { color: var(--uso-text); background: var(--uso-surface-alt); overflow-wrap: anywhere; }
+// Attribute chips are plain inline code in Quarto, not badges or concept tags.
+// Match Quarto's (0,1,2) specificity; the later shared rule wins without !important.
+// Direct children exclude pre blocks; heading and linked chips use the same contrast tokens.
+// :where keeps navigation rules stronger.
+:where(main.content) :is(p, li, td, th, h1, h2, h3, h4, dt, dd, a) > code:not(.sourceCode) {
+  color: var(--uso-inline-code-text);
+  background-color: var(--uso-inline-code-bg);
+  box-shadow: none;
+}
+div.sourceCode { background: var(--uso-surface-alt); border: 1px solid var(--uso-border); border-radius: var(--uso-radius-control); }
+pre.sourceCode { background: transparent; }
+.code-copy-button { color: var(--uso-muted); min-width: 44px; min-height: 44px; }
+.code-copy-button:hover { color: var(--uso-link); }
+blockquote { color: var(--uso-muted); border-color: var(--uso-control-border); }
+hr { color: var(--uso-border); opacity: 1; }
+.uso-lead { font-size: 1.15rem; max-width: 60ch; color: var(--uso-muted); }
+.uso-eyebrow { color: var(--uso-emphasis); font-size: .875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.uso-muted { color: var(--uso-muted); }
+.uso-skip-link { position: fixed; top: .5rem; left: 1rem; transform: translateY(-200%); z-index: 2000; background: var(--uso-surface); padding: .75rem; border-radius: .375rem; }
+.uso-skip-link:focus { transform: translateY(0); }
+.uso-math { max-width: 100%; overflow-x: auto; padding: .5rem .25rem; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding-block: .3rem; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media print {
+  body, main.content { background: white; color: black; box-shadow: none; }
+  .uso-status, .uso-academic, .uso-formula { break-inside: avoid; }
+  .uso-demo-controls, .uso-skip-link { display: none; }
+}

@@ -5,12 +5,12 @@ import {join} from 'node:path';
 import {traceBuffer,presets} from '../assets/js/visualizaciones/buffer-model.js';
 import {pageStates} from '../assets/js/visualizaciones/paginas.js';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE??'playwright');
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
+const browser=await chromium.launch({headless:true,chromiumSandbox:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
 const base=process.env.BUFFER_TEST_URL??'http://127.0.0.1:8765/open-study-base-de-datos/docs/almacenamiento/buffer-manager.html';
-const screenshots=mkdtempSync(join(tmpdir(),'openstudy-buffer-browser-'));
+const screenshots=mkdtempSync(join(process.env.DB_BROWSER_ARTIFACTS??tmpdir(),'openstudy-buffer-browser-'));
 const errors=[],failed=[];let checked=0,activePage;
 try {
-  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+  const context=await browser.newContext({colorScheme:process.env.DB_TEST_THEME??'light',viewport:{width:1440,height:1000},reducedMotion:'reduce'});
   const page=await context.newPage();
   activePage=page;
   page.on('crash',()=>errors.push('El proceso de la página se interrumpió.'));

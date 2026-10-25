@@ -1,5 +1,7 @@
 ---
 title: "Modelo relacional: tuplas, relaciones, esquemas y bases de datos"
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

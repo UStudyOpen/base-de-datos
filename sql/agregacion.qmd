@@ -1,6 +1,8 @@
 ---
 title: "Agregación, GROUP BY y HAVING"
 description: "Funciones agregadas, agrupación y filtros sobre grupos en SQL."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto
