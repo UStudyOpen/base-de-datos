@@ -30,6 +30,10 @@ def bundle(root):
         licenses = checked_path(base, 'LICENSES')
         for path in project_files(licenses):
             files[prefix + 'LICENSES/' + path.relative_to(licenses).as_posix()] = path
+    if checked_path(root, 'licensing.json').is_file():
+        files['local-resources.json'] = checked_path(root, 'licensing.json')
+        policy = 'tests/licensing-policy.json' if checked_path(root, 'course.yml').exists() else 'LICENSES/policy.json'
+        files['policy.json'] = checked_path(root, policy)
     files['extension/PROVENANCE.md'] = checked_path(root, EXTENSION + '/PROVENANCE.md')
     # Managed licenses alongside the exact tools/workflows copied by sync_course.
     for target, local, central in [('platform/LICENSE-tools.txt', 'tests/LICENSE-platform.txt', 'tooling/LICENSE'),
@@ -90,6 +94,9 @@ def output_checks(root, errors):
             href = os.path.relpath(legal / 'index.txt', page.parent).replace(os.sep, '/')
             if text.count(MARKER) != 1 or f'href="{href}"' not in text:
                 errors.append('legal link missing/duplicate: ' + page.relative_to(site).as_posix())
+        if checked_path(root, 'licensing.json').is_file():
+            from licensing import artifact_checks
+            artifact_checks(root, errors)
         return len(files)
     except (OSError, ValueError, KeyError, TypeError) as error:
         errors.append('legal output validation: ' + str(error))

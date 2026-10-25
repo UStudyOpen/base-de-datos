@@ -1,0 +1,342 @@
+{
+  "policy_schema": 1,
+  "groups": [
+    {
+      "paths": [
+        "almacenamiento/*.qmd",
+        "diseno/*.qmd",
+        "fundamentos/*.qmd",
+        "index.qmd",
+        "indices/*.qmd",
+        "nulos/*.qmd",
+        "procesamiento/*.qmd",
+        "sql/*.qmd",
+        "teoria-consultas/*.qmd"
+      ],
+      "category": "academic"
+    }
+  ],
+  "third_party": [],
+  "legacy_review": {
+    ".gitattributes": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "b3a126a986aeea3db492ed98159a444d47955b3db641c576415f169d9a99c1de"
+    },
+    ".github/workflows/LICENSE-platform.txt": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df"
+    },
+    ".github/workflows/deploy.yml": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "ed10f0834e2994c525f658fbc0ca539afc6a45edc1dd2eefad9f440bbec70243"
+    },
+    ".github/workflows/validate.yml": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "705422329d8286a41599305754a0e84d05714f91ac54aa0515168e765b30980c"
+    },
+    ".gitignore": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "954707a8c01a96d490cdada1beaaff50ffc2acb5ed24fd1c5e702dd9afc3baff"
+    },
+    ".nojekyll": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    ".quartoignore": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "b0ef2cff7ac0ae7f325b6a1a30e19bd83a39c7de13bcae4a4f3c01876fe0dd2f"
+    },
+    "AGENTS.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "8383d6242e46dae2b0e4708276ae158c47d615e3990548178b764b06e3c4a469"
+    },
+    "IMPLEMENTATION_STATUS.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "028f194b1e4453c2c6f87047a7796346cd0e6aa4e66e66d9a67f1697398954ef"
+    },
+    "LICENSE": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "0a3c77908053038795b4ebb3b569436c7462912c0bb77c08908037c319c76953"
+    },
+    "LICENSING.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "dd677bb50ce19a48770c23d870691bbfef740f502a5340af5777049589b99f1a"
+    },
+    "MIGRATION.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "9e479f1eb4b22dfb4d340d455ea16140f5c3fb761912c4bce3a765998a0dd912"
+    },
+    "README.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "936b2a44351881ad49fd81a6dc46347088372359413f02186b09d1979d9ab5bc"
+    },
+    "THIRD-PARTY-NOTICES.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "5e4d866bd20f18f929a10cf99a1e2aa9e29294d318cdb857a1ae2370d3368caf"
+    },
+    "_includes/visualizaciones.html": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "9f2dcbc1dc50d019dac587cd864675937dc6d8afee204d40aa26789e87596af6"
+    },
+    "_quarto.yml": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "85d08f439445ec82381acd87c5eccd35ca9d512adb410258e4d4ea37c5c4a11e"
+    },
+    "assets/css/visualizaciones.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "9d25425a8b671cb5805192389d187fe2cf5ae7424deb9ffed5467a738b21449f"
+    },
+    "assets/js/visualizaciones/bplus-model.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "0dc615d47f39856bb2fe6996aaefd1162d20d4f1cbc64e0bd98b3db2230bbba9"
+    },
+    "assets/js/visualizaciones/bplus.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "b8c3087f86583d161316cb4e1c78bffd65333a27fc3c2c1ec6da621a8162e4e2"
+    },
+    "assets/js/visualizaciones/buffer-model.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "3fcdd1c818be2ce192ca3046000ebb5c08c27e01a042697683241456b84c9e28"
+    },
+    "assets/js/visualizaciones/buffer.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "399f30b6cdb6c7ad66e8ba0766b97f5b3c16354d30a00194420d870c8325ee39"
+    },
+    "assets/js/visualizaciones/clausuras.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "c4ab05bfb5b6c6e7370c9ee842ca51d3ad9962c772ec64c6e578161593441910"
+    },
+    "assets/js/visualizaciones/core.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "bef29ab897e884d4bedf14944c1cfe3b15313dec3310b3484f5d1eb5163c486b"
+    },
+    "assets/js/visualizaciones/hashing-model.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "47e90665b1d5211f1363c429c124fba3655c3b5df1edc0e292c6520e08789851"
+    },
+    "assets/js/visualizaciones/hashing.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "c74b75efebfbd9ff32af833007764afb07949ed4959c892bb2d4c33a473f6c66"
+    },
+    "assets/js/visualizaciones/index.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "ca59c6fa65472031ed097c33d65bcc62b3e4b6ab6c4753516b4df7e25fd2c59d"
+    },
+    "assets/js/visualizaciones/normalizacion.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "9adfd2417832ea84d92574d030fee0eb854c7e478b2cda26ab299c9ad6a82fcd"
+    },
+    "assets/js/visualizaciones/paginas.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "7dc8e028009480ba94f30b344bdc60b8247644aaafe291d2b77692ccaeb936df"
+    },
+    "assets/js/visualizaciones/query-plan-model.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "05fcfa35f62ad5063c487373825cd5a5a04f1b8a4df0c385e55c9f62dc14fffb"
+    },
+    "assets/js/visualizaciones/query-plan.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "d3777b2e35a10751581cc6fde1a5504bc57f40a74f6e2e64f7b8e2f507ff0253"
+    },
+    "course.yml": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "cfdd33e3ee2e96cf0a5fe958d0f06a1f2859fc9ae5129949e540c4fa30c0aa2e"
+    },
+    "design-vendor.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "ff31b6f57df5b9db1126b1a985159a88a6698f87df1c4a67351425c72848bd96"
+    },
+    "package.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "d05cb4e3c972be77fa0a3d8a4dc9841a316405bc96d7afdfa4160cbc00b5cfed"
+    },
+    "platform-vendor.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "2021de327390c11935ba0874b6c3773d3cc1258fc3e45ddb3d31aea634ae72bd"
+    },
+    "references.bib": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "d1cb4408242952da2512101c4ac26373a520c197f2442aaa22be1d80a3c375c1"
+    },
+    "styles/base.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "33c0f3e8f4c68bb8222078f210409ff07091dd5b4e081e18f595f0853828c7f2"
+    },
+    "styles/compatibility.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "18e3a0f7dd3bf84c7aa8c546f516628c4901c9bf0d594d399eeba94c8391d5c6"
+    },
+    "styles/components.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "41411303cf3bf2ec09c373f80c8686009d650114e953a6d141aa6a9069cf85c8"
+    },
+    "styles/concepts.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "8073275885b4d14134bfa26840e7931edf733a482159df39daefc50eb90bc738"
+    },
+    "styles/layout.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "5a9403c6d36ebfecf2c20ab14e7603bdca06885c1f7b2abe824de170d445e998"
+    },
+    "styles/responsive.css": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "dfd94056b72945e1ee306aa19983df71e3f495d175c0cb9bacd2a049feb9a9b9"
+    },
+    "tests/LICENSE-platform.txt": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df"
+    },
+    "tests/README.md": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "75bb7a4019c19ac3a122be9d22f3b9e383f4525ae04382fbeb11a5c30a38f15b"
+    },
+    "tests/academic-integrity.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "f035f2928c63d2bff9302624bb67067dfdfe5fcb35c3f60084465401035153b2"
+    },
+    "tests/action-pins.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "4860ee09f04eccbe9838d1e6d82535c65cba1eb77effff72c0832bf32101dd00"
+    },
+    "tests/bplus-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "70d9be888f838da7e4ab3d5dab90c7d40b466c4d740b4dbef7a07ab43c78f7f7"
+    },
+    "tests/bplus.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "5f37a7bcec95fe85f7ea5f368afba84a374e320da524321e9ba9ba07c453832d"
+    },
+    "tests/browser-course.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "45e5b93f8b9013318b4778ac80c1541e1a20fe0086c070e8854254b0a3743c1e"
+    },
+    "tests/browser_client.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "76d9ac9511424994565131206c5a473bf169618d1a9cf65c39046620b72139dd"
+    },
+    "tests/browser_course.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "10af566f0e0a775febcd50201f91360c6981e586d4a2fd10d22e9d5088f4987a"
+    },
+    "tests/buffer-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "5ad68d9318963e08c92a00cd6302997641255d75b190acff6786ec13dc779ae2"
+    },
+    "tests/buffer.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "771adc05df6a98873f5fd4220c577fa4bce9e6b2188eac538b9175e373d7ed5d"
+    },
+    "tests/build_review.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "67e76cc0b18b061e5db69d80197930a8fd8cb4a302aead6196cd47d0db8ae663"
+    },
+    "tests/capture_plan_details.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "b8abf7d3beaca17bb75b0bc4919fe0d9ff01f18ef1a629da1fe34f3d8e426efb"
+    },
+    "tests/check_design.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "bb994c92cdea28241be2f73abd14ef9d35f56f09ff097f2eea0ac9d4f11547ec"
+    },
+    "tests/check_site.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "8ab1997f98705bd77da363567572cfa9415c2a735ad6ea0f69b1a19f0df8e2be"
+    },
+    "tests/dependencias.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "3fddd215fa81e547b3d5a800165f7106b1966ed611248a9544ccfe864d55eeb3"
+    },
+    "tests/design-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "b3484a1a468d832643a9d1cdc9dbb70059d5c51405610a96d9b2bc8e1cb7c2f4"
+    },
+    "tests/hashing-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "685e3b2ed5fc3bbe1158fcdfcaff4834ea50e42b10fb843a150a902103b231c0"
+    },
+    "tests/hashing.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "4373495c7206b5a21ea6433c86902602a11c343cbe9742bdd6bb2a3df7c4dada"
+    },
+    "tests/install_quarto.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "65fb636e9f3c34940c1aefb9b494dff7c9b55b1fc7e30bfbc9660e475f6b9286"
+    },
+    "tests/integracion-visual.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "cc5b6ec7e4ea6e4d195641fc5ab72d1ae12cab5ee2e31106230fb0c49bfa4ab1"
+    },
+    "tests/legal_distribution.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "13e8a51258600580b31dc36487492a7e072bcaedbb3f5f52b1799c5bc4e15b37"
+    },
+    "tests/merge_browser.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "bda23f08b9c00c2e10716af065b29dcec69559fc0198fe1ae54d0c4f547508e5"
+    },
+    "tests/platform_validate.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "e4e66889dcab6ad3ace1feb7d878e6373fe22b67e6a77ab5b73fdbbc433c91fd"
+    },
+    "tests/post_render.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "e1081778d6ad73798e172831f5f273e0c749530f0fd577ec6e9c57dc48580195"
+    },
+    "tests/print-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "e589bd5984932094412ea9b9cf3c502fe7bde0728acfb29ae3ca64711fafa377"
+    },
+    "tests/query-plan-browser.mjs": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "f28984d5773ed63b505674e9471b634079862ca81e16a7348bda156870c280ea"
+    },
+    "tests/query-plan.test.js": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "cbd1e41efa2a69f7e65d812eceee9c2b7731ae323ce13f96d1b3a4f9c88751f3"
+    },
+    "tests/render_clean.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "5e814a348f72a6edd029447296a03c495526dd862e45e1c0bf2de5d2c33c6470"
+    },
+    "tests/route-baseline.json": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "4002be0685e65e12899e2911c9ec7eb53c29a230245586ce0bbb4160acbbad32"
+    },
+    "tests/run-design-browser.sh": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "907d5c1f424e9c0389895ae50db69b9ad7d6050ff2b05f850291cbdc722d3776"
+    },
+    "tests/run_course.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "a8d245f51a5f353ab723efd14eb04c0a21e048e6204b5808ab4cc7122b205148"
+    },
+    "tests/safe_paths.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "9aaaf08f7767180c55d0c97df5976274e2b0c9963b2c90a44518b3caaa08d2aa"
+    },
+    "tests/sql_examples.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "f5a82498daae7c69c224072f58c5aacb74b32c0d636b4c4e44fa04c8b62b2a55"
+    },
+    "tests/summarize_browser.py": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "ab855402403e117a8e59397eba1057ca87bb652d79ee6f44bbcd188a1de9130d"
+    },
+    "theme.scss": {
+      "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
+      "sha256": "d6e72e7e3290fa86d7845ffbacd834a3629f2bc2b390bbe74d88118c89130bcf"
+    }
+  },
+  "import_paths": [
+    "assets/vendor/**",
+    "vendor/**",
+    "third_party/**"
+  ],
+  "is_template": false,
+  "original_rights_authorization": {
+    "author": "ngulloa",
+    "license": "CC-BY-NC-4.0",
+    "confirmed": true,
+    "evidence": "LICENSING.md; authorization 2026-10-25; original content only"
+  }
+}

@@ -9,6 +9,7 @@ import re
 import subprocess
 
 import legal_distribution
+import licensing
 
 from safe_paths import UnsafePath, checked_path, project_files
 
@@ -69,6 +70,8 @@ def source_checks(root, errors):
         if path.name.startswith(('.ustudyopen-sync-', '.ustudyopen-output-')):
             raise UnsafePath('Unfinished update; inspect recovery directory: ' + path.name)
     legal_distribution.source_checks(root, errors)
+    if checked_path(root, 'licensing.json').is_file():
+        errors.extend(licensing.validate(root))
     source_files = project_files(root, SKIP, exclude_env=True)
     course = json.loads(checked_path(root, 'course.yml').read_text())['course']  # JSON is a strict YAML subset.
     required = ['_quarto.yml', 'index.qmd', 'README.md', 'AGENTS.md', '.gitignore', '.quartoignore',
