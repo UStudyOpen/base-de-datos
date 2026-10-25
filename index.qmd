@@ -136,6 +136,6 @@ Los datos son ficticios. Usaremos `BD101` para Bases de Datos, `PROG101` para In
 
 UStudyOpen es un proyecto educativo independiente. Este material no implica afiliación ni respaldo oficial de una universidad.
 
-La autoría corresponde a los colaboradores del curso; la identificación individual está pendiente de confirmación. Se conservan la licencia [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) y los avisos originales; esta edición modifica la presentación y los metadatos.
+El contenido académico original autorizado se ofrece bajo [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), con atribución pública a ngulloa. La extensión y las herramientas comunes utilizan MIT; los recursos de terceros conservan sus condiciones. Véanse el alcance y los textos completos en el enlace «Licencias y avisos» al pie de esta página.
 
 El curso se encuentra **en desarrollo**. La compilación y las pruebas técnicas no sustituyen la revisión académica; ninguna página se ha marcado automáticamente como revisada.

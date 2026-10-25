@@ -149,7 +149,7 @@ website:
         text: Buffer Manager
   page-footer:
     left: UStudyOpen · Proyecto educativo independiente
-    right: 'Autoría: colaboradores del curso · [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)'
+    right: 'ngulloa · Contenido original [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) · Software compartido MIT'
 format:
   ustudyopen-design-html:
     css:
