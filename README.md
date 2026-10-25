@@ -111,3 +111,7 @@ Los estados `lista`, `en-desarrollo` y `proximamente` se declaran en metadatos d
 Para actualizar el sistema compartido: desde `../ustudyopen-design`, ejecutar `python3 tooling/sync_course.py ../base-de-datos`, revisar ambos manifiestos y diferencias y repetir las pruebas y comparaciones visuales. No editar copias vendor. La plantilla solo inicia cursos nuevos; no migra los existentes.
 
 Los workflows están preparados y no se activan por push. La publicación requiere autorización, protección de `main`, revisión del entorno `github-pages`, variable de activación y confirmación manual. [MIGRATION.md](MIGRATION.md) registra la situación remota verificada, los pasos exactos de activación posterior y la reversión. No se han realizado commits, pushes, tags, releases ni despliegues.
+
+## Licencias
+
+Véanse [alcance](LICENSING.md) y [avisos de terceros](THIRD-PARTY-NOTICES.md).

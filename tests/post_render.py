@@ -14,3 +14,6 @@ for path in (root / '_site').rglob('*.html'):
         count += 1
         path.write_text(text.replace(tag, ''))
 print(f'UStudyOpen: removed obsolete polyfill from {count} generated pages')
+
+from legal_distribution import prepare
+prepare(root)

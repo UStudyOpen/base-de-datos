@@ -2,15 +2,18 @@
   "version": "0.3.0",
   "source": "UStudyOpen/ustudyopen-design/tooling + workflows",
   "files": {
-    "tests/platform_validate.py": "679f0eeb7b2042e00d240d0604cc75509d3ad24740a3e5a5b8b9f65222fa794b",
+    "tests/platform_validate.py": "e4e66889dcab6ad3ace1feb7d878e6373fe22b67e6a77ab5b73fdbbc433c91fd",
     "tests/render_clean.py": "5e814a348f72a6edd029447296a03c495526dd862e45e1c0bf2de5d2c33c6470",
-    "tests/post_render.py": "f2c5597489e2c9c7002503ad6cd14875c8c29e71ceb63dba3c5dc7569ca1b9a2",
+    "tests/post_render.py": "e1081778d6ad73798e172831f5f273e0c749530f0fd577ec6e9c57dc48580195",
     "tests/install_quarto.py": "65fb636e9f3c34940c1aefb9b494dff7c9b55b1fc7e30bfbc9660e475f6b9286",
     "tests/browser_course.py": "10af566f0e0a775febcd50201f91360c6981e586d4a2fd10d22e9d5088f4987a",
     "tests/browser_client.mjs": "76d9ac9511424994565131206c5a473bf169618d1a9cf65c39046620b72139dd",
     "tests/safe_paths.py": "9aaaf08f7767180c55d0c97df5976274e2b0c9963b2c90a44518b3caaa08d2aa",
+    "tests/legal_distribution.py": "0fd65f7936b664f3cce757c09f81e1ab170ac857239d0ed1e74f68377896678c",
     ".github/workflows/validate.yml": "03c5fc132bceecf54a241961698947c29dc15ac8a27db06b9f7813fd9f073be9",
     ".github/workflows/deploy.yml": "ed10f0834e2994c525f658fbc0ca539afc6a45edc1dd2eefad9f440bbec70243",
+    "tests/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
+    ".github/workflows/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
     "tests/action-pins.json": "4860ee09f04eccbe9838d1e6d82535c65cba1eb77effff72c0832bf32101dd00"
   }
 }

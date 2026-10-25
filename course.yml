@@ -6,8 +6,8 @@
     "reference_code": null,
     "independent": true,
     "status": "en-desarrollo",
-    "authorship": "Colaboradores del curso; identificación individual pendiente de confirmar",
-    "license": "CC BY-NC 4.0",
+    "authorship": "ngulloa (contenido original autorizado; terceros según THIRD-PARTY-NOTICES.md)",
+    "license": "CC-BY-NC-4.0",
     "first_page": "fundamentos/sistemas-rdbms.qmd",
     "objectives": [
       "Representar información mediante relaciones, esquemas y restricciones.",

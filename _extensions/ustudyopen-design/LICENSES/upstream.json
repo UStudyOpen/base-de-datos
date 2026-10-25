@@ -1,0 +1,98 @@
+{
+  "quarto-copyright.txt": {
+    "sha256": "b99ec68b0ae2766380ecd177de507b799d1e3f6b7334d940a57021d3e4299721",
+    "url": "https://raw.githubusercontent.com/quarto-dev/quarto-cli/v1.10.18/COPYRIGHT",
+    "component": "Quarto",
+    "version": "1.10.18",
+    "license": "MIT",
+    "paths": "site_libs/quarto-{html,nav,search}/**"
+  },
+  "bootstrap-5.3.1.txt": {
+    "sha256": "3d0b0c88216e4752b9afd3d24e36faaf27873b5a45a61458bb3c83e794c26832",
+    "url": "https://raw.githubusercontent.com/twbs/bootstrap/v5.3.1/LICENSE",
+    "component": "Bootstrap",
+    "version": "5.3.1",
+    "license": "MIT",
+    "paths": "site_libs/bootstrap/bootstrap*.{css,js}"
+  },
+  "bootstrap-icons-1.13.1.txt": {
+    "sha256": "0fb3e11bd57e896c5a512afd64864d28a37de45d19835016c87ca1ad19ead969",
+    "url": "https://raw.githubusercontent.com/twbs/icons/v1.13.1/LICENSE",
+    "component": "Bootstrap Icons",
+    "version": "1.13.1",
+    "license": "MIT",
+    "paths": "site_libs/bootstrap/bootstrap-icons.{css,woff}"
+  },
+  "clipboard-2.0.11.txt": {
+    "sha256": "a798e7b5fa604117d52d607e05f1cbac3b2fa5da087837f412a1a3c866b4b748",
+    "url": "https://raw.githubusercontent.com/zenorocha/clipboard.js/v2.0.11/LICENSE",
+    "component": "clipboard.js",
+    "version": "2.0.11",
+    "license": "MIT",
+    "paths": "site_libs/clipboard/clipboard.min.js"
+  },
+  "anchor-5.0.0-exact.txt": {
+    "sha256": "6b33f0bf2de79ce6ee1165453b37b4f1deda813bea9356dec621835860f2bb68",
+    "url": "https://raw.githubusercontent.com/bryanbraun/anchorjs/5.0.0/LICENSE",
+    "component": "AnchorJS",
+    "version": "5.0.0",
+    "license": "MIT",
+    "paths": "site_libs/quarto-html/anchor.min.js"
+  },
+  "popper-2.11.7.txt": {
+    "sha256": "bf67e2c9b7974543bb18ced3a0b37f53729aaff953b442dd89a3adaf90fd93e8",
+    "url": "https://raw.githubusercontent.com/floating-ui/floating-ui/v2.11.7/LICENSE.md",
+    "component": "Popper",
+    "version": "2.11.7",
+    "license": "MIT",
+    "paths": "site_libs/quarto-html/popper.min.js"
+  },
+  "tippy-6.3.7.txt": {
+    "sha256": "7f4929c55f525ae510a77c361496c5a86a092434a3681c95a4dc89e951c67e98",
+    "url": "https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/LICENSE",
+    "component": "Tippy.js",
+    "version": "6.3.7",
+    "license": "MIT",
+    "paths": "site_libs/quarto-html/tippy*"
+  },
+  "autocomplete-1.19.1.txt": {
+    "sha256": "1e605499213e06118cc81abc00b32bbb33ead185d9b0e190f2662588e8806f02",
+    "url": "https://raw.githubusercontent.com/algolia/autocomplete/v1.19.1/LICENSE",
+    "component": "Algolia Autocomplete",
+    "version": "1.19.1",
+    "license": "MIT",
+    "paths": "site_libs/quarto-search/autocomplete.umd.js"
+  },
+  "fuse-6.6.2.txt": {
+    "sha256": "cc807e3caa26cdee316bab2ff6fdb508a2f619b74959fe59e513ef6e61635ebe",
+    "url": "https://raw.githubusercontent.com/krisk/Fuse/v6.6.2/LICENSE",
+    "component": "Fuse.js",
+    "version": "6.6.2",
+    "license": "Apache-2.0",
+    "paths": "site_libs/quarto-search/fuse.min.js"
+  },
+  "rfs-10.0.0.txt": {
+    "sha256": "2454fbcb6b3c56f8487847d0959b3e97da89b213704f5fefdbfc4294e788d667",
+    "url": "https://raw.githubusercontent.com/twbs/rfs/v10.0.0/LICENSE",
+    "component": "RFS",
+    "version": "referencia 10.0.0",
+    "license": "MIT",
+    "paths": "CSS Bootstrap/Quarto; fragmentos _rfs.scss"
+  },
+  "normalize-8.0.1.txt": {
+    "sha256": "89a9a9ace8be9e79bdc962823479bf980e4a14777ebe51b37e669f658e6f25ef",
+    "url": "https://raw.githubusercontent.com/necolas/normalize.css/8.0.1/LICENSE.md",
+    "component": "Normalize",
+    "version": "referencia 8.0.1",
+    "license": "MIT",
+    "paths": "CSS Bootstrap/Quarto; fragmentos _reboot.scss"
+  },
+  "mathjax-4.1.3.txt": {
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "url": "https://raw.githubusercontent.com/mathjax/MathJax/4.1.3/LICENSE",
+    "component": "MathJax",
+    "version": "4.1.3",
+    "license": "Apache-2.0",
+    "paths": "CDN: mathjax@4.1.3/tex-chtml.js (no vendorizado)"
+  }
+}
