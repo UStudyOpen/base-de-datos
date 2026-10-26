@@ -28,6 +28,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24.21.0'
+      - name: Install pinned legal validator
+        run: python3 -m pip install -r tests/requirements-licensing.txt
+      - name: Validate licensing, SPDX and incremental REUSE scope
+        run: python3 tests/licensing.py --reuse
       - name: Install verified Quarto 1.10.18
         run: python3 tests/install_quarto.py
       - name: Validate metadata and source integrity

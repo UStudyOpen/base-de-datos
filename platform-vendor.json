@@ -12,7 +12,7 @@
     "tests/legal_distribution.py": "14e2df9d31fdb52a345723f76408ab9476b8ecb409c156beadb9e1b151602391",
     "tests/licensing.py": "4885c7df1b7a93c261e47cb52edcb361d05ba0cdb51521d4e4d2135503bd2ad9",
     ".github/workflows/validate.yml": "705422329d8286a41599305754a0e84d05714f91ac54aa0515168e765b30980c",
-    ".github/workflows/deploy.yml": "ed10f0834e2994c525f658fbc0ca539afc6a45edc1dd2eefad9f440bbec70243",
+    ".github/workflows/deploy.yml": "5f6399f388bd0f272654976f377978ee1bda2fbcc563bb827a8fa954f047a52c",
     "tests/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
     ".github/workflows/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
     "tests/action-pins.json": "4860ee09f04eccbe9838d1e6d82535c65cba1eb77effff72c0832bf32101dd00",
