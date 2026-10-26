@@ -8,7 +8,7 @@ SPDX-FileCopyrightText = "ngulloa (contenido original autorizado; terceros seg\u
 SPDX-License-Identifier = "CC-BY-NC-4.0"
 
 [[annotations]]
-path = ["tests/platform_validate.py", "tests/render_clean.py", "tests/post_render.py", "tests/install_quarto.py", "tests/browser_course.py", "tests/browser_client.mjs", "tests/safe_paths.py", "tests/legal_distribution.py", "tests/licensing.py", ".github/workflows/validate.yml", ".github/workflows/deploy.yml", "tests/LICENSE-platform.txt", ".github/workflows/LICENSE-platform.txt", "tests/action-pins.json", "tests/requirements-licensing.txt", "tests/licensing-policy.json", "REUSE.toml"]
+path = ["tests/platform_validate.py", "tests/render_clean.py", "tests/post_render.py", "tests/install_quarto.py", "tests/browser_course.py", "tests/browser_client.mjs", "tests/safe_paths.py", "tests/legal_distribution.py", "tests/licensing.py", "tests/pages_authorization.py", ".github/workflows/validate.yml", ".github/workflows/deploy.yml", "tests/LICENSE-platform.txt", ".github/workflows/LICENSE-platform.txt", "tests/action-pins.json", "tests/requirements-licensing.txt", "tests/licensing-policy.json", "REUSE.toml"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 ngulloa"
 SPDX-License-Identifier = "MIT"

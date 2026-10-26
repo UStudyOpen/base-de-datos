@@ -2,7 +2,7 @@
   "version": "0.3.0",
   "source": "UStudyOpen/ustudyopen-design/tooling + workflows",
   "files": {
-    "tests/platform_validate.py": "6b7d7feb97aa26f56d2aa1f8e5048a160b25f2aafdb0d551cc177e574b978ac5",
+    "tests/platform_validate.py": "c2bf61fa3acfd2f53d08374a0049566d70769d03a1a2e59238a152c75dcdccd6",
     "tests/render_clean.py": "5e814a348f72a6edd029447296a03c495526dd862e45e1c0bf2de5d2c33c6470",
     "tests/post_render.py": "e1081778d6ad73798e172831f5f273e0c749530f0fd577ec6e9c57dc48580195",
     "tests/install_quarto.py": "65fb636e9f3c34940c1aefb9b494dff7c9b55b1fc7e30bfbc9660e475f6b9286",
@@ -11,8 +11,9 @@
     "tests/safe_paths.py": "9aaaf08f7767180c55d0c97df5976274e2b0c9963b2c90a44518b3caaa08d2aa",
     "tests/legal_distribution.py": "14e2df9d31fdb52a345723f76408ab9476b8ecb409c156beadb9e1b151602391",
     "tests/licensing.py": "4885c7df1b7a93c261e47cb52edcb361d05ba0cdb51521d4e4d2135503bd2ad9",
+    "tests/pages_authorization.py": "fe639481d20a939888104a7ee7ad54d4f40cb37018a8e09df331d46c25a2a475",
     ".github/workflows/validate.yml": "705422329d8286a41599305754a0e84d05714f91ac54aa0515168e765b30980c",
-    ".github/workflows/deploy.yml": "5f6399f388bd0f272654976f377978ee1bda2fbcc563bb827a8fa954f047a52c",
+    ".github/workflows/deploy.yml": "334660d5cb1da1b1586aab20f470dcea5e1599006bad352b3575a84d855f404e",
     "tests/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
     ".github/workflows/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
     "tests/action-pins.json": "4860ee09f04eccbe9838d1e6d82535c65cba1eb77effff72c0832bf32101dd00",
@@ -21,6 +22,6 @@
     "LICENSES/SHARED-NOTICES.md": "30b0d7ea065a5ebef5c4e71923836faed6ee80bb579aa9433eaa08c8ef899d70",
     "LICENSES/CC-BY-NC-4.0.txt": "41003d4a74749c0220e33dd415042164b5a1093ed401f36277234f772d22d3d0",
     "LICENSES/MIT.txt": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
-    "REUSE.toml": "c0265f70deb2b140f426f04421aa7016feda09fea5abf982106ff521ef17e9e0"
+    "REUSE.toml": "7c639f8dbf0fa4316e035a77d32f10412025e07b04410d45a04ff9deb7dc0c56"
   }
 }
