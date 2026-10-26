@@ -158,7 +158,11 @@ def source_checks(root, errors):
                 errors.append('deployment activated prematurely')
             if re.search(r'^\s+push:', text, re.M) and course.get('pages_automation_approved') is not True:
                 errors.append('automatic deployment requires explicit course approval metadata')
-            for marker in ("vars.USO_PAGES_ENABLED == 'true'", 'github.ref == \'refs/heads/main\'', 'needs: build', 'environment:', 'github-pages'):
+            for marker in ("vars.USO_PAGES_ENABLED == 'true'", 'github.ref == \'refs/heads/main\'', 'needs: build', 'environment:', 'github-pages',
+                           "github.event_name == 'push'", "github.event_name == 'workflow_dispatch'",
+                           "inputs.confirm == 'PUBLICAR'", 'ref: ${{ github.sha }}',
+                           'python3 tests/pages_authorization.py', "needs.build.result == 'success'",
+                           "needs.build.outputs.authorized == 'true'", 'cancel-in-progress: false'):
                 if marker not in text:
                     errors.append('missing deployment guard: ' + marker)
     if (root / '.git').exists() and subprocess.run(['git', 'diff', '--check', '--', '.', ':!docs'], cwd=root, capture_output=True).returncode:

@@ -140,7 +140,7 @@
     },
     "course.yml": {
       "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",
-      "sha256": "cfdd33e3ee2e96cf0a5fe958d0f06a1f2859fc9ae5129949e540c4fa30c0aa2e"
+      "sha256": "31d0912c879cc201ac877b8f5de15ec59f9fca1a48223c32c5e5355a43c69410"
     },
     "design-vendor.json": {
       "reason": "Existing source; see approved LICENSING.md and prior inventory. REUSE metadata pending, no new license inferred.",

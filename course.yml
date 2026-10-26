@@ -1,5 +1,6 @@
 {
   "course": {
+    "pages_automation_approved": true,
     "schema": 1,
     "slug": "base-de-datos",
     "name": "Bases de Datos",
