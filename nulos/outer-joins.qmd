@@ -1,6 +1,8 @@
 ---
 title: "Outer joins"
 description: "Left, right y full outer join como extensiones del join que preservan tuplas sin compañero."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

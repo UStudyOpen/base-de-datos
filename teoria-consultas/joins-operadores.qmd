@@ -1,6 +1,8 @@
 ---
 title: "Joins, producto cartesiano y operadores derivados"
 description: "Compatibilidad de tuplas, natural join, producto cartesiano, theta-join, semijoin y anti-join."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

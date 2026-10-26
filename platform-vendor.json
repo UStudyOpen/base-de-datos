@@ -1,0 +1,26 @@
+{
+  "version": "0.3.0",
+  "source": "UStudyOpen/ustudyopen-design/tooling + workflows",
+  "files": {
+    "tests/platform_validate.py": "6b7d7feb97aa26f56d2aa1f8e5048a160b25f2aafdb0d551cc177e574b978ac5",
+    "tests/render_clean.py": "5e814a348f72a6edd029447296a03c495526dd862e45e1c0bf2de5d2c33c6470",
+    "tests/post_render.py": "e1081778d6ad73798e172831f5f273e0c749530f0fd577ec6e9c57dc48580195",
+    "tests/install_quarto.py": "65fb636e9f3c34940c1aefb9b494dff7c9b55b1fc7e30bfbc9660e475f6b9286",
+    "tests/browser_course.py": "10af566f0e0a775febcd50201f91360c6981e586d4a2fd10d22e9d5088f4987a",
+    "tests/browser_client.mjs": "76d9ac9511424994565131206c5a473bf169618d1a9cf65c39046620b72139dd",
+    "tests/safe_paths.py": "9aaaf08f7767180c55d0c97df5976274e2b0c9963b2c90a44518b3caaa08d2aa",
+    "tests/legal_distribution.py": "14e2df9d31fdb52a345723f76408ab9476b8ecb409c156beadb9e1b151602391",
+    "tests/licensing.py": "4885c7df1b7a93c261e47cb52edcb361d05ba0cdb51521d4e4d2135503bd2ad9",
+    ".github/workflows/validate.yml": "705422329d8286a41599305754a0e84d05714f91ac54aa0515168e765b30980c",
+    ".github/workflows/deploy.yml": "ed10f0834e2994c525f658fbc0ca539afc6a45edc1dd2eefad9f440bbec70243",
+    "tests/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
+    ".github/workflows/LICENSE-platform.txt": "86abf44f49e09c597fac4a1509d372d9796107e034567e61eba94af2116c18df",
+    "tests/action-pins.json": "4860ee09f04eccbe9838d1e6d82535c65cba1eb77effff72c0832bf32101dd00",
+    "tests/requirements-licensing.txt": "de571875ff75ab3c200087a7e5bdc7f48f6a3738f018804556e3d2cebe7d5af7",
+    "tests/licensing-policy.json": "c87fec97b944bfeacac694dbc49c7ea198cce5ad36d953ca2067ff6ec6d37cb9",
+    "LICENSES/SHARED-NOTICES.md": "30b0d7ea065a5ebef5c4e71923836faed6ee80bb579aa9433eaa08c8ef899d70",
+    "LICENSES/CC-BY-NC-4.0.txt": "41003d4a74749c0220e33dd415042164b5a1093ed401f36277234f772d22d3d0",
+    "LICENSES/MIT.txt": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
+    "REUSE.toml": "c0265f70deb2b140f426f04421aa7016feda09fea5abf982106ff521ef17e9e0"
+  }
+}

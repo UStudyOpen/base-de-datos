@@ -1,6 +1,8 @@
 ---
 title: "Almacenamiento: páginas y registros"
 description: "Jerarquía de memoria, costos de E/S, RIDs, registros y compactación de slotted pages."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

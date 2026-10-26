@@ -4,12 +4,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {examples,exampleTrace,validatePlan,comparePlans} from '../assets/js/visualizaciones/query-plan-model.js';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE??'playwright');
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
+const browser=await chromium.launch({headless:true,chromiumSandbox:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
 const base=process.env.QUERY_PLAN_TEST_URL??'http://127.0.0.1:8765/open-study-base-de-datos/docs/procesamiento/reescritura.html';
-const screenshots=mkdtempSync(join(tmpdir(),'openstudy-query-browser-'));
+const screenshots=mkdtempSync(join(process.env.DB_BROWSER_ARTIFACTS??tmpdir(),'openstudy-query-browser-'));
 const errors=[],failed=[];let checked=0;
 try {
- const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+ const context=await browser.newContext({colorScheme:process.env.DB_TEST_THEME??'light',viewport:{width:1440,height:1000},reducedMotion:'reduce'});
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='warning'||(m.type()==='error'&&!m.text().includes('404')))errors.push(m.text());});
  page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('/favicon.ico'))failed.push([r.status(),r.url()]);});

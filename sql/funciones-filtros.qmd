@@ -1,6 +1,8 @@
 ---
 title: "Funciones, filtros, orden y dialectos SQL"
 description: "Expresiones, funciones, filtros de patrones, ORDER BY, limitación de filas y diferencias entre motores."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

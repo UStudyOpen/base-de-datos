@@ -1,0 +1,7 @@
+version = 1
+
+[[annotations]]
+path = ["_extension.yml", "PROVENANCE.md", "LICENSING.md", "THIRD-PARTY-NOTICES.md", "brand/_brand-dark.yml", "brand/_brand.yml", "scss/uso.scss", "scss/_base.scss", "scss/_layout.scss", "scss/_components.scss", "scss/_callouts.scss", "scss/_academic.scss", "assets/after-body.html", "assets/favicon.svg", "filters/status.lua"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 ngulloa"
+SPDX-License-Identifier = "MIT"

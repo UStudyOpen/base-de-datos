@@ -1,6 +1,8 @@
 ---
 title: "Razonamiento con dependencias: implicación y clausura"
 description: "Conjuntos de dependencias funcionales, implicación, equivalencia y algoritmo de clausura de atributos."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

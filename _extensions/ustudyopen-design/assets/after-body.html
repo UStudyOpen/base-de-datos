@@ -1,0 +1,98 @@
+<script>
+// Progressive enhancement only. Quarto owns the theme and its persistence.
+(() => {
+  const main = document.querySelector('main#quarto-document-content');
+  if (main) {
+    const skip = document.createElement('a');
+    skip.className = 'uso-skip-link';
+    skip.href = '#quarto-document-content';
+    skip.textContent = 'Saltar al contenido';
+    skip.addEventListener('click', (event) => {
+      event.preventDefault();
+      main.focus();
+      main.scrollIntoView({block: 'start'});
+    });
+    document.body.prepend(skip);
+    main.tabIndex = -1;
+  }
+  // Quarto generates both indexes with toc-location: right-body. Use its body
+  // index inside native details on mobile; no manual copy of section links.
+  const bodyToc = document.getElementById('TOC-body');
+  if (bodyToc) {
+    const title = bodyToc.querySelector('h2');
+    const details = document.createElement('details');
+    details.className = 'uso-mobile-toc';
+    const summary = document.createElement('summary');
+    summary.textContent = title?.textContent || 'En esta página';
+    title?.remove();
+    // right-body repeats the sidebar's toc-* IDs. Keep the native content
+    // targets and give only the moved mobile index its own identifiers.
+    bodyToc.querySelectorAll('[id]').forEach((item) => { item.id = `uso-mobile-${item.id}`; });
+    bodyToc.removeAttribute('aria-labelledby');
+    bodyToc.setAttribute('aria-label', 'Secciones de esta página');
+    bodyToc.before(details);
+    details.append(summary, bodyToc);
+  }
+  // Improve the native toggle's Spanish name and keyboard affordance; do not
+  // duplicate it, replace its handler, or store a second theme preference.
+  document.querySelectorAll('a.quarto-color-scheme-toggle').forEach((toggle) => {
+    toggle.setAttribute('aria-label', 'Cambiar tema claro u oscuro');
+    toggle.setAttribute('title', 'Cambiar tema claro u oscuro');
+    toggle.setAttribute('role', 'button');
+    toggle.tabIndex = 0;
+    toggle.addEventListener('keydown', (event) => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+  });
+  document.querySelectorAll('a[data-bs-toggle="collapse"]:not([href]), .callout-header[data-bs-toggle="collapse"]').forEach((control) => {
+    // Quarto's empty secondary-nav hit area duplicates its native sidebar
+    // button. It can shrink to zero width; leave it out of the tab sequence.
+    if (control.tagName === 'A' && !control.textContent.trim() && !control.children.length) return;
+    control.tabIndex = 0;
+    // Quarto 1.10 emits a non-focusable div with an English aria-label here.
+    // Its visible title already supplies the accessible name.
+    if (control.classList.contains('callout-header')) control.removeAttribute('aria-label');
+    control.setAttribute('role', 'button');
+    control.addEventListener('keydown', (event) => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        control.click();
+      }
+    });
+  });
+  const menu = document.querySelector('.navbar-toggler');
+  if (menu) {
+    menu.removeAttribute('role');
+    menu.setAttribute('aria-label', 'Mostrar u ocultar navegación');
+  }
+  const search = document.querySelector('#quarto-search button');
+  if (search) {
+    search.setAttribute('aria-label', 'Buscar en el curso');
+    search.setAttribute('title', 'Buscar en el curso');
+  }
+  // The native code block's local scroll region is also reachable by keyboard.
+  document.querySelectorAll('div.sourceCode, main pre:not(.sourceCode)').forEach((block) => {
+    block.tabIndex = 0;
+    block.setAttribute('role', 'region');
+    block.setAttribute('aria-label', 'Bloque de código; desplazamiento horizontal disponible');
+  });
+  document.querySelectorAll('main table.table').forEach((table) => {
+    table.tabIndex = 0;
+  });
+  // AnchorJS adds its links during Quarto's DOM-ready handler. Keep its native
+  // destinations and supply a Spanish name after those handlers have run.
+  const nameSectionLinks = () => requestAnimationFrame(() => {
+    document.querySelectorAll('main a.anchorjs-link').forEach((link) => {
+      link.setAttribute('aria-label', 'Enlace permanente a esta sección');
+    });
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', nameSectionLinks, {once: true});
+  } else {
+    nameSectionLinks();
+  }
+})();
+</script>

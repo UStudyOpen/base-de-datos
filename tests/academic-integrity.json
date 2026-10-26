@@ -1,0 +1,165 @@
+{
+  "origin": "2026-10-25 working-tree audit; update only with academic review",
+  "files": {
+    "almacenamiento/buffer-manager.qmd": {
+      "kind": "lesson-body",
+      "sha256": "bcf8e9e3dce3d57d7bd0927dbf71ce26933a557204a73a7d2927fe39105b8637"
+    },
+    "almacenamiento/paginas-registros.qmd": {
+      "kind": "lesson-body",
+      "sha256": "63be16db2f3943cc61082840ced2a1a38942e17b2384b8c867cd52c9f44387b7"
+    },
+    "diseno/bcnf.qmd": {
+      "kind": "lesson-body",
+      "sha256": "dfe09560a440a2e84dacc8e61c4f72c3a514e8a8ac8591ff0cea2702b462af8f"
+    },
+    "diseno/dependencias-llaves.qmd": {
+      "kind": "lesson-body",
+      "sha256": "1df1f37662102159d0390e0764336866a24b9b810955f296a5b538eb88634e00"
+    },
+    "diseno/descomposiciones.qmd": {
+      "kind": "lesson-body",
+      "sha256": "3aba56776f92d5321a07a7d0a096277b75017bb873240dc6f449b6f27a4ba145"
+    },
+    "diseno/implicacion-clausura.qmd": {
+      "kind": "lesson-body",
+      "sha256": "98bddb190913982da99174a4e2d272ac0d7ed082f26b1607a54663e333bd8b65"
+    },
+    "diseno/tercera-forma-normal.qmd": {
+      "kind": "lesson-body",
+      "sha256": "2cc7792fa38b403b7ac52fa474dd677604151afe94537f651fb930aaf1ef8ee5"
+    },
+    "fundamentos/modelo-relacional.qmd": {
+      "kind": "lesson-body",
+      "sha256": "ceec569829605bef15a14846d50cbe257d6a2ac6f49c2d68f7963c21abbe0cc1"
+    },
+    "fundamentos/relaciones-nombradas.qmd": {
+      "kind": "lesson-body",
+      "sha256": "e944eea7fdc57bdb462d271ade18c020d37e361a5d2ad5077c9c0b74ba44c80d"
+    },
+    "fundamentos/sistemas-rdbms.qmd": {
+      "kind": "lesson-body",
+      "sha256": "8aad723b039ff07812e6bb64ea89d005d1f4871e2e16a9e617270ab0ce2a9a7b"
+    },
+    "indices/bplus.qmd": {
+      "kind": "lesson-body",
+      "sha256": "58e98d2078cb84cb0855824362fe59969a4a6e6ae26e547d8cd12c03116dbcb6"
+    },
+    "indices/hashing.qmd": {
+      "kind": "lesson-body",
+      "sha256": "f6b4dcc5bf9bea4164992b926368299bf336af1e296255fd4113b4e16b42c9d6"
+    },
+    "nulos/informacion-incompleta.qmd": {
+      "kind": "lesson-body",
+      "sha256": "672035c1e4d91471e4ea7127079e31c130fdf3c5007cee3f2c713eae6c542189"
+    },
+    "nulos/null-tres-valores.qmd": {
+      "kind": "lesson-body",
+      "sha256": "79cd62c5d97f09f471f6e794cde53d01073ed37289942e485215e8ed3abdb802"
+    },
+    "nulos/outer-joins.qmd": {
+      "kind": "lesson-body",
+      "sha256": "22a7e92e5a9196e7e91442b9b50a00140cff19dfd32973a2e9a4a328127dcc70"
+    },
+    "procesamiento/planes-logicos.qmd": {
+      "kind": "lesson-body",
+      "sha256": "cc2f2447656888ac016e5946e5267d8e4c0426503dd088682702224498a1ed2c"
+    },
+    "procesamiento/reescritura.qmd": {
+      "kind": "lesson-body",
+      "sha256": "2146eb298524ed3e53566a082ab57d954027230c0a490d8ee7d48a23271b9319"
+    },
+    "sql/agregacion.qmd": {
+      "kind": "lesson-body",
+      "sha256": "6b97c80866c95fdb55a441c8512e4274b1b0045fbdb3e4b9fe87ee4d4b4cff12"
+    },
+    "sql/consultas-basicas.qmd": {
+      "kind": "lesson-body",
+      "sha256": "ea3613fcb40187bb794f2aed5af8f992dfb1b0288ce3fd1772c334713778a99a"
+    },
+    "sql/ddl-dml.qmd": {
+      "kind": "lesson-body",
+      "sha256": "8d0da9b90cb5fb8d1de47108a2ca83111cbd43c41c4950b8076e03735c94b9df"
+    },
+    "sql/funciones-filtros.qmd": {
+      "kind": "lesson-body",
+      "sha256": "660de68eb6fc85ae8312f0c4f9d8f3a1266ef4efae58ac23adfa5a4bb27601f0"
+    },
+    "sql/subconsultas.qmd": {
+      "kind": "lesson-body",
+      "sha256": "992d583700ad2a4c7ba59c271e6e1a15f6eb5d05b4c107ae6f305cfd8b013527"
+    },
+    "teoria-consultas/algebra-relacional.qmd": {
+      "kind": "lesson-body",
+      "sha256": "6ab4135afcb801beadcd91ff6f31cadd9b6485a8fa5d5943c69268d251afb0b6"
+    },
+    "teoria-consultas/equivalencia-patrones.qmd": {
+      "kind": "lesson-body",
+      "sha256": "0b84eab8fc413a5688ebc116780a6ce4d0708a469548e4a38088476bc4d67e7c"
+    },
+    "teoria-consultas/joins-operadores.qmd": {
+      "kind": "lesson-body",
+      "sha256": "2e03f1011ba3e75ee3958c5d8866f6d37c5e2fdecc7ae6df4fa952d67b9c6f18"
+    },
+    "teoria-consultas/logica-primer-orden.qmd": {
+      "kind": "lesson-body",
+      "sha256": "1d760128365283be86f01320a84e76e2c5b94ecfd0eab6678ac74dd9a75b3063"
+    },
+    "assets/js/visualizaciones/bplus-model.js": {
+      "kind": "bytes",
+      "sha256": "0dc615d47f39856bb2fe6996aaefd1162d20d4f1cbc64e0bd98b3db2230bbba9"
+    },
+    "assets/js/visualizaciones/bplus.js": {
+      "kind": "bytes",
+      "sha256": "b8c3087f86583d161316cb4e1c78bffd65333a27fc3c2c1ec6da621a8162e4e2"
+    },
+    "assets/js/visualizaciones/buffer-model.js": {
+      "kind": "bytes",
+      "sha256": "3fcdd1c818be2ce192ca3046000ebb5c08c27e01a042697683241456b84c9e28"
+    },
+    "assets/js/visualizaciones/buffer.js": {
+      "kind": "bytes",
+      "sha256": "399f30b6cdb6c7ad66e8ba0766b97f5b3c16354d30a00194420d870c8325ee39"
+    },
+    "assets/js/visualizaciones/clausuras.js": {
+      "kind": "bytes",
+      "sha256": "c4ab05bfb5b6c6e7370c9ee842ca51d3ad9962c772ec64c6e578161593441910"
+    },
+    "assets/js/visualizaciones/core.js": {
+      "kind": "bytes",
+      "sha256": "bef29ab897e884d4bedf14944c1cfe3b15313dec3310b3484f5d1eb5163c486b"
+    },
+    "assets/js/visualizaciones/hashing-model.js": {
+      "kind": "bytes",
+      "sha256": "47e90665b1d5211f1363c429c124fba3655c3b5df1edc0e292c6520e08789851"
+    },
+    "assets/js/visualizaciones/hashing.js": {
+      "kind": "bytes",
+      "sha256": "c74b75efebfbd9ff32af833007764afb07949ed4959c892bb2d4c33a473f6c66"
+    },
+    "assets/js/visualizaciones/index.js": {
+      "kind": "bytes",
+      "sha256": "ca59c6fa65472031ed097c33d65bcc62b3e4b6ab6c4753516b4df7e25fd2c59d"
+    },
+    "assets/js/visualizaciones/normalizacion.js": {
+      "kind": "bytes",
+      "sha256": "9adfd2417832ea84d92574d030fee0eb854c7e478b2cda26ab299c9ad6a82fcd"
+    },
+    "assets/js/visualizaciones/paginas.js": {
+      "kind": "bytes",
+      "sha256": "7dc8e028009480ba94f30b344bdc60b8247644aaafe291d2b77692ccaeb936df"
+    },
+    "assets/js/visualizaciones/query-plan-model.js": {
+      "kind": "bytes",
+      "sha256": "05fcfa35f62ad5063c487373825cd5a5a04f1b8a4df0c385e55c9f62dc14fffb"
+    },
+    "assets/js/visualizaciones/query-plan.js": {
+      "kind": "bytes",
+      "sha256": "d3777b2e35a10751581cc6fde1a5504bc57f40a74f6e2e64f7b8e2f507ff0253"
+    },
+    "references.bib": {
+      "kind": "bytes",
+      "sha256": "d1cb4408242952da2512101c4ac26373a520c197f2442aaa22be1d80a3c375c1"
+    }
+  }
+}

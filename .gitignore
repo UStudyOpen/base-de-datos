@@ -4,10 +4,16 @@
 
 **/*.quarto_ipynb
 
-AGENTS.md
 
 /libros_referencia
 
 
 /clases_referencia/
 /.venv/
+/artifacts/
+/node_modules/
+__pycache__/
+.env
+.env.*
+*.pem
+*.key

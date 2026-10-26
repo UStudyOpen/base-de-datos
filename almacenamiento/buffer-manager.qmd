@@ -1,6 +1,8 @@
 ---
 title: "Buffer Manager: FIFO y LRU"
 description: "Frames, pin/unpin, dirty bits y E/S: simulador, anomalía de Belady y acceso a árboles B+."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

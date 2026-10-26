@@ -1,6 +1,8 @@
 ---
 title: "Descomposiciones y pérdida de información"
 description: "Proyecciones de una relación, reconstrucción mediante join, tuplas espurias y dependencias proyectadas."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

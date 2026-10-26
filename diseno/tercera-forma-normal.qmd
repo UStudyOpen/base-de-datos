@@ -1,6 +1,8 @@
 ---
 title: "Tercera forma normal: cubierta minimal y síntesis"
 description: "3NF, atributos primarios, reducción de dependencias y síntesis sin pérdida que preserva las DF."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

@@ -1,6 +1,8 @@
 ---
 title: "Equivalencia y patrones de consulta"
 description: "Relación entre lógica de primer orden, álgebra relacional y el fragmento relacional de SQL."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Una consulta, varios lenguajes

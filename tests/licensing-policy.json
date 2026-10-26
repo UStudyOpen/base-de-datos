@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "attribution": "ngulloa",
+  "copyright": "2026 ngulloa",
+  "categories": {
+    "platform": "MIT",
+    "template": "MIT",
+    "academic_default": "CC-BY-NC-4.0"
+  },
+  "shared_components": {
+    "license": "MIT",
+    "authorization": "LICENSING.md; extension/PROVENANCE.md",
+    "additional_grant": "MIT; earlier academic permissions retained, not AND obligations"
+  },
+  "upstream_inventory": "_extensions/ustudyopen-design/LICENSES/upstream.json",
+  "distribution": [
+    "extension",
+    "tools",
+    "workflows",
+    "consumer",
+    "HTML/legal"
+  ],
+  "template_schema": 1,
+  "reuse_version": "6.2.0",
+  "review_required": [
+    "unknown origin",
+    "third-party additions",
+    "policy changes"
+  ],
+  "license_semantics": {
+    "OR": "alternative grants explicitly authorized",
+    "AND": "simultaneous obligations; never inferred from extraction"
+  },
+  "artifact_resources": {
+    "site_libs/bootstrap/bootstrap-*.min.css": [
+      "quarto-copyright.txt",
+      "bootstrap-5.3.1.txt",
+      "rfs-10.0.0.txt",
+      "normalize-8.0.1.txt"
+    ],
+    "site_libs/bootstrap/bootstrap-dark-*.min.css": [
+      "quarto-copyright.txt",
+      "bootstrap-5.3.1.txt",
+      "rfs-10.0.0.txt",
+      "normalize-8.0.1.txt"
+    ],
+    "site_libs/bootstrap/bootstrap-icons.css": [
+      "quarto-copyright.txt",
+      "bootstrap-5.3.1.txt",
+      "rfs-10.0.0.txt",
+      "normalize-8.0.1.txt"
+    ],
+    "site_libs/bootstrap/bootstrap-icons.woff": [
+      "bootstrap-icons-1.13.1.txt"
+    ],
+    "site_libs/bootstrap/bootstrap.min.js": [
+      "bootstrap-5.3.1.txt"
+    ],
+    "site_libs/clipboard/clipboard.min.js": [
+      "clipboard-2.0.11.txt"
+    ],
+    "site_libs/quarto-contrib/quarto-project/ustudyopen-design/assets/favicon.svg": [
+      "extension/LICENSE"
+    ],
+    "site_libs/quarto-html/anchor.min.js": [
+      "anchor-5.0.0-exact.txt"
+    ],
+    "site_libs/quarto-html/popper.min.js": [
+      "popper-2.11.7.txt"
+    ],
+    "site_libs/quarto-html/quarto-syntax-highlighting-*.css": [
+      "quarto-copyright.txt"
+    ],
+    "site_libs/quarto-html/quarto-syntax-highlighting-dark-*.css": [
+      "quarto-copyright.txt"
+    ],
+    "site_libs/quarto-html/quarto.js": [
+      "quarto-copyright.txt"
+    ],
+    "site_libs/quarto-html/tabsets/tabsets.js": [
+      "quarto-copyright.txt"
+    ],
+    "site_libs/quarto-html/tippy.css": [
+      "tippy-6.3.7.txt"
+    ],
+    "site_libs/quarto-html/tippy.umd.min.js": [
+      "tippy-6.3.7.txt"
+    ],
+    "site_libs/quarto-nav/quarto-nav.js": [
+      "quarto-copyright.txt"
+    ],
+    "site_libs/quarto-search/autocomplete.umd.js": [
+      "autocomplete-1.19.1.txt"
+    ],
+    "site_libs/quarto-search/fuse.min.js": [
+      "fuse-6.6.2.txt"
+    ],
+    "site_libs/quarto-search/quarto-search.js": [
+      "quarto-copyright.txt"
+    ]
+  },
+  "remote_resources": {
+    "https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-chtml.js": "mathjax-4.1.3.txt"
+  }
+}

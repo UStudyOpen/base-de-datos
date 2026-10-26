@@ -1,0 +1,58 @@
+// Quarto 1.10.18 emits type selectors with (0,3,1) specificity, header
+// opacity .85, and hard-coded SVG fills. Match its selectors after native rules;
+// do not patch generated CSS or depend on body.quarto-dark / !important.
+div.callout {
+  --uso-callout-header: var(--uso-callout-note-header);
+  --uso-callout-accent: var(--uso-primary);
+  --uso-callout-heading: var(--uso-heading);
+  --uso-callout-body: var(--uso-surface);
+  color: var(--uso-text);
+  background: var(--uso-callout-body);
+}
+div.callout.callout-style-default,
+div.callout.callout-style-simple {
+  border-color: var(--uso-callout-border);
+  border-left-color: var(--uso-callout-accent);
+}
+// Also beats Quarto's div.callout-TYPE.callout for the accent border.
+@each $name, $info in $callouts {
+  div.callout-#{$name}.callout { border-left-color: var(--uso-callout-accent); }
+  div.callout-#{$name}.callout-style-default > .callout-header {
+    background: var(--uso-callout-header);
+    color: var(--uso-callout-heading);
+    opacity: 1;
+  }
+  // Reuse Quarto's own Bootstrap icon shapes as masks, so semantic CSS colors
+  // control their effective fill. No duplicated SVG paths or external fetches.
+  div.callout-#{$name}.callout-titled .callout-icon::before,
+  div.callout-#{$name}:not(.callout-titled) .callout-icon::before {
+    background-image: none;
+    background-color: var(--uso-callout-accent);
+    -webkit-mask: #{"url('data:image/svg+xml," + quarto-map.get($info, "icon") + "')"} center / contain no-repeat;
+    mask: #{"url('data:image/svg+xml," + quarto-map.get($info, "icon") + "')"} center / contain no-repeat;
+  }
+  div.callout-#{$name} .callout-toggle::before {
+    background-image: none;
+    background-color: currentColor;
+    -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><polyline points="2,5 8,11 14,5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') center / contain no-repeat;
+    mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><polyline points="2,5 8,11 14,5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>') center / contain no-repeat;
+  }
+}
+div.callout-tip {
+  --uso-callout-header: var(--uso-callout-tip-header);
+  --uso-callout-accent: var(--uso-emphasis);
+}
+div.callout-important {
+  --uso-callout-header: var(--uso-callout-important-header);
+  --uso-callout-accent: var(--uso-danger);
+}
+div.callout-warning, div.callout-caution {
+  --uso-callout-header: var(--uso-callout-warning-header);
+  --uso-callout-accent: var(--uso-warning);
+}
+div.callout.callout-style-simple > div.callout-header { color: var(--uso-callout-heading); opacity: 1; }
+div.callout .callout-body { color: var(--uso-text); }
+div.callout .callout-title-container { color: inherit; }
+div.callout > .callout-header[data-bs-toggle="collapse"] { min-height: 44px; }
+// An offset places it outside the header, on the page surface.
+div.callout > .callout-header:focus-visible { outline-offset: 3px; }

@@ -1,0 +1,2 @@
+# Preserve exact upstream legal texts, including their final blank lines.
+LICENSES/*.txt whitespace=-blank-at-eof

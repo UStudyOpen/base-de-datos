@@ -3,13 +3,13 @@ import {mkdtempSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
-const screenshots=mkdtempSync(join(tmpdir(),'openstudy-bplus-browser-'));
+const screenshots=mkdtempSync(join(process.env.DB_BROWSER_ARTIFACTS??tmpdir(),'openstudy-bplus-browser-'));
 import {presets,exampleTrace} from '../assets/js/visualizaciones/bplus.js';
 // Optional browser regression suite; serve the rendered site first.
 // PLAYWRIGHT_MODULE and BROWSER_EXECUTABLE may select installed test tools.
 const url=process.env.BPLUS_TEST_URL ?? 'http://127.0.0.1:8765/open-study-base-de-datos/docs/indices/bplus.html';
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE ? {executablePath:process.env.BROWSER_EXECUTABLE} : {})});
-const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+const browser=await chromium.launch({headless:true,chromiumSandbox:true,...(process.env.BROWSER_EXECUTABLE ? {executablePath:process.env.BROWSER_EXECUTABLE} : {})});
+const context=await browser.newContext({colorScheme:process.env.DB_TEST_THEME??'light',viewport:{width:1440,height:1000},reducedMotion:'reduce'});
 const page=await context.newPage(); const errors=[],failed=[];
 page.on('pageerror',e=>errors.push(e.message));
 page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
@@ -78,7 +78,7 @@ assert.equal(await scroll.evaluate(e=>getComputedStyle(e).outlineStyle),'solid')
 await page.keyboard.press('ArrowRight');
 await page.waitForFunction(()=>document.querySelector('.db-bplus-scroll').scrollLeft>0);
 // Desktop 200% zoom reflow: a 1280px surface becomes 640 CSS px at DPR 2.
-const zoomContext=await browser.newContext({viewport:{width:640,height:500},deviceScaleFactor:2});
+const zoomContext=await browser.newContext({colorScheme:process.env.DB_TEST_THEME??'light',viewport:{width:640,height:500},deviceScaleFactor:2});
 const zoomPage=await zoomContext.newPage(); await zoomPage.goto(url);await zoomPage.locator('.db-bplus').waitFor();
 assert.ok(await zoomPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 assert.equal(await zoomPage.locator('.db-bplus-value').first().evaluate(e=>getComputedStyle(e).fontSize),'15px');

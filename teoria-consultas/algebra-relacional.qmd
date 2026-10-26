@@ -1,6 +1,8 @@
 ---
 title: "Álgebra relacional"
 description: "Operadores fundamentales del álgebra relacional sobre relaciones nombradas."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto

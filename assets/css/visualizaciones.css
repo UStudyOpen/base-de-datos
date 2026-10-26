@@ -1,69 +1,76 @@
+/* Theme colors use the vendored UStudyOpen tokens; geometry and model are unchanged. */
 /* Components enhance complete static examples, with no external dependencies. */
-.db-viz { min-width: 0; max-width: 100%; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--db-border); border-radius: var(--db-radius); background: #f7f9fc; }
+.db-viz { min-width: 0; max-width: 100%; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--db-border); border-radius: var(--db-radius); background: var(--uso-surface-alt); }
 .db-viz h3 { margin-top: .5rem; }
+.db-viz summary { color: var(--uso-link); }
 .db-viz-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; margin-bottom: 1rem; }
 .db-viz-field { display: flex; flex-direction: column; gap: .35rem; min-width: 0; font-weight: 600; }
 .db-viz-field:has(textarea) { grid-column: 1 / -1; }
-.db-viz input, .db-viz select, .db-viz textarea, .db-viz button { min-height: 44px; min-width: 0; max-width: 100%; font: inherit; border: 1px solid #58677b; border-radius: .4rem; padding: .5rem; background: #fff; color: #243247; }
+.db-viz input, .db-viz select, .db-viz textarea, .db-viz button { min-height: 44px; min-width: 0; max-width: 100%; font: inherit; border: 1px solid var(--uso-control-border); border-radius: .4rem; padding: .5rem; background: var(--uso-surface); color: var(--uso-text); }
 .db-viz textarea { min-height: 6rem; resize: vertical; }
 .db-viz button { cursor: pointer; font-weight: 600; }
-.db-viz button:hover:not(:disabled) { background: #eff6ff; border-color: #1d4ed8; }
-.db-viz button:disabled { color: #58677b; background: #edf1f6; cursor: default; }
+.db-viz button:hover:not(:disabled) { background: var(--uso-primary-soft); border-color: var(--uso-link); }
+.db-viz button:disabled { color: var(--uso-muted); background: var(--uso-surface-alt); cursor: default; }
 .db-viz-controls { display: flex; flex-wrap: wrap; gap: .6rem; }
-.db-viz-status { border-left: 3px solid #147d78; padding: .5rem .75rem; margin-top: 1rem; }
-.db-viz-error { color: #a0202e; grid-column: 1 / -1; }
+.db-viz-status { border-left: 3px solid var(--uso-emphasis-ink); padding: .5rem .75rem; margin-top: 1rem; }
+.db-viz-error { color: var(--uso-danger); grid-column: 1 / -1; }
 .db-viz-scroll { overflow-x: auto; max-width: 100%; margin: 1rem 0; }
-.db-viz table { width: 100%; font-size: .9rem; border-collapse: collapse; background: white; }
-.db-viz caption { caption-side: top; color: #243247; font-weight: 600; }
-.db-viz th, .db-viz td { padding: .5rem; border-bottom: 1px solid #dce3ed; text-align: left; vertical-align: top; }
-.db-viz th { background: #edf2f9; }
+.db-viz table { width: 100%; font-size: .9rem; border-collapse: collapse; background: var(--uso-surface); }
+.db-viz caption { caption-side: top; color: var(--uso-text); font-weight: 600; }
+.db-viz th, .db-viz td { padding: .5rem; border-bottom: 1px solid var(--uso-border); text-align: left; vertical-align: top; }
+.db-viz th { background: var(--uso-surface-alt); }
 .db-viz pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* La explicación estática sigue en el HTML como alternativa sin JS y para imprimir.
    No repetirla debajo del explorador cuando la inicialización ha terminado. */
 .db-viz-fallback { margin-top: 1.5rem; }
 .db-viz[data-db-ready="true"] > .db-viz-fallback { display: none; }
-.db-viz :focus-visible { outline: 2px solid var(--db-primary, #2563eb); outline-offset: 3px; }
+.db-viz :focus-visible { outline: 2px solid var(--uso-primary); outline-offset: 3px; }
 .db-viz-scroll { scrollbar-width: thin; }
 .db-viz-scroll:focus-visible { outline-offset: 0; }
-.db-viz-action { font-weight: 700; color: var(--db-emphasis, #147d78); }
+.db-viz-action { font-weight: 700; color: var(--uso-emphasis-ink); }
 
-.db-viz-tree { border-left: 2px solid #147d78; padding-left: 1rem; }
+.db-viz-tree { border-left: 2px solid var(--uso-emphasis-ink); padding-left: 1rem; }
 /* B+tree pages retain their font size inside a keyboard-scrollable region. */
 .db-bplus { min-width: 0; }
-.db-bplus-scroll { border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-bplus-scroll { border: 1px solid var(--db-border); border-radius: .4rem; background: var(--uso-surface); }
 .db-bplus .db-bplus-svg { display: block; max-width: none; height: auto; font-family: inherit; }
-.db-bplus-edge { stroke: #8897aa; stroke-width: 1.5; fill: none; }
-.db-bplus-route { stroke: var(--db-emphasis, #147d78); stroke-width: 3; }
-.db-bplus-leaf-link { stroke: #526176; stroke-width: 1.5; fill: none; }
-.db-bplus-page { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
-.db-bplus-key { fill: white; stroke: #dce3ed; }
-.db-bplus-separator { fill: #eff6ff; stroke: #9bb9f4; }
-.db-bplus-value { fill: #243247; font-size: 15px; font-weight: 600; }
-.db-bplus-label { fill: #526176; font-size: 13px; }
-.db-bplus-pointer { fill: #526176; }
-.db-bplus-node.is-visited .db-bplus-page { stroke: var(--db-emphasis, #147d78); }
-.db-bplus-node.is-active .db-bplus-page { stroke: var(--db-primary, #2563eb); stroke-width: 3; }
-.db-bplus-node.is-transient .db-bplus-page { stroke: #98620a; stroke-dasharray: 6 3; stroke-width: 3; }
+.db-bplus-edge { stroke: var(--uso-control-border); stroke-width: 1.5; fill: none; }
+.db-bplus-route { stroke: var(--uso-emphasis-ink); stroke-width: 3; }
+.db-bplus-leaf-link { stroke: var(--uso-muted); stroke-width: 1.5; fill: none; }
+.db-bplus-page { fill: var(--uso-surface-alt); stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-bplus-key { fill: var(--uso-surface); stroke: var(--uso-border); }
+.db-bplus-separator { fill: var(--uso-primary-soft); stroke: var(--uso-control-border); }
+.db-bplus-value { fill: var(--uso-text); font-size: 15px; font-weight: 600; }
+.db-bplus-label { fill: var(--uso-muted); font-size: 13px; }
+.db-bplus-pointer { fill: var(--uso-muted); }
+.db-bplus-node.is-visited .db-bplus-page { stroke: var(--uso-emphasis-ink); }
+.db-bplus-node.is-active .db-bplus-page { stroke: var(--uso-primary); stroke-width: 3; }
+.db-bplus-node.is-transient .db-bplus-page { stroke: var(--uso-warning); stroke-dasharray: 6 3; stroke-width: 3; }
 .db-bplus-condition { font-weight: 600; }
 .db-bplus-legend { font-size: .85rem; color: var(--db-text-secondary); }
 .db-bplus details { min-width: 0; overflow-wrap: anywhere; }
 .db-bplus summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
 @media (max-width: 575.98px) { .db-viz-form { grid-template-columns: minmax(0,1fr); } .db-viz-controls { flex-direction: column; } .db-viz { padding: .75rem; } }
-@media print { .db-viz-interactive { display: none !important; } .db-viz { border: 0; padding: 0; background: white; } .db-viz-fallback { display: block !important; } }
+@media print {
+  .db-viz-interactive { display: none !important; }
+  .db-viz { border: 0; padding: 0; background: white; color: black; }
+  .db-viz-fallback { display: block !important; }
+  .db-viz-fallback, .db-viz-fallback * { color: black !important; background: transparent !important; }
+}
 
 /* Hashing: fixed readable SVG coordinates, with local scroll at every viewport. */
 .db-hashing { min-width: 0; }
-.db-hash-scroll { max-height: 680px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-hash-scroll { max-height: 680px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: var(--uso-surface); }
 .db-hashing .db-hash-svg { display: block; max-width: none; height: auto; font-family: inherit; }
-.db-hash-label { fill: #526176; font-size: 13px; }
-.db-hash-value { fill: #243247; font-size: 15px; font-weight: 600; }
-.db-hash-bucket rect, .db-hash-page rect, .db-hash-ref rect { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
-.db-hash-ref rect { fill: #eff6ff; }
-.db-hash-edge { fill: none; stroke: #8897aa; stroke-width: 1.5; }
-.db-hash-edge.is-active { stroke: #147d78; stroke-width: 2.5; }
-.db-hash-bucket.is-active rect, .db-hash-page.is-active rect, .db-hash-ref.is-active rect { stroke: #2563eb; stroke-width: 3; }
-.db-hash-bucket.is-changed rect, .db-hash-page.is-changed rect, .db-hash-ref.is-changed rect { stroke: #98620a; stroke-width: 3; stroke-dasharray: 6 3; }
-.db-hash-page.is-read rect { fill: #e7f4f2; stroke: #147d78; stroke-width: 3; }
+.db-hash-label { fill: var(--uso-muted); font-size: 13px; }
+.db-hash-value { fill: var(--uso-text); font-size: 15px; font-weight: 600; }
+.db-hash-bucket rect, .db-hash-page rect, .db-hash-ref rect { fill: var(--uso-surface-alt); stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-hash-ref rect { fill: var(--uso-primary-soft); }
+.db-hash-edge { fill: none; stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-hash-edge.is-active { stroke: var(--uso-emphasis-ink); stroke-width: 2.5; }
+.db-hash-bucket.is-active rect, .db-hash-page.is-active rect, .db-hash-ref.is-active rect { stroke: var(--uso-primary); stroke-width: 3; }
+.db-hash-bucket.is-changed rect, .db-hash-page.is-changed rect, .db-hash-ref.is-changed rect { stroke: var(--uso-warning); stroke-width: 3; stroke-dasharray: 6 3; }
+.db-hash-page.is-read rect { fill: var(--uso-emphasis-soft); stroke: var(--uso-emphasis-ink); stroke-width: 3; }
 .db-hash-condition { font-weight: 600; }
 .db-hash-legend { font-size: .85rem; color: var(--db-text-secondary); }
 .db-hashing details { min-width: 0; overflow-wrap: anywhere; }
@@ -75,20 +82,20 @@
 .db-plan-comparison { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
 .db-plan-comparison figure { margin: 0; }
 .db-plan-comparison figcaption { font-weight: 700; color: var(--db-heading); }
-.db-plan-scroll { max-height: 660px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: white; }
+.db-plan-scroll { max-height: 660px; overflow: auto; border: 1px solid var(--db-border); border-radius: .4rem; background: var(--uso-surface); }
 .db-query-plan .db-plan-svg { display: block; max-width: none; height: auto; font-family: inherit; }
-.db-plan-edge { fill: none; stroke: #8897aa; stroke-width: 1.5; }
-.db-plan-node rect { fill: #f7f9fc; stroke: #58677b; stroke-width: 1.5; }
-.db-plan-project rect { fill: #eff6ff; stroke: #2563eb; }
-.db-plan-select rect { fill: #e7f4f2; stroke: #147d78; }
+.db-plan-edge { fill: none; stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-plan-node rect { fill: var(--uso-surface-alt); stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-plan-project rect { fill: var(--uso-primary-soft); stroke: var(--uso-primary); }
+.db-plan-select rect { fill: var(--uso-emphasis-soft); stroke: var(--uso-emphasis-ink); }
 .db-plan-product rect { stroke-dasharray: 2 3; }
-.db-plan-join rect, .db-plan-natural rect { stroke: #147d78; stroke-width: 2.5; }
-.db-plan-delta rect { stroke: #2563eb; stroke-width: 3; }
-.db-plan-group rect { fill: #edf2f9; stroke-width: 3; }
-.db-plan-node.is-changed rect { stroke: #98620a; stroke-width: 3; stroke-dasharray: 7 3; }
-.db-plan-node.is-invalid rect { stroke: #c03642; stroke-width: 3; }
-.db-plan-value { fill: #243247; font-size: 15px; font-weight: 650; }
-.db-plan-label { fill: #243247; font-size: 14px; }
+.db-plan-join rect, .db-plan-natural rect { stroke: var(--uso-emphasis-ink); stroke-width: 2.5; }
+.db-plan-delta rect { stroke: var(--uso-primary); stroke-width: 3; }
+.db-plan-group rect { fill: var(--uso-surface-alt); stroke-width: 3; }
+.db-plan-node.is-changed rect { stroke: var(--uso-warning); stroke-width: 3; stroke-dasharray: 7 3; }
+.db-plan-node.is-invalid rect { stroke: var(--uso-danger); stroke-width: 3; }
+.db-plan-value { fill: var(--uso-text); font-size: 15px; font-weight: 650; }
+.db-plan-label { fill: var(--uso-text); font-size: 14px; }
 .db-plan-legend { font-size: .85rem; color: var(--db-text-secondary); }
 .db-query-plan details { min-width: 0; overflow-wrap: anywhere; }
 .db-query-plan summary { cursor: pointer; min-height: 44px; padding: .5rem 0; }
@@ -102,32 +109,32 @@
 .db-buffer-counts { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
 .db-buffer-counts p { margin: 0; }
 .db-buffer-frames { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .75rem; margin: 1rem 0; }
-.db-buffer-frame { min-width: 0; padding: .8rem; border: 1px solid #58677b; border-radius: .4rem; background: white; }
+.db-buffer-frame { min-width: 0; padding: .8rem; border: 1px solid var(--uso-control-border); border-radius: .4rem; background: var(--uso-surface); }
 .db-buffer-frame p { margin: .2rem 0; font-size: .9rem; }
 .db-buffer-frame .db-buffer-frame-title { font-weight: 600; }
-.db-buffer-frame .db-buffer-page { font-size: 1.25rem; font-weight: 700; color: #243247; }
-.db-buffer-frame.is-active { outline: 3px solid #2563eb; outline-offset: -3px; }
-.db-buffer-frame.is-pinned { border-left: 5px solid #147d78; }
-.db-buffer-frame.is-dirty { background: #fff8e8; }
+.db-buffer-frame .db-buffer-page { font-size: 1.25rem; font-weight: 700; color: var(--uso-text); }
+.db-buffer-frame.is-active { outline: 3px solid var(--uso-primary); outline-offset: -3px; }
+.db-buffer-frame.is-pinned { border-left: 5px solid var(--uso-emphasis-ink); }
+.db-buffer-frame.is-dirty { background: var(--uso-callout-warning-header); }
 .db-buffer-pending, .db-buffer-io { font-weight: 600; }
 .db-buffer-order, .db-buffer-candidates { font-size: .9rem; }
-.db-buffer-disk { padding: .75rem; border: 1px dashed #58677b; border-radius: .4rem; }
+.db-buffer-disk { padding: .75rem; border: 1px dashed var(--uso-control-border); border-radius: .4rem; }
 .db-buffer-disk ul { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; padding-left: 1rem; margin-bottom: 0; }
 .db-buffer details summary { cursor: pointer; padding: .5rem 0; min-height: 44px; }
 .db-buffer .db-buffer-history .db-viz-scroll table { min-width: 660px; }
 .db-buffer .db-viz-scroll table, .db-pages .db-viz-scroll table { min-width: 420px; overflow-wrap: normal; }
-.db-buffer-manual { border-top: 1px solid #dce3ed; margin-top: 1rem; }
-.db-page-scroll { border: 1px solid #dce3ed; border-radius: .4rem; background: white; }
+.db-buffer-manual { border-top: 1px solid var(--uso-border); margin-top: 1rem; }
+.db-page-scroll { border: 1px solid var(--uso-border); border-radius: .4rem; background: var(--uso-surface); }
 .db-pages .db-page-svg { display: block; max-width: none; font-family: inherit; }
-.db-page-svg text { font-size: 15px; fill: #243247; }
-.db-page-svg rect { stroke: #58677b; stroke-width: 1.5; }
-.db-page-header rect { fill: #edf2f9; }
-.db-page-slot rect { fill: #eff6ff; }
-.db-page-free rect { fill: white; }
-.db-page-hole rect { fill: #fff0c2; stroke-dasharray: 5 3; }
-.db-page-record rect { fill: #e7f4f2; }
+.db-page-svg text { font-size: 15px; fill: var(--uso-text); }
+.db-page-svg rect { stroke: var(--uso-control-border); stroke-width: 1.5; }
+.db-page-header rect { fill: var(--uso-surface-alt); }
+.db-page-slot rect { fill: var(--uso-primary-soft); }
+.db-page-free rect { fill: var(--uso-surface); }
+.db-page-hole rect { fill: var(--uso-callout-warning-header); stroke-dasharray: 5 3; }
+.db-page-record rect { fill: var(--uso-emphasis-soft); }
 .db-storage-diagram { max-width: 100%; overflow-x: auto; margin: 1.25rem 0; }
 .db-storage-diagram svg { display: block; width: 680px; max-width: none; height: auto; }
 .db-storage-diagram figcaption { font-size: .9rem; margin-top: .6rem; }
-.db-storage-diagram:focus-visible { outline: 2px solid #2563eb; }
+.db-storage-diagram:focus-visible { outline: 2px solid var(--uso-primary); }
 @media print { .db-storage-diagram { overflow: visible; } .db-storage-diagram svg { width: 100%; } }

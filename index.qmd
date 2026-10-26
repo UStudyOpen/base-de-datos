@@ -2,14 +2,18 @@
 title: "Bases de Datos"
 description: "Material académico autónomo sobre el modelo relacional, consultas, SQL y diseño de bases de datos."
 toc: false
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
-:::: {.hero-db}
+:::: {.uso-hero}
+[UStudyOpen · Recursos universitarios abiertos]{.uso-course-identity}
+
 ## Modelo relacional, consultas, SQL y diseño
 
 Este sitio presenta las bases conceptuales y prácticas de las **bases de datos relacionales**. Combina definiciones matemáticas, ejemplos y consultas SQL para estudiar cómo se representa la información, cómo se consulta y cómo se diseña un esquema.
 
-::: {.hero-actions}
+::: {.uso-actions}
 [Comenzar a estudiar](fundamentos/sistemas-rdbms.qmd){.btn .btn-primary}
 [Explorar los temas](#mapa-de-contenidos){.btn .btn-outline-primary}
 :::
@@ -17,10 +21,18 @@ Este sitio presenta las bases conceptuales y prácticas de las **bases de datos 
 El recorrido comprende el modelo relacional, la lógica y el álgebra de consultas, SQL, la información incompleta y el diseño mediante dependencias funcionales y descomposiciones. Las páginas se pueden leer en ese orden o consultar por concepto; cada una incluye ejemplos, un resumen y enlaces a los conocimientos relacionados.
 ::::
 
+## Objetivos generales
+
+- Representar información mediante relaciones, esquemas y restricciones.
+- Formular e interpretar consultas en lógica, álgebra relacional y SQL.
+- Analizar diseño relacional, índices, almacenamiento y procesamiento de consultas.
+
 ## Mapa de contenidos
 
 :::: {.topic-grid}
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Fundamentos
 
 Del concepto de RDBMS a tuplas, relaciones, esquemas, atributos y relaciones nombradas.
@@ -29,6 +41,8 @@ Del concepto de RDBMS a tuplas, relaciones, esquemas, atributos y relaciones nom
 :::
 
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Teoría de consultas
 
 Lógica de primer orden, álgebra relacional, joins, composición y equivalencia expresiva.
@@ -37,6 +51,8 @@ Lógica de primer orden, álgebra relacional, joins, composición y equivalencia
 :::
 
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### SQL
 
 DDL, DML, `SELECT-FROM-WHERE`, joins, conjuntos, subconsultas, agregación y dialectos.
@@ -45,6 +61,8 @@ DDL, DML, `SELECT-FROM-WHERE`, joins, conjuntos, subconsultas, agregación y dia
 :::
 
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Nulos e información incompleta
 
 `NULL`, lógica de tres valores, mundos posibles, tablas de Codd y outer joins.
@@ -53,6 +71,8 @@ DDL, DML, `SELECT-FROM-WHERE`, joins, conjuntos, subconsultas, agregación y dia
 :::
 
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Diseño relacional
 
 Redundancia, dependencias funcionales, llaves, clausura, descomposiciones sin pérdida y preservación. Incluye pruebas, ejercicios y exploradores de BCNF y síntesis 3NF.
@@ -61,6 +81,8 @@ Redundancia, dependencias funcionales, llaves, clausura, descomposiciones sin p�
 :::
 
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Índices
 
 Árboles B+ por páginas y hashing: búsquedas, inserción, eliminación, cadenas de overflow y directorios dinámicos con exploradores paso a paso.
@@ -68,6 +90,8 @@ Redundancia, dependencias funcionales, llaves, clausura, descomposiciones sin p�
 [Explorar B+trees](indices/bplus.qmd) · [Hashing](indices/hashing.qmd)
 :::
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Procesamiento de consultas
 
 Del parser al plan lógico: álgebra extendida, multiplicidades y reescrituras con hipótesis, árboles interactivos y contraejemplos.
@@ -75,6 +99,8 @@ Del parser al plan lógico: álgebra extendida, multiplicidades y reescrituras c
 [Planes lógicos](procesamiento/planes-logicos.qmd) · [Reescritura y equivalencia](procesamiento/reescritura.qmd)
 :::
 ::: {.topic-card}
+[En desarrollo]{.uso-status .uso-status--en-desarrollo}
+
 ### Almacenamiento y organización física
 
 Páginas, registros, RIDs y compactación. Simula pins, dirty bits y reemplazo FIFO/LRU, y compara sus lecturas y escrituras.
@@ -104,3 +130,12 @@ Los datos son ficticios. Usaremos `BD101` para Bases de Datos, `PROG101` para In
 - SQL se presenta como lenguaje real con semántica de duplicados y particularidades de motor, distinguiéndolo del modelo de conjuntos del álgebra relacional.
 - La bibliografía principal reúne obras de teoría y sistemas de bases de datos para fundamentar los conceptos y ampliar su estudio. [@arenas2022; @abiteboul1995; @garciamolina2009; @silberschatz2020; @ramakrishnan2003]
 - Una definición se desarrolla en su página principal y, en el resto del sitio, se enlaza en vez de repetirse extensamente.
+
+
+## Proyecto, autoría y licencia
+
+UStudyOpen es un proyecto educativo independiente. Este material no implica afiliación ni respaldo oficial de una universidad.
+
+El contenido académico original autorizado se ofrece bajo [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), con atribución pública a ngulloa. La extensión y las herramientas comunes utilizan MIT; los recursos de terceros conservan sus condiciones. Véanse el alcance y los textos completos en el enlace «Licencias y avisos» al pie de esta página.
+
+El curso se encuentra **en desarrollo**. La compilación y las pruebas técnicas no sustituyen la revisión académica; ninguna página se ha marcado automáticamente como revisada.

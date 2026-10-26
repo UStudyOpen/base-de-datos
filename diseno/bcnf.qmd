@@ -1,6 +1,8 @@
 ---
 title: "Forma normal de Boyce–Codd (BCNF)"
 description: "Descomposición recursiva por clausuras, prueba de pérdida y límites de preservación."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 <div class="concept-section">

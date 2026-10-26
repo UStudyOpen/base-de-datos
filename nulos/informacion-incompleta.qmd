@@ -1,6 +1,8 @@
 ---
 title: "Información incompleta y mundos posibles"
 description: "Tablas de Codd, valuaciones, posibles mundos y consultas sobre bases de datos incompletas."
+ustudy-status: en-desarrollo
+ustudy-reviewed: false
 ---
 
 ## Intuición y concepto
